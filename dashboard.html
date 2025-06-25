@@ -282,7 +282,6 @@
                 return null;
             };
             
-            // CORRIGIDO: Desabilita horários passados
             const renderAvailableTimes = async (dateString, excludedTime = null) => {
                 const timeSlotsContainer = document.getElementById('time-slots-container');
                 if (!dateString) {
@@ -421,7 +420,6 @@
                 feather.replace();
             };
 
-            // CORRIGIDO: Incrementa o contador do cliente
             async function handleSaveNewAppointment(e, userId) {
                 e.preventDefault();
                 const form = e.target;
@@ -451,13 +449,8 @@
                         price: servicePrice,
                         status: 'confirmado'
                     });
-
-                    // Incrementa o contador de agendamentos do cliente
                     const clientRef = doc(db, 'users', userId, 'clients', clientId);
-                    await updateDoc(clientRef, {
-                        appointmentCount: increment(1)
-                    });
-
+                    await updateDoc(clientRef, { appointmentCount: increment(1) });
                     closeAppointmentModal();
                     alert('Agendamento criado com sucesso!');
                 } catch(err) { console.error("Erro ao salvar agendamento:", err); alert('Ocorreu um erro. Tente novamente.'); }
@@ -518,23 +511,29 @@
                 alert("Agendamento atualizado com sucesso!");
             }
 
-            // CORRIGIDO: Decrementa o contador do cliente ao excluir
+            // CORRIGIDO: Deleta o cliente se o contador de agendamentos for <= 1
             async function handleDeleteAppointment(userId, appointmentId) {
                 if (window.confirm("Tem certeza que deseja excluir este agendamento? Esta ação não pode ser desfeita.")) {
                     const appDocRef = doc(db, 'users', userId, 'appointments', appointmentId);
                     try {
-                        // Antes de deletar, pega o ID do cliente no agendamento
                         const appDocSnap = await getDoc(appDocRef);
                         if (appDocSnap.exists()) {
                             const { clientId } = appDocSnap.data();
                             if (clientId) {
                                 const clientRef = doc(db, 'users', userId, 'clients', clientId);
-                                await updateDoc(clientRef, {
-                                    appointmentCount: increment(-1)
-                                });
+                                const clientSnap = await getDoc(clientRef);
+                                if (clientSnap.exists()) {
+                                    const currentCount = clientSnap.data().appointmentCount || 0;
+                                    if (currentCount <= 1) {
+                                        await deleteDoc(clientRef);
+                                    } else {
+                                        await updateDoc(clientRef, {
+                                            appointmentCount: increment(-1)
+                                        });
+                                    }
+                                }
                             }
                         }
-                        // Agora, deleta o agendamento
                         await deleteDoc(appDocRef);
                         closeAppointmentModal();
                         alert("Agendamento excluído com sucesso.");
