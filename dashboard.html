@@ -239,11 +239,12 @@
             }
 
             const closeAppointmentModal = () => {
+                appointmentModal.innerHTML = '';
                 appointmentModal.classList.add('hidden');
                 appointmentModal.classList.remove('flex');
             }
             
-            async function handleSaveAppointment(e, userId) { /*...*/ }
+            async function handleSaveAppointment(e, userId) { e.preventDefault(); /* ... */ }
             async function populateSelectWithOptions(userId, collectionName, selectId, emptyMessage) { 
                 const selectEl = document.getElementById(selectId);
                 selectEl.innerHTML = '';
@@ -267,6 +268,7 @@
 
 
             addAppointmentBtn.addEventListener('click', openAppointmentModal);
+            // O resto da lógica da agenda (renderização, etc) iria aqui
       }
       function initializeClients(userId) { /* ... */ }
       function initializeServices(userId) { /* ... */ }
