@@ -90,7 +90,6 @@
       const auth = getAuth(app);
       const db = getFirestore(app);
 
-      // --- ELEMENTOS GLOBAIS ---
       const loadingOverlay = document.getElementById('loading-overlay');
       const appContainer = document.getElementById('app-container');
       const subscriptionWall = document.getElementById('subscription-wall');
@@ -99,8 +98,6 @@
       let servicesCache = [];
       let allClients = [];
       let currentWeekOffset = 0;
-
-      // --- LÓGICA DE AUTENTICAÇÃO E ROTEAMENTO ---
 
       onAuthStateChanged(auth, async (user) => {
           loadingOverlay.classList.add('hidden');
@@ -120,7 +117,7 @@
               const isTrialActive = new Date() < trialEndDate;
 
               if (hasActiveSubscription || isTrialActive) {
-                  const daysLeft = isTrialActive && !hasActiveSubscription ? Math.floor((trialEndDate - new Date()) / (1000 * 60 * 60 * 24)) : null;
+                  const daysLeft = isTrialActive && !hasActiveSubscription ? Math.floor((new Date(trialEndDate) - new Date()) / (1000 * 60 * 60 * 24)) : null;
                   showDashboard(user, userData, daysLeft);
               } else {
                   showSubscriptionWall();
@@ -157,8 +154,6 @@
           accessDeniedMessage.classList.remove('hidden');
           accessDeniedMessage.innerHTML = `<div class="text-center"><h1 class="text-2xl font-bold">Acesso Negado</h1><p class="text-slate-600 mt-2">${message}</p><a href="index.html" class="mt-4 inline-block bg-indigo-600 text-white font-semibold py-2 px-4 rounded-lg">Ir para a Página Inicial</a></div>`;
       }
-      
-      // --- LÓGICA DE INICIALIZAÇÃO E CONTEÚDO DAS SEÇÕES ---
       
       function initializeDashboard(userId) {
           const mainContent = document.getElementById('main-content');
