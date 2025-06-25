@@ -228,7 +228,35 @@
                   <div class="grid grid-cols-1 lg:grid-cols-2 gap-8"><section class="bg-white p-6 rounded-lg shadow-sm"><h3 class="text-lg font-semibold text-slate-800 mb-4">Registar Novo Barbeiro</h3><form id="barber-form" class="space-y-4"><div><label for="barber-name" class="block text-sm font-medium">Nome</label><input type="text" id="barber-name" required class="input-style"></div><button id="save-barber-btn" type="submit" class="w-full bg-indigo-600 text-white font-semibold py-2 px-4 rounded-lg flex items-center justify-center disabled:opacity-50"><span class="btn-text">Guardar Barbeiro</span><div class="spinner hidden ml-2"></div></button></form></section><section class="bg-white p-6 rounded-lg shadow-sm"><h3 class="text-lg font-semibold text-slate-800 mb-4">Os Meus Barbeiros</h3><div id="barbers-list" class="space-y-3 max-h-96 overflow-y-auto"></div></section></div>
               </div>
               <div id="financeiro-section" class="hidden">
-                  <h2 class="text-2xl font-bold text-slate-800 mb-6">Visão Financeira</h2><section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8"><div class="bg-white p-6 rounded-lg shadow-sm"><p class="text-sm text-slate-500">Faturação do Mês</p><p id="finance-month-revenue" class="text-3xl font-bold text-slate-800 mt-1">R$ 0,00</p></div><div class="bg-white p-6 rounded-lg shadow-sm"><p class="text-sm text-slate-500">Faturação de Hoje</p><p id="finance-today-revenue" class="text-3xl font-bold text-slate-800 mt-1">R$ 0,00</p></div><div class="bg-white p-6 rounded-lg shadow-sm"><p class="text-sm text-slate-500">Ticket Médio</p><p id="finance-avg-ticket" class="text-3xl font-bold text-slate-800 mt-1">R$ 0,00</p></div></section><section class="bg-white p-6 rounded-lg shadow-sm"><h3 class="text-lg font-semibold text-slate-800 mb-4">Faturação (Últimos 7 dias)</h3><div><canvas id="revenue-chart"></canvas></div></section>
+                  <h2 class="text-2xl font-bold text-slate-800 mb-6">Visão Financeira</h2>
+                  <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+                      <div class="bg-white p-6 rounded-lg shadow-sm"><p class="text-sm text-slate-500">Faturação do Mês</p><p id="finance-month-revenue" class="text-3xl font-bold text-slate-800 mt-1">R$ 0,00</p></div>
+                      <div class="bg-white p-6 rounded-lg shadow-sm"><p class="text-sm text-slate-500">Faturação de Hoje</p><p id="finance-today-revenue" class="text-3xl font-bold text-slate-800 mt-1">R$ 0,00</p></div>
+                      <div class="bg-white p-6 rounded-lg shadow-sm"><p class="text-sm text-slate-500">Ticket Médio (Mês)</p><p id="finance-avg-ticket" class="text-3xl font-bold text-slate-800 mt-1">R$ 0,00</p></div>
+                  </section>
+                  <section class="bg-white p-6 rounded-lg shadow-sm mt-8">
+                      <h3 class="text-lg font-semibold text-slate-800 mb-4">Relatório Personalizado</h3>
+                      <div class="flex flex-col md:flex-row items-center gap-4 p-4 border rounded-lg bg-slate-50 mb-6">
+                          <div class="flex-1 w-full">
+                              <label for="filter-start-date" class="block text-sm font-medium text-slate-600">Data de Início</label>
+                              <input type="date" id="filter-start-date" class="input-style">
+                          </div>
+                          <div class="flex-1 w-full">
+                              <label for="filter-end-date" class="block text-sm font-medium text-slate-600">Data de Fim</label>
+                              <input type="date" id="filter-end-date" class="input-style">
+                          </div>
+                          <button id="generate-report-btn" class="w-full md:w-auto bg-indigo-600 text-white font-semibold py-2 px-6 rounded-lg self-end h-10 flex items-center justify-center">Gerar</button>
+                      </div>
+                      <div id="report-summary" class="hidden grid-cols-1 gap-6 mb-6">
+                          <div class="bg-indigo-50 p-6 rounded-lg shadow-sm border border-indigo-200">
+                              <p class="text-sm text-indigo-800">Faturação Total no Período</p>
+                              <p id="finance-period-revenue" class="text-3xl font-bold text-indigo-600 mt-1">R$ 0,00</p>
+                          </div>
+                      </div>
+                      <div>
+                          <canvas id="revenue-chart"></canvas>
+                      </div>
+                  </section>
               </div>
               <div id="configuracoes-section" class="hidden">
                   <h2 class="text-2xl font-bold text-slate-800 mb-6">Configurações</h2><div class="grid grid-cols-1 lg:grid-cols-2 gap-8"><div class="bg-white p-6 rounded-lg shadow-sm"><h3 class="text-lg font-semibold text-slate-800">Horários de Funcionamento</h3><p class="text-sm text-slate-500 mt-1 mb-4">Defina os seus dias e horários de trabalho.</p><form id="working-hours-form" class="space-y-4"></form><button id="save-hours-btn" type="button" class="mt-6 w-full bg-indigo-600 text-white font-semibold py-2 px-4 rounded-lg flex items-center justify-center disabled:opacity-50"><span class="btn-text">Guardar Alterações</span><div class="spinner hidden ml-2"></div></button></div><div class="bg-white p-6 rounded-lg shadow-sm"><h3 class="text-lg font-semibold text-slate-800">O seu Link de Agendamento</h3><p class="text-sm text-slate-500 mt-1 mb-4">Partilhe este link no seu Instagram.</p><div class="flex items-center space-x-2"><input id="public-booking-link" type="text" readonly class="w-full p-2 bg-slate-100 border border-slate-300 rounded-md"><button id="copy-link-btn" class="bg-indigo-600 text-white font-semibold py-2 px-4 rounded-lg flex-shrink-0">Copiar</button></div></div></div>
@@ -413,7 +441,6 @@
                 }
             }
 
-            // --- NOVO: Funções para Editar e Excluir ---
             const openEditModal = async (userId, appointmentId) => {
                 const appDocRef = doc(db, 'users', userId, 'appointments', appointmentId);
                 const appDocSnap = await getDoc(appDocRef);
@@ -426,7 +453,6 @@
                 const dateString = appDate.toISOString().split('T')[0];
                 const timeString = `${String(appDate.getHours()).padStart(2, '0')}:${String(appDate.getMinutes()).padStart(2, '0')}`;
                 selectedTime = timeString;
-
                 appointmentModal.innerHTML = `<div class="bg-white rounded-lg shadow-2xl p-8 max-w-2xl w-full relative"><button id="close-modal-btn" class="absolute top-4 right-4 text-gray-400 hover:text-gray-800"><i data-feather="x" class="w-6 h-6"></i></button><h3 class="text-lg font-semibold text-slate-800 mb-6">Editar Agendamento</h3><form id="edit-appointment-form" class="space-y-4"><p class="text-sm font-semibold">Cliente: ${appointmentData.clientName}</p><div class="grid grid-cols-1 md:grid-cols-2 gap-4"><div><label for="appointment-service" class="block text-sm font-medium text-slate-600">Serviço</label><select id="appointment-service" required class="input-style"></select></div><div><label for="appointment-barber" class="block text-sm font-medium text-slate-600">Barbeiro</label><select id="appointment-barber" required class="input-style"></select></div></div><div class="grid grid-cols-1 md:grid-cols-2 gap-4"><div><label for="appointment-date" class="block text-sm font-medium text-slate-600">Data</label><input type="date" id="appointment-date" required class="input-style" value="${dateString}"></div><div><label class="block text-sm font-medium text-slate-600">Hora</label><div id="time-slots-container" class="mt-2 grid grid-cols-3 sm:grid-cols-4 gap-2 border p-2 rounded-md min-h-[80px]"></div></div></div><div class="flex items-center gap-4 mt-6"><button id="update-appointment-btn" type="submit" class="w-full bg-indigo-600 text-white font-semibold py-3 px-4 rounded-lg shadow-md hover:bg-indigo-700">Salvar Alterações</button><button id="delete-appointment-btn" type="button" class="w-auto bg-red-600 text-white font-semibold py-3 px-4 rounded-lg shadow-md hover:bg-red-700"><i data-feather="trash-2" class="w-5 h-5"></i></button></div></form></div>`;
                 appointmentModal.classList.remove('hidden');
                 appointmentModal.classList.add('flex');
@@ -437,9 +463,8 @@
                 dateInput.min = new Date().toISOString().split("T")[0];
                 dateInput.addEventListener('change', () => renderAvailableTimes(dateInput.value, timeString));
                 await populateSelectWithOptions(userId, 'services', 'appointment-service', 'Nenhum serviço', appointmentData.serviceId);
-                await populateSelectWithOptions(userId, 'barbers', 'appointment-barber', 'Nenhum barbeiro', appointmentData.barberId); // Supondo que você salve o barberId
+                await populateSelectWithOptions(userId, 'barbers', 'appointment-barber', 'Nenhum barbeiro', appointmentData.barberId);
                 await renderAvailableTimes(dateString, timeString);
-                // Pré-selecionar o horário existente
                 document.querySelector(`#time-slots-container button[data-time="${timeString}"]`)?.click();
                 feather.replace();
             };
@@ -452,13 +477,15 @@
                 const newDateTime = Timestamp.fromDate(new Date(`${date}T${selectedTime}`));
                 const serviceId = form.elements['appointment-service'].value;
                 const serviceName = form.elements['appointment-service'].options[form.elements['appointment-service'].selectedIndex].text;
-                // Obtenha os dados atualizados do barbeiro também
+                const barberId = form.elements['appointment-barber'].value;
+                const barberName = form.elements['appointment-barber'].options[form.elements['appointment-barber'].selectedIndex].text;
                 const appDocRef = doc(db, 'users', userId, 'appointments', appointmentId);
                 await updateDoc(appDocRef, {
                     dateTime: newDateTime,
                     serviceId: serviceId,
                     serviceName: serviceName,
-                    // adicione outros campos que podem ser editados
+                    barberId: barberId,
+                    barberName: barberName,
                 });
                 closeAppointmentModal();
                 alert("Agendamento atualizado com sucesso!");
@@ -472,7 +499,6 @@
                     alert("Agendamento excluído com sucesso.");
                 }
             }
-            // --- Fim das Funções de Editar e Excluir ---
 
             function renderWeek(userId, offset = 0) {
                 const today = new Date();
@@ -501,9 +527,8 @@
                         const targetSlot = calendarGrid.children[slotIndex];
                         if (targetSlot) {
                             const appEl = document.createElement('div');
-                            appEl.className = 'bg-indigo-100 p-1 rounded text-xs mb-1 appointment-block'; // MODIFICADO
+                            appEl.className = 'bg-indigo-100 p-1 rounded text-xs mb-1 appointment-block';
                             appEl.innerHTML = `<strong>${app.clientName}</strong><br>${app.serviceName}`;
-                            // NOVO: Adiciona o evento de clique para abrir o modal de edição
                             appEl.addEventListener('click', () => openEditModal(userId, docSnap.id));
                             targetSlot.appendChild(appEl);
                         }
@@ -513,7 +538,7 @@
             
             document.getElementById('prev-week-btn').addEventListener('click', () => { currentWeekOffset--; renderWeek(userId, currentWeekOffset); });
             document.getElementById('next-week-btn').addEventListener('click', () => { currentWeekOffset++; renderWeek(userId, currentWeekOffset); });
-            addAppointmentBtn.addEventListener('click', openNewAppointmentModal); // MODIFICADO para chamar a função correta
+            addAppointmentBtn.addEventListener('click', openNewAppointmentModal);
             renderWeek(userId);
         }
 
@@ -569,6 +594,7 @@
               feather.replace();
           });
         }
+
         function initializeBarbers(userId) {
           const form = document.getElementById('barber-form');
           const listDiv = document.getElementById('barbers-list');
@@ -594,56 +620,103 @@
               feather.replace();
           });
         }
+
+        // MODIFICADO: Função financeira otimizada
         function initializeFinance(userId) {
-          onSnapshot(query(collection(db, 'users', userId, 'appointments')), (snap) => {
-              const now = new Date();
-              const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-              const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-              
-              let todayRevenue = 0;
-              let monthRevenue = 0;
-              let totalAppointments = 0;
-              const last7Days = Array(7).fill(0);
+            const appointmentsRef = collection(db, 'users', userId, 'appointments');
 
-              snap.forEach(doc => {
-                  const app = doc.data();
-                  const appDate = app.dateTime.toDate();
-                  const price = app.price || 0;
+            // Listener para os cartões de resumo (tempo real)
+            onSnapshot(query(appointmentsRef), (snap) => {
+                const now = new Date();
+                const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+                let todayRevenue = 0;
+                let monthRevenue = 0;
+                let monthAppointments = 0;
 
-                  totalAppointments++;
-                  if (appDate >= monthStart) monthRevenue += price;
-                  if (appDate >= todayStart) todayRevenue += price;
+                snap.forEach(doc => {
+                    const app = doc.data();
+                    const appDate = app.dateTime.toDate();
+                    const price = app.price || 0;
 
-                  const diffDays = Math.floor((now - appDate) / (1000 * 60 * 60 * 24));
-                  if (diffDays >= 0 && diffDays < 7) {
-                      last7Days[diffDays] += price;
-                  }
-              });
-              
-              document.getElementById('finance-today-revenue').textContent = `R$ ${todayRevenue.toFixed(2)}`;
-              document.getElementById('finance-month-revenue').textContent = `R$ ${monthRevenue.toFixed(2)}`;
-              document.getElementById('finance-avg-ticket').textContent = `R$ ${(monthRevenue / (totalAppointments || 1)).toFixed(2)}`;
-              
-              const ctx = document.getElementById('revenue-chart').getContext('2d');
-              if (revenueChartInstance) revenueChartInstance.destroy();
-              revenueChartInstance = new Chart(ctx, {
-                  type: 'line',
-                  data: {
-                      labels: Array.from({length: 7}, (_, i) => {
-                          const d = new Date();
-                          d.setDate(d.getDate() - i);
-                          return d.toLocaleDateString('pt-BR', { weekday: 'short' });
-                      }).reverse(),
-                      datasets: [{
-                          label: 'Faturação',
-                          data: last7Days.reverse(),
-                          borderColor: '#4f46e5',
-                          tension: 0.1
-                      }]
-                  }
-              });
-          });
+                    if (appDate >= monthStart) {
+                        monthRevenue += price;
+                        monthAppointments++;
+                    }
+                    if (appDate >= todayStart) {
+                        todayRevenue += price;
+                    }
+                });
+                document.getElementById('finance-today-revenue').textContent = `R$ ${todayRevenue.toFixed(2)}`;
+                document.getElementById('finance-month-revenue').textContent = `R$ ${monthRevenue.toFixed(2)}`;
+                document.getElementById('finance-avg-ticket').textContent = `R$ ${(monthRevenue / (monthAppointments || 1)).toFixed(2)}`;
+            });
+
+            // Lógica para o relatório personalizado
+            const generateReportBtn = document.getElementById('generate-report-btn');
+            generateReportBtn.addEventListener('click', async () => {
+                const startDateInput = document.getElementById('filter-start-date').value;
+                const endDateInput = document.getElementById('filter-end-date').value;
+
+                if (!startDateInput || !endDateInput) {
+                    alert('Por favor, selecione a data de início e de fim.');
+                    return;
+                }
+
+                const startTimestamp = Timestamp.fromDate(new Date(`${startDateInput}T00:00:00`));
+                const endTimestamp = Timestamp.fromDate(new Date(`${endDateInput}T23:59:59`));
+
+                const reportQuery = query(appointmentsRef, where("dateTime", ">=", startTimestamp), where("dateTime", "<=", endTimestamp), orderBy("dateTime"));
+                const reportSnap = await getDocs(reportQuery);
+
+                let periodRevenue = 0;
+                const dailyData = new Map();
+
+                reportSnap.forEach(doc => {
+                    const app = doc.data();
+                    const price = app.price || 0;
+                    periodRevenue += price;
+
+                    const day = app.dateTime.toDate().toLocaleDateString('pt-BR');
+                    dailyData.set(day, (dailyData.get(day) || 0) + price);
+                });
+                
+                document.getElementById('report-summary').classList.remove('hidden');
+                document.getElementById('report-summary').classList.add('grid');
+                document.getElementById('finance-period-revenue').textContent = `R$ ${periodRevenue.toFixed(2)}`;
+                
+                const ctx = document.getElementById('revenue-chart').getContext('2d');
+                if (revenueChartInstance) {
+                    revenueChartInstance.destroy();
+                }
+                revenueChartInstance = new Chart(ctx, {
+                    type: 'bar', // Mudei para barras para melhor visualização de dias específicos
+                    data: {
+                        labels: Array.from(dailyData.keys()),
+                        datasets: [{
+                            label: 'Faturação no Período',
+                            data: Array.from(dailyData.values()),
+                            backgroundColor: '#4f46e5',
+                            borderColor: '#4338ca',
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        scales: { y: { beginAtZero: true } },
+                        plugins: { legend: { display: false } }
+                    }
+                });
+            });
+
+            // Define as datas padrão do filtro para o mês corrente
+            const today = new Date();
+            const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0];
+            const todayISO = today.toISOString().split('T')[0];
+            document.getElementById('filter-start-date').value = firstDayOfMonth;
+            document.getElementById('filter-end-date').value = todayISO;
+            generateReportBtn.click(); // Gera o relatório inicial para o mês corrente
         }
+
         function setupSettings(userId) {
           const form = document.getElementById('working-hours-form');
           const saveBtn = document.getElementById('save-hours-btn');
