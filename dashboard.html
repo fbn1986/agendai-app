@@ -62,51 +62,14 @@
             </header>
 
             <main id="main-content" class="flex-1 p-6 md:p-8 overflow-y-auto">
-                </main>
+                <!-- As secções do painel serão inseridas aqui pelo JS -->
+            </main>
         </div>
     </div>
     
     <div id="subscription-wall" class="hidden w-full h-screen flex-col items-center justify-center bg-slate-100 p-4 text-center"></div>
     <div id="access-denied-message" class="hidden w-full h-screen flex-col items-center justify-center p-4"></div>
-    
-    <div id="appointment-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 items-center justify-center p-4">
-        <div class="bg-white rounded-lg shadow-2xl p-8 max-w-lg w-full relative">
-            <button id="close-modal-btn" class="absolute top-4 right-4 text-gray-400 hover:text-gray-800">
-                <i data-feather="x" class="w-6 h-6"></i>
-            </button>
-            <h3 class="text-lg font-semibold text-slate-800 mb-4">Novo Agendamento</h3>
-            <form id="appointment-form" class="space-y-4">
-                <div>
-                    <label for="client-name" class="block text-sm font-medium text-slate-600">Nome do Cliente</label>
-                    <input type="text" id="client-name" required class="mt-1 block w-full input-style">
-                </div>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label for="appointment-service" class="block text-sm font-medium text-slate-600">Serviço</label>
-                        <select id="appointment-service" required class="mt-1 block w-full input-style"></select>
-                    </div>
-                     <div>
-                        <label for="appointment-barber" class="block text-sm font-medium text-slate-600">Barbeiro</label>
-                        <select id="appointment-barber" required class="mt-1 block w-full input-style"></select>
-                    </div>
-                </div>
-                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label for="appointment-date" class="block text-sm font-medium text-slate-600">Data</label>
-                        <input type="date" id="appointment-date" required class="mt-1 block w-full input-style">
-                    </div>
-                    <div>
-                        <label for="appointment-time" class="block text-sm font-medium text-slate-600">Hora</label>
-                        <input type="time" id="appointment-time" required class="mt-1 block w-full input-style">
-                    </div>
-                </div>
-                <button id="save-appointment-btn" type="submit" class="w-full bg-indigo-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:bg-indigo-700 flex items-center justify-center disabled:opacity-50">
-                    <span class="btn-text">Guardar Agendamento</span>
-                    <div class="spinner hidden ml-2"></div>
-                </button>
-            </form>
-        </div>
-    </div>
+    <div id="appointment-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 items-center justify-center p-4"></div>
 
 
     <script type="module">
@@ -293,14 +256,166 @@
                 appointmentModal.classList.add('hidden');
                 appointmentModal.classList.remove('flex');
             }
+            
+            async function handleSaveAppointment(e, userId) { /*...*/ }
+            async function populateSelectWithOptions(userId, collectionName, selectId, emptyMessage) { /*...*/ }
+
 
             addAppointmentBtn.addEventListener('click', openAppointmentModal);
       }
       function initializeClients(userId) { /* ... */ }
-      function initializeServices(userId) { /* ... */ }
-      function initializeBarbers(userId) { /* ... */ }
+      function initializeServices(userId) {
+        const serviceForm = document.getElementById('service-form');
+        const saveServiceBtn = document.getElementById('save-service-btn');
+        const servicesListDiv = document.getElementById('services-list');
+        
+        serviceForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btnText = saveServiceBtn.querySelector('.btn-text');
+            const spinner = saveServiceBtn.querySelector('.spinner');
+            saveServiceBtn.disabled = true;
+            btnText.textContent = 'A guardar...';
+            spinner.classList.remove('hidden');
+            try {
+                await addDoc(collection(db, 'users', userId, 'services'), {
+                    name: document.getElementById('service-name').value,
+                    duration: Number(document.getElementById('service-duration').value),
+                    price: Number(document.getElementById('service-price').value)
+                });
+                serviceForm.reset();
+            } catch (error) { console.error("Erro ao guardar serviço:", error); } 
+            finally {
+                saveServiceBtn.disabled = false;
+                btnText.textContent = 'Guardar Serviço';
+                spinner.classList.add('hidden');
+            }
+        });
+
+        onSnapshot(query(collection(db, 'users', userId, 'services')), (snapshot) => {
+            servicesListDiv.innerHTML = '';
+            if (snapshot.empty) {
+                servicesListDiv.innerHTML = '<p class="text-slate-500">Nenhum serviço registado.</p>';
+                return;
+            }
+            snapshot.forEach(doc => {
+                const service = { id: doc.id, ...doc.data() };
+                const el = document.createElement('div');
+                el.className = 'flex justify-between items-center bg-slate-50 p-3 rounded-lg';
+                el.innerHTML = `<div><p class="font-semibold">${service.name}</p><p class="text-sm text-slate-500">${service.duration} min - R$ ${service.price.toFixed(2)}</p></div><button class="text-slate-400 hover:text-red-600"><i data-feather="trash-2" class="w-4 h-4"></i></button>`;
+                servicesListDiv.appendChild(el);
+            });
+            feather.replace();
+        });
+      }
+      function initializeBarbers(userId) {
+        const barberForm = document.getElementById('barber-form');
+        const saveBarberBtn = document.getElementById('save-barber-btn');
+        const barbersListDiv = document.getElementById('barbers-list');
+
+        barberForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btnText = saveBarberBtn.querySelector('.btn-text');
+            const spinner = saveBarberBtn.querySelector('.spinner');
+            saveBarberBtn.disabled = true;
+            btnText.textContent = 'A guardar...';
+            spinner.classList.remove('hidden');
+            try {
+                await addDoc(collection(db, 'users', userId, 'barbers'), {
+                    name: document.getElementById('barber-name').value
+                });
+                barberForm.reset();
+            } catch (error) { console.error("Erro ao guardar barbeiro:", error); }
+            finally {
+                saveBarberBtn.disabled = false;
+                btnText.textContent = 'Guardar Barbeiro';
+                spinner.classList.add('hidden');
+            }
+        });
+
+        onSnapshot(query(collection(db, 'users', userId, 'barbers')), (snapshot) => {
+            barbersListDiv.innerHTML = '';
+            if (snapshot.empty) {
+                barbersListDiv.innerHTML = '<p class="text-slate-500">Nenhum barbeiro registado.</p>';
+                return;
+            }
+            snapshot.forEach(doc => {
+                const barber = { id: doc.id, ...doc.data() };
+                const el = document.createElement('div');
+                el.className = 'flex justify-between items-center bg-slate-50 p-3 rounded-lg';
+                el.innerHTML = `<p class="font-semibold">${barber.name}</p><button class="text-slate-400 hover:text-red-600"><i data-feather="trash-2" class="w-4 h-4"></i></button>`;
+                barbersListDiv.appendChild(el);
+            });
+            feather.replace();
+        });
+      }
       function initializeFinance(userId) { /* ... */ }
-      function setupSettings(userId) { /* ... */ }
+      function setupSettings(userId) {
+        const workingHoursForm = document.getElementById('working-hours-form');
+        const saveHoursBtn = document.getElementById('save-hours-btn');
+
+        function generateWorkingHoursForm(hoursData = {}) {
+            const days = [ { id: 'dom', name: 'Domingo' }, { id: 'seg', name: 'Segunda-feira' }, { id: 'ter', name: 'Terça-feira' }, { id: 'qua', name: 'Quarta-feira' }, { id: 'qui', name: 'Quinta-feira' }, { id: 'sex', name: 'Sexta-feira' }, { id: 'sab', name: 'Sábado' }];
+            workingHoursForm.innerHTML = '';
+            days.forEach(day => {
+                const dayData = hoursData[day.id] || { isOpen: day.id !== 'dom', start: '09:00', end: '18:00' };
+                const dayRow = document.createElement('div');
+                dayRow.className = 'flex items-center justify-between border-t border-slate-200 pt-3';
+                dayRow.innerHTML = `<span class="font-medium text-slate-700">${day.name}</span><div class="flex items-center gap-4"><div class="flex items-center gap-2"><input type="time" id="${day.id}-start" value="${dayData.start}" class="p-1 border border-slate-300 rounded-md text-sm" ${!dayData.isOpen ? 'disabled' : ''}><span>às</span><input type="time" id="${day.id}-end" value="${dayData.end}" class="p-1 border border-slate-300 rounded-md text-sm" ${!dayData.isOpen ? 'disabled' : ''}></div><div class="relative inline-block w-10 mr-2 align-middle select-none"><input type="checkbox" name="${day.id}-toggle" id="${day.id}-toggle" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer" ${dayData.isOpen ? 'checked' : ''} /><label for="${day.id}-toggle" class="toggle-label block overflow-hidden h-6 rounded-full bg-slate-300 cursor-pointer"></label></div></div>`;
+                workingHoursForm.appendChild(dayRow);
+                dayRow.querySelector(`#${day.id}-toggle`).addEventListener('change', (e) => {
+                    const isChecked = e.target.checked;
+                    dayRow.querySelector(`#${day.id}-start`).disabled = !isChecked;
+                    dayRow.querySelector(`#${day.id}-end`).disabled = !isChecked;
+                });
+            });
+            feather.replace();
+        }
+
+        async function loadWorkingHours() {
+            const settingsRef = doc(db, 'users', userId, 'settings', 'workingHours');
+            const docSnap = await getDoc(settingsRef);
+            if (docSnap.exists()) { generateWorkingHoursForm(docSnap.data()); } 
+            else { generateWorkingHoursForm(); }
+        }
+
+        async function handleSaveWorkingHours() {
+            const btnText = saveHoursBtn.querySelector('.btn-text');
+            const spinner = saveHoursBtn.querySelector('.spinner');
+            saveHoursBtn.disabled = true;
+            btnText.textContent = 'A guardar...';
+            spinner.classList.remove('hidden');
+            const newHoursData = {};
+            ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sab'].forEach(dayId => {
+                newHoursData[dayId] = {
+                    isOpen: document.getElementById(`${dayId}-toggle`).checked,
+                    start: document.getElementById(`${dayId}-start`).value,
+                    end: document.getElementById(`${dayId}-end`).value,
+                };
+            });
+            try {
+                await setDoc(doc(db, 'users', userId, 'settings', 'workingHours'), newHoursData);
+            } catch (error) { console.error("Erro ao guardar horários:", error); } 
+            finally {
+                saveHoursBtn.disabled = false;
+                btnText.textContent = 'Guardar Alterações';
+                spinner.classList.add('hidden');
+            }
+        }
+        
+        const copyLinkBtn = document.getElementById('copy-link-btn');
+        const publicBookingLinkInput = document.getElementById('public-booking-link');
+        const bookingLink = `${window.location.origin}/booking.html?user=${userId}`;
+        publicBookingLinkInput.value = bookingLink;
+        copyLinkBtn.addEventListener('click', () => {
+            publicBookingLinkInput.select();
+            document.execCommand('copy');
+            copyLinkBtn.textContent = 'Copiado!';
+            setTimeout(() => { copyLinkBtn.textContent = 'Copiar'; }, 2000);
+        });
+
+        loadWorkingHours();
+        saveHoursBtn.addEventListener('click', handleSaveWorkingHours);
+      }
 
     </script>
 </body>
