@@ -219,7 +219,7 @@
                   <div class="bg-white rounded-lg shadow-sm overflow-hidden"><div id="calendar-grid" class="calendar-grid"></div></div>
               </div>
               <div id="clientes-section" class="hidden">
-                  <div class="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4"><h2 class="text-2xl font-bold text-slate-800">Meus Clientes</h2><div class="relative w-full sm:w-72"><i data-feather="search" class="absolute top-1/2 left-3 -translate-y-1/2 w-5 h-5 text-slate-400"></i><input type="text" id="client-search-input" placeholder="Procurar por nome ou telefone..." class="pl-10 pr-4 py-2 w-full border border-slate-300 rounded-lg"></div></div><div class="bg-white rounded-lg shadow-sm overflow-hidden"><div class="overflow-x-auto"><table class="w-full text-sm text-left text-slate-500"><thead class="text-xs text-slate-700 uppercase bg-slate-50"><tr><th scope="col" class="px-6 py-3">Nome</th><th scope="col" class="px-6 py-3">Telefone</th><th scope="col" class="px-6 py-3">Nº Agendamentos</th></tr></thead><tbody id="clients-table-body"><tr><td colspan="3" class="text-center p-6 text-slate-500">Carregando clientes...</td></tr></tbody></table></div></div>
+                  <div class="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4"><h2 class="text-2xl font-bold text-slate-800">Meus Clientes</h2><div class="relative w-full sm:w-72"><i data-feather="search" class="absolute top-1/2 left-3 -translate-y-1/2 w-5 h-5 text-slate-400"></i><input type="text" id="client-search-input" placeholder="Procurar por nome ou telefone..." class="pl-10 pr-4 py-2 w-full border border-slate-300 rounded-lg"></div></div><div class="bg-white rounded-lg shadow-sm overflow-hidden"><div class="overflow-x-auto"><table class="w-full text-sm text-left text-slate-500"><thead class="text-xs text-slate-700 uppercase bg-slate-50"><tr><th scope="col" class="px-6 py-3">Nome</th><th scope="col" class="px-6 py-3">Telefone</th><th scope="col" class="px-6 py-3">Nº Agendamentos</th><th scope="col" class="px-6 py-3 text-center">Ações</th></tr></thead><tbody id="clients-table-body"><tr><td colspan="4" class="text-center p-6 text-slate-500">Carregando clientes...</td></tr></tbody></table></div></div>
               </div>
               <div id="servicos-section" class="hidden">
                   <div class="grid grid-cols-1 lg:grid-cols-2 gap-8"><section class="bg-white p-6 rounded-lg shadow-sm"><h3 class="text-lg font-semibold text-slate-800 mb-4">Registrar Novo Serviço</h3><form id="service-form" class="space-y-4"><div><label for="service-name" class="block text-sm font-medium">Nome</label><input type="text" id="service-name" required class="input-style"></div><div class="grid grid-cols-2 gap-4"><div><label for="service-duration" class="block text-sm font-medium">Duração (min)</label><input type="number" id="service-duration" required class="input-style"></div><div><label for="service-price" class="block text-sm font-medium">Valor (R$)</label><input type="number" step="0.01" id="service-price" required class="input-style"></div></div><button id="save-service-btn" type="submit" class="w-full bg-indigo-600 text-white font-semibold py-2 px-4 rounded-lg flex items-center justify-center disabled:opacity-50"><span class="btn-text">Salvar Serviço</span><div class="spinner hidden ml-2"></div></button></form></section><section class="bg-white p-6 rounded-lg shadow-sm"><h3 class="text-lg font-semibold text-slate-800 mb-4">Meus Serviços</h3><div id="services-list" class="space-y-3 max-h-96 overflow-y-auto"></div></section></div>
@@ -511,7 +511,6 @@
                 alert("Agendamento atualizado com sucesso!");
             }
 
-            // CORRIGIDO: Deleta o cliente se o contador de agendamentos for <= 1
             async function handleDeleteAppointment(userId, appointmentId) {
                 if (window.confirm("Tem certeza que deseja excluir este agendamento? Esta ação não pode ser desfeita.")) {
                     const appDocRef = doc(db, 'users', userId, 'appointments', appointmentId);
@@ -527,9 +526,7 @@
                                     if (currentCount <= 1) {
                                         await deleteDoc(clientRef);
                                     } else {
-                                        await updateDoc(clientRef, {
-                                            appointmentCount: increment(-1)
-                                        });
+                                        await updateDoc(clientRef, { appointmentCount: increment(-1) });
                                     }
                                 }
                             }
@@ -586,24 +583,64 @@
             renderWeek(userId);
         }
 
+        // CORRIGIDO: Adicionada função de exclusão e pesquisa de clientes
         function initializeClients(userId) {
             const tableBody = document.getElementById('clients-table-body');
+            const searchInput = document.getElementById('client-search-input');
             const clientsRef = collection(db, 'users', userId, 'clients');
-            onSnapshot(query(clientsRef, orderBy("name")), (snapshot) => {
-                if (snapshot.empty) {
-                    tableBody.innerHTML = `<tr><td colspan="3" class="text-center p-6 text-slate-500">Nenhum cliente registrado. O primeiro agendamento de um cliente o adicionará aqui.</td></tr>`;
+            let clientsData = []; // Cache local para a pesquisa
+
+            const renderTable = (clients) => {
+                if (clients.length === 0) {
+                    tableBody.innerHTML = `<tr><td colspan="4" class="text-center p-6 text-slate-500">Nenhum cliente encontrado.</td></tr>`;
                     return;
                 }
                 tableBody.innerHTML = '';
-                snapshot.forEach(doc => {
-                    const client = doc.data();
+                clients.forEach(client => {
                     const row = tableBody.insertRow();
                     row.innerHTML = `
                         <td class="px-6 py-4 font-medium text-gray-900">${client.name}</td>
                         <td class="px-6 py-4">${client.phone}</td>
                         <td class="px-6 py-4">${client.appointmentCount || 0}</td>
+                        <td class="px-6 py-4 text-center">
+                            <button class="text-red-500 hover:text-red-700 delete-client-btn" data-client-id="${client.id}" data-client-name="${client.name}">
+                                <i data-feather="trash-2" class="w-4 h-4"></i>
+                            </button>
+                        </td>
                     `;
                 });
+                feather.replace();
+            };
+
+            onSnapshot(query(clientsRef, orderBy("name")), (snapshot) => {
+                clientsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                renderTable(clientsData);
+            });
+
+            searchInput.addEventListener('input', (e) => {
+                const searchTerm = e.target.value.toLowerCase();
+                const filteredClients = clientsData.filter(client => 
+                    client.name.toLowerCase().includes(searchTerm) || 
+                    client.phone.includes(searchTerm)
+                );
+                renderTable(filteredClients);
+            });
+
+            tableBody.addEventListener('click', async (e) => {
+                const deleteButton = e.target.closest('.delete-client-btn');
+                if (deleteButton) {
+                    const clientId = deleteButton.dataset.clientId;
+                    const clientName = deleteButton.dataset.clientName;
+                    if (window.confirm(`Tem certeza que deseja excluir o cliente ${clientName}? Todos os seus agendamentos serão mantidos no histórico, mas o cliente será removido da lista.`)) {
+                        try {
+                            await deleteDoc(doc(db, 'users', userId, 'clients', clientId));
+                            alert('Cliente excluído com sucesso.');
+                        } catch (error) {
+                            console.error("Erro ao excluir cliente:", error);
+                            alert('Não foi possível excluir o cliente.');
+                        }
+                    }
+                }
             });
         }
         
