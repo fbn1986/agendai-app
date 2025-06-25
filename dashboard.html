@@ -62,7 +62,8 @@
             </header>
 
             <main id="main-content" class="flex-1 p-6 md:p-8 overflow-y-auto">
-                </main>
+                <!-- As secções do painel serão inseridas aqui pelo JS -->
+            </main>
         </div>
     </div>
     
@@ -89,6 +90,7 @@
       const auth = getAuth(app);
       const db = getFirestore(app);
 
+      // --- ELEMENTOS GLOBAIS ---
       const loadingOverlay = document.getElementById('loading-overlay');
       const appContainer = document.getElementById('app-container');
       const subscriptionWall = document.getElementById('subscription-wall');
@@ -97,6 +99,8 @@
       let servicesCache = new Map();
       let allClients = [];
       let currentWeekOffset = 0;
+
+      // --- LÓGICA DE AUTENTICAÇÃO E ROTEAMENTO ---
 
       onAuthStateChanged(auth, async (user) => {
           loadingOverlay.classList.add('hidden');
@@ -222,12 +226,13 @@
         `;
       }
       
-      // --- FUNÇÕES DE CADA SECÇÃO ---
       function initializeAgenda(userId) {
             const addAppointmentBtn = document.getElementById('add-appointment-btn');
             const appointmentModal = document.getElementById('appointment-modal');
+            
             const openAppointmentModal = () => {
-                appointmentModal.innerHTML = `<div class="bg-white rounded-lg shadow-2xl p-8 max-w-lg w-full relative"><button id="close-modal-btn" class="absolute top-4 right-4 text-gray-400 hover:text-gray-800"><i data-feather="x" class="w-6 h-6"></i></button><h3 class="text-lg font-semibold text-slate-800 mb-4">Novo Agendamento</h3><form id="appointment-form" class="space-y-4"><div><label for="client-name" class="block text-sm font-medium text-slate-600">Nome do Cliente</label><input type="text" id="client-name" required class="input-style"></div><div class="grid grid-cols-1 md:grid-cols-2 gap-4"><div><label for="appointment-service" class="block text-sm font-medium text-slate-600">Serviço</label><select id="appointment-service" required class="input-style"></select></div><div><label for="appointment-barber" class="block text-sm font-medium text-slate-600">Barbeiro</label><select id="appointment-barber" required class="input-style"></select></div></div><div class="grid grid-cols-1 md:grid-cols-2 gap-4"><div><label for="appointment-date" class="block text-sm font-medium text-slate-600">Data</label><input type="date" id="appointment-date" required class="input-style"></div><div><label for="appointment-time" class="block text-sm font-medium text-slate-600">Hora</label><input type="time" id="appointment-time" required class="input-style"></div></div><button id="save-appointment-btn" type="submit" class="w-full bg-indigo-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:bg-indigo-700 flex items-center justify-center disabled:opacity-50"><span class="btn-text">Guardar Agendamento</span><div class="spinner hidden ml-2"></div></button></form></div>`;
+                const modalContent = `<div class="bg-white rounded-lg shadow-2xl p-8 max-w-lg w-full relative"><button id="close-modal-btn" class="absolute top-4 right-4 text-gray-400 hover:text-gray-800"><i data-feather="x" class="w-6 h-6"></i></button><h3 class="text-lg font-semibold text-slate-800 mb-4">Novo Agendamento</h3><form id="appointment-form" class="space-y-4"><div><label for="client-name" class="block text-sm font-medium text-slate-600">Nome do Cliente</label><input type="text" id="client-name" required class="mt-1 block w-full input-style"></div><div class="grid grid-cols-1 md:grid-cols-2 gap-4"><div><label for="appointment-service" class="block text-sm font-medium text-slate-600">Serviço</label><select id="appointment-service" required class="mt-1 block w-full input-style"></select></div><div><label for="appointment-barber" class="block text-sm font-medium text-slate-600">Barbeiro</label><select id="appointment-barber" required class="mt-1 block w-full input-style"></select></div></div><div class="grid grid-cols-1 md:grid-cols-2 gap-4"><div><label for="appointment-date" class="block text-sm font-medium text-slate-600">Data</label><input type="date" id="appointment-date" required class="mt-1 block w-full input-style"></div><div><label for="appointment-time" class="block text-sm font-medium text-slate-600">Hora</label><input type="time" id="appointment-time" required class="mt-1 block w-full input-style"></div></div><button id="save-appointment-btn" type="submit" class="w-full bg-indigo-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:bg-indigo-700 flex items-center justify-center disabled:opacity-50"><span class="btn-text">Guardar Agendamento</span><div class="spinner hidden ml-2"></div></button></form></div>`;
+                appointmentModal.innerHTML = modalContent;
                 appointmentModal.classList.remove('hidden');
                 appointmentModal.classList.add('flex');
                 document.getElementById('close-modal-btn').addEventListener('click', closeAppointmentModal);
@@ -242,15 +247,19 @@
             };
             async function populateSelectWithOptions(userId, coll, selectId, emptyMsg) {
                 const selectEl = document.getElementById(selectId);
-                onSnapshot(query(collection(db, 'users', userId, coll)), (snap) => {
-                    selectEl.innerHTML = '';
-                    if (snap.empty) { selectEl.innerHTML = `<option disabled selected>${emptyMsg}</option>`; return; }
-                    snap.forEach(doc => {
-                        const opt = document.createElement('option');
-                        opt.value = doc.data().name; opt.textContent = doc.data().name;
-                        selectEl.appendChild(opt);
+                selectEl.innerHTML = '';
+                try {
+                    const q = query(collection(db, 'users', userId, coll));
+                    onSnapshot(q, (snap) => {
+                        selectEl.innerHTML = '';
+                        if (snap.empty) { selectEl.innerHTML = `<option disabled selected>${emptyMsg}</option>`; return; }
+                        snap.forEach(doc => {
+                            const opt = document.createElement('option');
+                            opt.value = doc.data().name; opt.textContent = doc.data().name;
+                            selectEl.appendChild(opt);
+                        });
                     });
-                });
+                } catch(err) { console.error(err) }
             }
             async function handleSaveAppointment(e, userId) {
                 e.preventDefault();
@@ -346,8 +355,7 @@
                 row.innerHTML = `<span class="font-medium">${day.name}</span><div class="flex items-center gap-4"><div class="flex items-center gap-2"><input type="time" id="${day.id}-start" value="${dayData.start}" class="p-1 border rounded-md text-sm" ${!dayData.isOpen ? 'disabled' : ''}><span>às</span><input type="time" id="${day.id}-end" value="${dayData.end}" class="p-1 border rounded-md text-sm" ${!dayData.isOpen ? 'disabled' : ''}></div><div class="relative inline-block w-10 align-middle"><input type="checkbox" id="${day.id}-toggle" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer" ${dayData.isOpen ? 'checked' : ''} /><label for="${day.id}-toggle" class="toggle-label block overflow-hidden h-6 rounded-full bg-slate-300 cursor-pointer"></label></div></div>`;
                 form.appendChild(row);
                 row.querySelector(`#${day.id}-toggle`).addEventListener('change', (e) => {
-                    const inputs = row.querySelectorAll('input[type="time"]');
-                    inputs.forEach(input => input.disabled = !e.target.checked);
+                    row.querySelectorAll('input[type="time"]').forEach(input => input.disabled = !e.target.checked);
                 });
             });
         }
