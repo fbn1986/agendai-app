@@ -90,6 +90,7 @@
       const auth = getAuth(app);
       const db = getFirestore(app);
 
+      // --- ELEMENTOS GLOBAIS ---
       const loadingOverlay = document.getElementById('loading-overlay');
       const appContainer = document.getElementById('app-container');
       const subscriptionWall = document.getElementById('subscription-wall');
@@ -98,6 +99,8 @@
       let servicesCache = [];
       let allClients = [];
       let currentWeekOffset = 0;
+
+      // --- LÓGICA DE AUTENTICAÇÃO E ROTEAMENTO ---
 
       onAuthStateChanged(auth, async (user) => {
           loadingOverlay.classList.add('hidden');
@@ -123,7 +126,8 @@
                   showSubscriptionWall();
               }
           } else {
-              window.location.href = 'index.html';
+              // [FIX] Replace direct redirect with access denied message for sandbox environment
+              showAccessDenied("Você precisa de estar autenticado para aceder a esta página.");
           }
       });
 
@@ -158,13 +162,13 @@
       function initializeDashboard(userId) {
           const mainContent = document.getElementById('main-content');
           mainContent.innerHTML = getDashboardHTML();
+          
           setupNavigation(userId);
           feather.replace();
       }
 
       function setupNavigation(userId) {
           const mainNav = document.getElementById('main-nav');
-          const mainContent = document.getElementById('main-content');
           const sections = {
             inicio: () => {},
             agenda: () => initializeAgenda(userId),
@@ -186,7 +190,6 @@
                   const targetSection = document.getElementById(`${targetId}-section`);
                   if (targetSection) {
                       targetSection.classList.remove('hidden');
-                      // Chama a função de inicialização da seção
                       if(sections[targetId]) {
                         sections[targetId]();
                       }
