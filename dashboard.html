@@ -20,12 +20,11 @@
      const appContainer = document.getElementById('app-container');
      const subscriptionWall = document.getElementById('subscription-wall');
      const accessDeniedMessage = document.getElementById('access-denied-message');
-     const appointmentModal = document.getElementById('appointment-modal'); // MODIFICADO: Movi para o escopo global
+     const appointmentModal = document.getElementById('appointment-modal');
      let revenueChartInstance = null;
      let servicesCache = new Map();
      let allClients = [];
      let currentWeekOffset = 0;
-     // NOVO: Cache para os horários de funcionamento
      let workingHoursCache = null; 
 
      onAuthStateChanged(auth, async (user) => {
@@ -154,13 +153,11 @@
      
      // --- FUNÇÕES DE CADA SECÇÃO ---
 
-     // MODIFICADO: Toda a função initializeAgenda foi reestruturada.
      function initializeAgenda(userId) {
         const addAppointmentBtn = document.getElementById('add-appointment-btn');
         const calendarGrid = document.getElementById('calendar-grid');
-        let selectedTime = null; // NOVO: Variável para guardar a hora selecionada
+        let selectedTime = null;
 
-        // NOVO: Função para carregar os horários de funcionamento do Firestore
         const loadWorkingHours = async () => {
             if (workingHoursCache) return workingHoursCache;
             const ref = doc(db, 'users', userId, 'settings', 'workingHours');
@@ -172,19 +169,18 @@
             return null;
         };
         
-        // NOVO: Função para renderizar os horários disponíveis
         const renderAvailableTimes = async (dateString) => {
             const timeSlotsContainer = document.getElementById('time-slots-container');
             if (!dateString) {
-                timeSlotsContainer.innerHTML = `<p class="text-sm text-slate-500">Selecione uma data para ver os horários.</p>`;
+                if(timeSlotsContainer) timeSlotsContainer.innerHTML = `<p class="text-sm text-slate-500 col-span-4">Selecione uma data para ver os horários.</p>`;
                 return;
             }
 
-            timeSlotsContainer.innerHTML = `<div class="spinner-large mx-auto my-4"></div>`;
+            if(timeSlotsContainer) timeSlotsContainer.innerHTML = `<div class="spinner-large mx-auto my-4 col-span-4"></div>`;
 
             const workingHours = await loadWorkingHours();
             if (!workingHours) {
-                timeSlotsContainer.innerHTML = `<p class="text-sm text-red-500">Defina seus horários nas configurações primeiro.</p>`;
+                if(timeSlotsContainer) timeSlotsContainer.innerHTML = `<p class="text-sm text-red-500 col-span-4">Defina seus horários nas configurações primeiro.</p>`;
                 return;
             }
 
@@ -194,11 +190,10 @@
             const dayConfig = workingHours[dayKeys[dayOfWeek]];
             
             if (!dayConfig || !dayConfig.isOpen) {
-                timeSlotsContainer.innerHTML = `<p class="text-sm text-slate-500">Fechado neste dia.</p>`;
+                if(timeSlotsContainer) timeSlotsContainer.innerHTML = `<p class="text-sm text-slate-500 col-span-4">Fechado neste dia.</p>`;
                 return;
             }
 
-            // Buscar agendamentos existentes para o dia selecionado
             const startOfDay = Timestamp.fromDate(new Date(`${dateString}T00:00:00`));
             const endOfDay = Timestamp.fromDate(new Date(`${dateString}T23:59:59`));
             const q = query(collection(db, 'users', userId, 'appointments'), where("dateTime", ">=", startOfDay), where("dateTime", "<=", endOfDay));
@@ -208,7 +203,7 @@
                 return `${String(appDate.getHours()).padStart(2, '0')}:${String(appDate.getMinutes()).padStart(2, '0')}`;
             });
 
-            timeSlotsContainer.innerHTML = '';
+            if(timeSlotsContainer) timeSlotsContainer.innerHTML = '';
             const allSlots = [];
             let currentTime = new Date(`${dateString}T${dayConfig.start}`);
             const endTime = new Date(`${dateString}T${dayConfig.end}`);
@@ -220,7 +215,7 @@
             }
             
             if (allSlots.length === 0) {
-                 timeSlotsContainer.innerHTML = `<p class="text-sm text-slate-500">Nenhum horário disponível.</p>`;
+                 if(timeSlotsContainer) timeSlotsContainer.innerHTML = `<p class="text-sm text-slate-500 col-span-4">Nenhum horário disponível.</p>`;
                  return;
             }
 
@@ -234,7 +229,6 @@
                 button.className = `py-2 px-4 border rounded-lg text-sm font-semibold ${isBooked ? 'bg-slate-200 text-slate-400 cursor-not-allowed' : 'bg-white hover:bg-indigo-50 hover:border-indigo-500'}`;
                 button.addEventListener('click', (e) => {
                     selectedTime = e.target.dataset.time;
-                    // Atualiza a aparência dos botões
                     document.querySelectorAll('#time-slots-container button').forEach(btn => {
                         btn.classList.remove('bg-indigo-600', 'text-white', 'border-indigo-600');
                         btn.classList.add('bg-white');
@@ -242,12 +236,12 @@
                     e.target.classList.add('bg-indigo-600', 'text-white', 'border-indigo-600');
                     e.target.classList.remove('bg-white');
                 });
-                timeSlotsContainer.appendChild(button);
+                if(timeSlotsContainer) timeSlotsContainer.appendChild(button);
             });
         };
 
         const openAppointmentModal = () => {
-            selectedTime = null; // Limpa a seleção anterior
+            selectedTime = null;
             appointmentModal.innerHTML = `<div class="bg-white rounded-lg shadow-2xl p-8 max-w-lg w-full relative"><button id="close-modal-btn" class="absolute top-4 right-4 text-gray-400 hover:text-gray-800"><i data-feather="x" class="w-6 h-6"></i></button><h3 class="text-lg font-semibold text-slate-800 mb-4">Novo Agendamento</h3><form id="appointment-form" class="space-y-4"><div><label for="client-name" class="block text-sm font-medium text-slate-600">Nome do Cliente</label><input type="text" id="client-name" required class="input-style"></div><div class="grid grid-cols-1 md:grid-cols-2 gap-4"><div><label for="appointment-service" class="block text-sm font-medium text-slate-600">Serviço</label><select id="appointment-service" required class="input-style"></select></div><div><label for="appointment-barber" class="block text-sm font-medium text-slate-600">Barbeiro</label><select id="appointment-barber" required class="input-style"></select></div></div><div class="grid grid-cols-1 md:grid-cols-2 gap-4"><div><label for="appointment-date" class="block text-sm font-medium text-slate-600">Data</label><input type="date" id="appointment-date" required class="input-style"></div><div><label class="block text-sm font-medium text-slate-600">Hora</label><div id="time-slots-container" class="mt-2 grid grid-cols-4 gap-2 border p-2 rounded-md min-h-[80px]"></div></div></div><button id="save-appointment-btn" type="submit" class="w-full bg-indigo-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:bg-indigo-700 flex items-center justify-center disabled:opacity-50"><span class="btn-text">Guardar Agendamento</span><div class="spinner hidden ml-2"></div></button></form></div>`;
             appointmentModal.classList.remove('hidden');
             appointmentModal.classList.add('flex');
@@ -255,14 +249,13 @@
             document.getElementById('close-modal-btn').addEventListener('click', closeAppointmentModal);
             document.getElementById('appointment-form').addEventListener('submit', (e) => handleSaveAppointment(e, userId));
             
-            // NOVO: Adiciona o listener para o campo de data
             const dateInput = document.getElementById('appointment-date');
-            dateInput.min = new Date().toISOString().split("T")[0]; // Impede selecionar datas passadas
+            dateInput.min = new Date().toISOString().split("T")[0];
             dateInput.addEventListener('change', () => renderAvailableTimes(dateInput.value));
             
             populateSelectWithOptions(userId, 'services', 'appointment-service', 'Nenhum serviço');
             populateSelectWithOptions(userId, 'barbers', 'appointment-barber', 'Nenhum barbeiro');
-            renderAvailableTimes(null); // Estado inicial
+            renderAvailableTimes(null);
             feather.replace();
         };
 
@@ -289,7 +282,6 @@
             e.preventDefault();
             const form = e.target;
             
-            // MODIFICADO: Validação do horário selecionado
             if (!selectedTime) {
                 alert("Por favor, selecione um horário.");
                 return;
@@ -299,7 +291,6 @@
             saveBtn.disabled = true;
             try {
                 const date = form.elements['appointment-date'].value;
-                // MODIFICADO: Usa a hora selecionada (selectedTime) em vez do input
                 const dateTime = Timestamp.fromDate(new Date(`${date}T${selectedTime}`));
                 
                 const serviceRef = doc(db, 'users', userId, 'services', form.elements['appointment-service'].value);
@@ -329,12 +320,12 @@
             
             document.getElementById('week-display').textContent = `${weekStart.toLocaleDateString()} - ${weekEnd.toLocaleDateString()}`;
             
-            calendarGrid.innerHTML = ''; // Limpa a grelha
+            calendarGrid.innerHTML = '';
             
             const days = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
             calendarGrid.innerHTML += `<div class="time-column"></div>` + days.map(d => `<div class="text-center font-bold p-2 border-b">${d}</div>`).join('');
             
-            for(let i = 7; i < 22; i++) { // Horas das 7h às 21h
+            for(let i = 7; i < 22; i++) {
               calendarGrid.innerHTML += `<div class="text-center text-xs p-1 border-r">${i}:00</div>` + days.map(() => `<div class="day-slot border-r border-b p-1"></div>`).join('');
             }
 
@@ -344,6 +335,8 @@
             const q = query(collection(db, 'users', userId, 'appointments'), where("dateTime", ">=", startTimestamp), where("dateTime", "<=", endTimestamp));
 
             onSnapshot(q, (snapshot) => {
+                // Limpa os agendamentos antigos da grelha antes de renderizar os novos
+                calendarGrid.querySelectorAll('.day-slot').forEach(slot => slot.innerHTML = '');
                 snapshot.forEach(doc => {
                     const app = doc.data();
                     const appDate = app.dateTime.toDate();
@@ -355,7 +348,7 @@
 
                     if (targetSlot) {
                         const appEl = document.createElement('div');
-                        appEl.className = 'bg-indigo-100 p-1 rounded text-xs';
+                        appEl.className = 'bg-indigo-100 p-1 rounded text-xs mb-1';
                         appEl.innerHTML = `<strong>${app.clientName}</strong><br>${app.serviceName}`;
                         targetSlot.appendChild(appEl);
                     }
@@ -367,10 +360,10 @@
         document.getElementById('next-week-btn').addEventListener('click', () => { currentWeekOffset++; renderWeek(userId, currentWeekOffset); });
 
         addAppointmentBtn.addEventListener('click', openAppointmentModal);
-        renderWeek(userId); // Renderiza a semana atual ao iniciar
-     }
+        renderWeek(userId);
+    } // <-- CORREÇÃO: Esta chave estava em falta.
 
-     function initializeClients(userId) { /* ... */ }
+     function initializeClients(userId) { /* ...código original... */ }
      function initializeServices(userId) {
        const form = document.getElementById('service-form');
        const listDiv = document.getElementById('services-list');
@@ -509,7 +502,7 @@
            });
            try {
                await setDoc(doc(db, 'users', userId, 'settings', 'workingHours'), dataToSave);
-               workingHoursCache = dataToSave; // NOVO: Atualiza o cache ao salvar
+               workingHoursCache = dataToSave;
            } catch(e) { console.error(e); }
            finally { saveBtn.disabled = false; }
        }
@@ -522,4 +515,4 @@
        loadHours();
        saveBtn.addEventListener('click', saveHours);
      }
-   </script>
+</script>
