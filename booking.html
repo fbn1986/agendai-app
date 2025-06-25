@@ -583,7 +583,6 @@
             renderWeek(userId);
         }
 
-        // CORRIGIDO: Adicionada função de exclusão e pesquisa de clientes
         function initializeClients(userId) {
             const tableBody = document.getElementById('clients-table-body');
             const searchInput = document.getElementById('client-search-input');
@@ -615,7 +614,7 @@
             onSnapshot(query(clientsRef, orderBy("name")), (snapshot) => {
                 clientsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 renderTable(clientsData);
-                searchInput.dispatchEvent(new Event('input')); // Atualiza a filtragem
+                searchInput.dispatchEvent(new Event('input'));
             });
 
             searchInput.addEventListener('input', (e) => {
@@ -795,11 +794,14 @@
             generateReportBtn.click();
         }
 
+        // CORRIGIDO: O link agora é exibido assim que a aba de configurações é carregada.
         function setupSettings(userId) {
             const form = document.getElementById('working-hours-form');
             const saveBtn = document.getElementById('save-hours-btn');
             const linkInput = document.getElementById('public-booking-link');
-            
+            const copyBtn = document.getElementById('copy-link-btn');
+
+            // Define o valor do link assim que a função é chamada
             linkInput.value = `${window.location.origin}/booking.html?user=${userId}`;
 
             async function loadHours() {
@@ -848,8 +850,8 @@
                   spinner.classList.add('hidden');
                 }
             }
-            document.getElementById('copy-link-btn').addEventListener('click', () => {
-                linkInput.select();
+
+            copyBtn.addEventListener('click', () => {
                 navigator.clipboard.writeText(linkInput.value).then(() => {
                     alert('Link copiado para a área de transferência!');
                 }).catch(err => {
@@ -857,6 +859,7 @@
                     alert('Não foi possível copiar o link. Por favor, copie manualmente.');
                 });
             });
+
             loadHours();
             saveBtn.addEventListener('click', saveHours);
         }
