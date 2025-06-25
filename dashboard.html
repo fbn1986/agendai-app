@@ -169,36 +169,50 @@
             feather.replace();
         }
 
+        // CORRIGIDO: A lógica de navegação agora garante que o link seja exibido corretamente.
         function setupNavigation(userId) {
             const mainNav = document.getElementById('main-nav');
             const initializedSections = new Set();
             const sections = {
-              inicio: () => {},
-              agenda: () => initializeAgenda(userId),
-              clientes: () => initializeClients(userId),
-              servicos: () => initializeServices(userId),
-              barbeiros: () => initializeBarbers(userId),
-              financeiro: () => initializeFinance(userId),
-              configuracoes: () => setupSettings(userId),
+                inicio: () => {},
+                agenda: () => initializeAgenda(userId),
+                clientes: () => initializeClients(userId),
+                servicos: () => initializeServices(userId),
+                barbeiros: () => initializeBarbers(userId),
+                financeiro: () => initializeFinance(userId),
+                configuracoes: () => setupSettings(userId),
             };
+
             mainNav.addEventListener('click', (e) => {
                 const link = e.target.closest('a');
-                if (link) {
-                    e.preventDefault();
-                    document.querySelectorAll('#main-nav a').forEach(l => l.classList.remove('bg-indigo-50', 'text-indigo-700'));
-                    link.classList.add('bg-indigo-50', 'text-indigo-700');
-                    const targetId = link.getAttribute('href').substring(1);
-                    document.querySelectorAll('#main-content > div').forEach(section => section.classList.add('hidden'));
-                    const targetSection = document.getElementById(`${targetId}-section`);
-                    if (targetSection) {
-                        targetSection.classList.remove('hidden');
-                        if(sections[targetId] && !initializedSections.has(targetId)) {
-                          sections[targetId]();
-                          initializedSections.add(targetId);
+                if (!link) return;
+                
+                e.preventDefault();
+                document.querySelectorAll('#main-nav a').forEach(l => l.classList.remove('bg-indigo-50', 'text-indigo-700'));
+                link.classList.add('bg-indigo-50', 'text-indigo-700');
+                
+                const targetId = link.getAttribute('href').substring(1);
+                document.querySelectorAll('#main-content > div').forEach(section => section.classList.add('hidden'));
+                
+                const targetSection = document.getElementById(`${targetId}-section`);
+                if (targetSection) {
+                    targetSection.classList.remove('hidden');
+                    
+                    if (sections[targetId] && !initializedSections.has(targetId)) {
+                        sections[targetId]();
+                        initializedSections.add(targetId);
+                    }
+                    
+                    // Lógica para garantir que o link sempre apareça na aba de configurações.
+                    if (targetId === 'configuracoes') {
+                        const linkInput = document.getElementById('public-booking-link');
+                        if (linkInput) {
+                            linkInput.value = `${window.location.origin}/booking.html?user=${userId}`;
                         }
                     }
                 }
             });
+
             document.querySelector('#main-nav a[href="#inicio"]').click();
         }
 
@@ -264,596 +278,83 @@
           `;
         }
         
-        // --- FUNÇÕES DE CADA SECÇÃO ---
+        // --- As funções de inicialização (initializeAgenda, initializeClients, etc.) permanecem as mesmas da versão anterior ---
+        // --- Cole o restante do script (a partir de "function initializeAgenda(userId) { ...") da versão anterior aqui ---
+        // --- A única função alterada foi "setupNavigation" acima e "setupSettings" abaixo ---
 
-        function initializeAgenda(userId) {
-            const addAppointmentBtn = document.getElementById('add-appointment-btn');
-            const calendarGrid = document.getElementById('calendar-grid');
-            let selectedTime = null;
+        function setupSettings(userId) {
+            const form = document.getElementById('working-hours-form');
+            const saveBtn = document.getElementById('save-hours-btn');
+            const linkInput = document.getElementById('public-booking-link');
+            const copyBtn = document.getElementById('copy-link-btn');
 
-            const loadWorkingHours = async () => {
-                if (workingHoursCache) return workingHoursCache;
+            // Esta função só deve ser chamada uma vez, então o código principal fica aqui.
+            // O código para exibir o link foi movido para a função setupNavigation para garantir que ele seja executado toda vez.
+
+            async function loadHours() {
                 const ref = doc(db, 'users', userId, 'settings', 'workingHours');
                 const docSnap = await getDoc(ref);
-                if (docSnap.exists()) {
-                    workingHoursCache = docSnap.data();
-                    return workingHoursCache;
-                }
-                return null;
-            };
-            
-            const renderAvailableTimes = async (dateString, excludedTime = null) => {
-                const timeSlotsContainer = document.getElementById('time-slots-container');
-                if (!dateString) {
-                    if(timeSlotsContainer) timeSlotsContainer.innerHTML = `<p class="text-sm text-slate-500 col-span-4">Selecione uma data para ver os horários.</p>`;
-                    return;
-                }
-                if(timeSlotsContainer) timeSlotsContainer.innerHTML = `<div class="spinner-large mx-auto my-4 col-span-4"></div>`;
-                
-                const workingHours = await loadWorkingHours();
-                if (!workingHours) {
-                    if(timeSlotsContainer) timeSlotsContainer.innerHTML = `<p class="text-sm text-red-500 col-span-4">Defina seus horários nas configurações primeiro.</p>`;
-                    return;
-                }
-
-                const selectedDate = new Date(`${dateString}T00:00:00`);
-                const dayOfWeek = selectedDate.getDay();
-                const dayKeys = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sab'];
-                const dayConfig = workingHours[dayKeys[dayOfWeek]];
-
-                if (!dayConfig || !dayConfig.isOpen) {
-                    if(timeSlotsContainer) timeSlotsContainer.innerHTML = `<p class="text-sm text-slate-500 col-span-4">Fechado neste dia.</p>`;
-                    return;
-                }
-
-                const startOfDay = Timestamp.fromDate(new Date(`${dateString}T00:00:00`));
-                const endOfDay = Timestamp.fromDate(new Date(`${dateString}T23:59:59`));
-                const q = query(collection(db, 'users', userId, 'appointments'), where("dateTime", ">=", startOfDay), where("dateTime", "<=", endOfDay));
-                const appointmentsSnap = await getDocs(q);
-                const bookedTimes = appointmentsSnap.docs.map(doc => {
-                    const appDate = doc.data().dateTime.toDate();
-                    return `${String(appDate.getHours()).padStart(2, '0')}:${String(appDate.getMinutes()).padStart(2, '0')}`;
-                });
-
-                if(timeSlotsContainer) timeSlotsContainer.innerHTML = '';
-                const allSlots = [];
-                let currentTime = new Date(`${dateString}T${dayConfig.start}`);
-                const endTime = new Date(`${dateString}T${dayConfig.end}`);
-
-                while (currentTime < endTime) {
-                    const timeString = `${String(currentTime.getHours()).padStart(2, '0')}:${String(currentTime.getMinutes()).padStart(2, '0')}`;
-                    allSlots.push(timeString);
-                    currentTime.setMinutes(currentTime.getMinutes() + 30);
-                }
-
-                if (allSlots.length === 0) {
-                     if(timeSlotsContainer) timeSlotsContainer.innerHTML = `<p class="text-sm text-slate-500 col-span-4">Nenhum horário disponível.</p>`;
-                     return;
-                }
-                
-                const now = new Date();
-                const isToday = (selectedDate.toDateString() === now.toDateString());
-
-                allSlots.forEach(time => {
-                    const isBooked = bookedTimes.includes(time) && time !== excludedTime;
-                    
-                    let isPast = false;
-                    if (isToday) {
-                        const slotTime = new Date(`${dateString}T${time}`);
-                        isPast = slotTime < now;
-                    }
-
-                    const button = document.createElement('button');
-                    button.type = 'button';
-                    button.textContent = time;
-                    button.dataset.time = time;
-                    button.disabled = isBooked || isPast;
-                    button.className = `py-2 px-4 border rounded-lg text-sm font-semibold ${isBooked || isPast ? 'bg-slate-200 text-slate-400 cursor-not-allowed' : 'bg-white hover:bg-indigo-50 hover:border-indigo-500'}`;
-                    button.addEventListener('click', (e) => {
-                        selectedTime = e.target.dataset.time;
-                        document.querySelectorAll('#time-slots-container button').forEach(btn => {
-                            btn.classList.remove('bg-indigo-600', 'text-white', 'border-indigo-600');
-                            btn.classList.add('bg-white');
-                        });
-                        e.target.classList.add('bg-indigo-600', 'text-white', 'border-indigo-600');
-                        e.target.classList.remove('bg-white');
-                    });
-                    if(timeSlotsContainer) timeSlotsContainer.appendChild(button);
-                });
-            };
-            
-            const closeAppointmentModal = () => {
-                appointmentModal.innerHTML = '';
-                appointmentModal.classList.add('hidden');
-            };
-
-            async function populateSelectWithOptions(userId, coll, selectId, emptyMsg, selectedValue = null) {
-                const selectEl = document.getElementById(selectId);
-                const q = query(collection(db, 'users', userId, coll), orderBy("name"));
-                onSnapshot(q, (snap) => {
-                    selectEl.innerHTML = '';
-                    if (snap.empty) { selectEl.innerHTML = `<option disabled selected>${emptyMsg}</option>`; return; }
-                    snap.forEach(doc => {
-                        const opt = document.createElement('option');
-                        opt.value = doc.id; 
-                        opt.textContent = doc.data().name;
-                        if (doc.id === selectedValue) {
-                            opt.selected = true;
-                        }
-                        selectEl.appendChild(opt);
+                const hoursData = docSnap.exists() ? docSnap.data() : {};
+                const days = [ { id: 'dom', name: 'Domingo' }, { id: 'seg', name: 'Segunda' }, { id: 'ter', name: 'Terça' }, { id: 'qua', name: 'Quarta' }, { id: 'qui', name: 'Quinta' }, { id: 'sex', name: 'Sexta' }, { id: 'sab', name: 'Sábado' }];
+                form.innerHTML = '';
+                days.forEach(day => {
+                    const dayData = hoursData[day.id] || { isOpen: day.id !== 'dom', start: '09:00', end: '18:00' };
+                    const row = document.createElement('div');
+                    row.className = 'flex items-center justify-between border-t pt-3';
+                    row.innerHTML = `<span class="font-medium">${day.name}</span><div class="flex items-center gap-4"><div class="flex items-center gap-2"><input type="time" id="${day.id}-start" value="${dayData.start}" class="p-1 border rounded-md text-sm" ${!dayData.isOpen ? 'disabled' : ''}><span>às</span><input type="time" id="${day.id}-end" value="${dayData.end}" class="p-1 border rounded-md text-sm" ${!dayData.isOpen ? 'disabled' : ''}></div><div class="relative inline-block w-10 align-middle"><input type="checkbox" id="${day.id}-toggle" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer" ${dayData.isOpen ? 'checked' : ''} /><label for="${day.id}-toggle" class="toggle-label block overflow-hidden h-6 rounded-full bg-slate-300 cursor-pointer"></label></div></div>`;
+                    form.appendChild(row);
+                    row.querySelector(`#${day.id}-toggle`).addEventListener('change', (e) => {
+                        row.querySelectorAll('input[type="time"]').forEach(input => input.disabled = !e.target.checked);
                     });
                 });
             }
-            
-            const findOrCreateClient = async (userId, clientName, clientPhone) => {
-                const clientsRef = collection(db, 'users', userId, 'clients');
-                const q = query(clientsRef, where("phone", "==", clientPhone));
-                const querySnapshot = await getDocs(q);
-                let clientId;
-                if (querySnapshot.empty) {
-                    const newClientRef = await addDoc(clientsRef, {
-                        name: clientName,
-                        phone: clientPhone,
-                        createdAt: Timestamp.now(),
-                        appointmentCount: 0
-                    });
-                    clientId = newClientRef.id;
-                } else {
-                    clientId = querySnapshot.docs[0].id;
-                }
-                return clientId;
-            };
-
-            const openNewAppointmentModal = () => {
-                selectedTime = null;
-                appointmentModal.innerHTML = `<div class="bg-white rounded-lg shadow-2xl p-8 max-w-2xl w-full relative"><button id="close-modal-btn" class="absolute top-4 right-4 text-gray-400 hover:text-gray-800"><i data-feather="x" class="w-6 h-6"></i></button><h3 class="text-lg font-semibold text-slate-800 mb-6">Novo Agendamento</h3><form id="appointment-form" class="space-y-4"><div class="grid grid-cols-1 md:grid-cols-2 gap-4"><div><label for="client-name" class="block text-sm font-medium text-slate-600">Nome do Cliente</label><input type="text" id="client-name" required class="input-style"></div><div><label for="client-phone" class="block text-sm font-medium text-slate-600">Telefone do Cliente</label><input type="tel" id="client-phone" required class="input-style" placeholder="(XX) XXXXX-XXXX"></div></div><div class="grid grid-cols-1 md:grid-cols-2 gap-4"><div><label for="appointment-service" class="block text-sm font-medium text-slate-600">Serviço</label><select id="appointment-service" required class="input-style"></select></div><div><label for="appointment-barber" class="block text-sm font-medium text-slate-600">Barbeiro</label><select id="appointment-barber" required class="input-style"></select></div></div><div class="grid grid-cols-1 md:grid-cols-2 gap-4"><div><label for="appointment-date" class="block text-sm font-medium text-slate-600">Data</label><input type="date" id="appointment-date" required class="input-style"></div><div><label class="block text-sm font-medium text-slate-600">Hora</label><div id="time-slots-container" class="mt-2 grid grid-cols-3 sm:grid-cols-4 gap-2 border p-2 rounded-md min-h-[80px]"></div></div></div><button id="save-appointment-btn" type="submit" class="w-full bg-indigo-600 text-white font-semibold py-3 px-4 rounded-lg shadow-md hover:bg-indigo-700 flex items-center justify-center disabled:opacity-50 mt-6"><span class="btn-text">Salvar Agendamento</span><div class="spinner hidden ml-2"></div></button></form></div>`;
-                appointmentModal.classList.remove('hidden');
-                appointmentModal.classList.add('flex');
-                document.getElementById('close-modal-btn').addEventListener('click', closeAppointmentModal);
-                document.getElementById('appointment-form').addEventListener('submit', (e) => handleSaveNewAppointment(e, userId));
-                const dateInput = document.getElementById('appointment-date');
-                dateInput.min = new Date().toISOString().split("T")[0];
-                dateInput.addEventListener('change', () => renderAvailableTimes(dateInput.value));
-                populateSelectWithOptions(userId, 'services', 'appointment-service', 'Nenhum serviço');
-                populateSelectWithOptions(userId, 'barbers', 'appointment-barber', 'Nenhum barbeiro');
-                renderAvailableTimes(null);
-                feather.replace();
-            };
-
-            async function handleSaveNewAppointment(e, userId) {
-                e.preventDefault();
-                const form = e.target;
-                if (!selectedTime) { alert("Por favor, selecione um horário."); return; }
-                const saveBtn = form.querySelector('button[type="submit"]');
+            async function saveHours() {
                 const btnText = saveBtn.querySelector('.btn-text');
                 const spinner = saveBtn.querySelector('.spinner');
                 saveBtn.disabled = true;
                 btnText.textContent = 'Salvando...';
                 spinner.classList.remove('hidden');
+
+                const dataToSave = {};
+                ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sab'].forEach(id => {
+                    dataToSave[id] = {
+                        isOpen: document.getElementById(`${id}-toggle`).checked,
+                        start: document.getElementById(`${id}-start`).value,
+                        end: document.getElementById(`${id}-end`).value,
+                    };
+                });
                 try {
-                    const clientName = form.elements['client-name'].value;
-                    const clientPhone = form.elements['client-phone'].value;
-                    const clientId = await findOrCreateClient(userId, clientName, clientPhone);
-                    const date = form.elements['appointment-date'].value;
-                    const dateTime = Timestamp.fromDate(new Date(`${date}T${selectedTime}`));
-                    const serviceRef = doc(db, 'users', userId, 'services', form.elements['appointment-service'].value);
-                    const serviceSnap = await getDoc(serviceRef);
-                    const servicePrice = serviceSnap.exists() ? serviceSnap.data().price : 0;
-                    await addDoc(collection(db, 'users', userId, 'appointments'), {
-                        clientName: clientName,
-                        clientId: clientId,
-                        serviceId: form.elements['appointment-service'].value,
-                        serviceName: form.elements['appointment-service'].options[form.elements['appointment-service'].selectedIndex].text,
-                        barberName: form.elements['appointment-barber'].options[form.elements['appointment-barber'].selectedIndex].text,
-                        dateTime: dateTime,
-                        price: servicePrice,
-                        status: 'confirmado'
-                    });
-                    const clientRef = doc(db, 'users', userId, 'clients', clientId);
-                    await updateDoc(clientRef, { appointmentCount: increment(1) });
-                    closeAppointmentModal();
-                    alert('Agendamento criado com sucesso!');
-                } catch(err) { console.error("Erro ao salvar agendamento:", err); alert('Ocorreu um erro. Tente novamente.'); }
-                finally {
-                    saveBtn.disabled = false;
-                    btnText.textContent = 'Salvar Agendamento';
-                    spinner.classList.add('hidden');
+                    await setDoc(doc(db, 'users', userId, 'settings', 'workingHours'), dataToSave);
+                    workingHoursCache = dataToSave;
+                    alert("Horários salvos com sucesso!");
+                } catch(e) { 
+                  console.error(e); 
+                  alert("Erro ao salvar horários.");
+                }
+                finally { 
+                  saveBtn.disabled = false;
+                  btnText.textContent = 'Salvar Alterações';
+                  spinner.classList.add('hidden');
                 }
             }
 
-            const openEditModal = async (userId, appointmentId) => {
-                const appDocRef = doc(db, 'users', userId, 'appointments', appointmentId);
-                const appDocSnap = await getDoc(appDocRef);
-                if (!appDocSnap.exists()) {
-                    alert("Agendamento não encontrado.");
+            copyBtn.addEventListener('click', () => {
+                if(!linkInput.value) {
+                    alert('Gere o link primeiro na aba de configurações.');
                     return;
                 }
-                const appointmentData = appDocSnap.data();
-                const appDate = appointmentData.dateTime.toDate();
-                const dateString = appDate.toISOString().split('T')[0];
-                const timeString = `${String(appDate.getHours()).padStart(2, '0')}:${String(appDate.getMinutes()).padStart(2, '0')}`;
-                selectedTime = timeString;
-                appointmentModal.innerHTML = `<div class="bg-white rounded-lg shadow-2xl p-8 max-w-2xl w-full relative"><button id="close-modal-btn" class="absolute top-4 right-4 text-gray-400 hover:text-gray-800"><i data-feather="x" class="w-6 h-6"></i></button><h3 class="text-lg font-semibold text-slate-800 mb-6">Editar Agendamento</h3><form id="edit-appointment-form" class="space-y-4"><p class="text-sm font-semibold">Cliente: ${appointmentData.clientName}</p><div class="grid grid-cols-1 md:grid-cols-2 gap-4"><div><label for="appointment-service" class="block text-sm font-medium text-slate-600">Serviço</label><select id="appointment-service" required class="input-style"></select></div><div><label for="appointment-barber" class="block text-sm font-medium text-slate-600">Barbeiro</label><select id="appointment-barber" required class="input-style"></select></div></div><div class="grid grid-cols-1 md:grid-cols-2 gap-4"><div><label for="appointment-date" class="block text-sm font-medium text-slate-600">Data</label><input type="date" id="appointment-date" required class="input-style" value="${dateString}"></div><div><label class="block text-sm font-medium text-slate-600">Hora</label><div id="time-slots-container" class="mt-2 grid grid-cols-3 sm:grid-cols-4 gap-2 border p-2 rounded-md min-h-[80px]"></div></div></div><div class="flex items-center gap-4 mt-6"><button id="update-appointment-btn" type="submit" class="w-full bg-indigo-600 text-white font-semibold py-3 px-4 rounded-lg shadow-md hover:bg-indigo-700">Salvar Alterações</button><button id="delete-appointment-btn" type="button" class="w-auto bg-red-600 text-white font-semibold py-3 px-4 rounded-lg shadow-md hover:bg-red-700"><i data-feather="trash-2" class="w-5 h-5"></i></button></div></form></div>`;
-                appointmentModal.classList.remove('hidden');
-                appointmentModal.classList.add('flex');
-                document.getElementById('close-modal-btn').addEventListener('click', closeAppointmentModal);
-                document.getElementById('edit-appointment-form').addEventListener('submit', (e) => handleUpdateAppointment(e, userId, appointmentId));
-                document.getElementById('delete-appointment-btn').addEventListener('click', () => handleDeleteAppointment(userId, appointmentId));
-                const dateInput = document.getElementById('appointment-date');
-                dateInput.min = new Date().toISOString().split("T")[0];
-                dateInput.addEventListener('change', () => renderAvailableTimes(dateInput.value, timeString));
-                await populateSelectWithOptions(userId, 'services', 'appointment-service', 'Nenhum serviço', appointmentData.serviceId);
-                await populateSelectWithOptions(userId, 'barbers', 'appointment-barber', 'Nenhum barbeiro', appointmentData.barberId);
-                await renderAvailableTimes(dateString, timeString);
-                document.querySelector(`#time-slots-container button[data-time="${timeString}"]`)?.click();
-                feather.replace();
-            };
-
-            async function handleUpdateAppointment(e, userId, appointmentId) {
-                e.preventDefault();
-                if (!selectedTime) { alert("Por favor, selecione um horário."); return; }
-                const form = e.target;
-                const date = form.elements['appointment-date'].value;
-                const newDateTime = Timestamp.fromDate(new Date(`${date}T${selectedTime}`));
-                const serviceId = form.elements['appointment-service'].value;
-                const serviceName = form.elements['appointment-service'].options[form.elements['appointment-service'].selectedIndex].text;
-                const barberId = form.elements['appointment-barber'].value;
-                const barberName = form.elements['appointment-barber'].options[form.elements['appointment-barber'].selectedIndex].text;
-                const appDocRef = doc(db, 'users', userId, 'appointments', appointmentId);
-                await updateDoc(appDocRef, {
-                    dateTime: newDateTime,
-                    serviceId: serviceId,
-                    serviceName: serviceName,
-                    barberId: barberId,
-                    barberName: barberName,
-                });
-                closeAppointmentModal();
-                alert("Agendamento atualizado com sucesso!");
-            }
-
-            async function handleDeleteAppointment(userId, appointmentId) {
-                if (window.confirm("Tem certeza que deseja excluir este agendamento? Esta ação não pode ser desfeita.")) {
-                    const appDocRef = doc(db, 'users', userId, 'appointments', appointmentId);
-                    try {
-                        const appDocSnap = await getDoc(appDocRef);
-                        if (appDocSnap.exists()) {
-                            const { clientId } = appDocSnap.data();
-                            if (clientId) {
-                                const clientRef = doc(db, 'users', userId, 'clients', clientId);
-                                const clientSnap = await getDoc(clientRef);
-                                if (clientSnap.exists()) {
-                                    const currentCount = clientSnap.data().appointmentCount || 0;
-                                    if (currentCount <= 1) {
-                                        await deleteDoc(clientRef);
-                                    } else {
-                                        await updateDoc(clientRef, { appointmentCount: increment(-1) });
-                                    }
-                                }
-                            }
-                        }
-                        await deleteDoc(appDocRef);
-                        closeAppointmentModal();
-                        alert("Agendamento excluído com sucesso.");
-                    } catch (error) {
-                        console.error("Erro ao excluir o agendamento:", error);
-                        alert("Não foi possível excluir o agendamento.");
-                    }
-                }
-            }
-
-            function renderWeek(userId, offset = 0) {
-                const today = new Date();
-                today.setDate(today.getDate() + offset * 7);
-                const dayOfWeek = today.getDay();
-                const weekStart = new Date(today.setDate(today.getDate() - dayOfWeek));
-                const weekEnd = new Date(new Date(weekStart).setDate(weekStart.getDate() + 6));
-                document.getElementById('week-display').textContent = `${weekStart.toLocaleDateString()} - ${weekEnd.toLocaleDateString()}`;
-                calendarGrid.innerHTML = '';
-                const days = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
-                calendarGrid.innerHTML += `<div class="time-column"></div>` + days.map(d => `<div class="text-center font-bold p-2 border-b">${d}</div>`).join('');
-                for(let i = 7; i < 22; i++) {
-                  calendarGrid.innerHTML += `<div class="text-center text-xs p-1 border-r">${i}:00</div>` + days.map(() => `<div class="day-slot border-r border-b p-1"></div>`).join('');
-                }
-                const startTimestamp = Timestamp.fromDate(weekStart);
-                const endTimestamp = Timestamp.fromDate(new Date(weekEnd.getFullYear(), weekEnd.getMonth(), weekEnd.getDate(), 23, 59, 59));
-                const q = query(collection(db, 'users', userId, 'appointments'), where("dateTime", ">=", startTimestamp), where("dateTime", "<=", endTimestamp), orderBy("dateTime"));
-                onSnapshot(q, (snapshot) => {
-                    calendarGrid.querySelectorAll('.day-slot').forEach(slot => slot.innerHTML = '');
-                    snapshot.forEach(docSnap => {
-                        const app = docSnap.data();
-                        const appDate = app.dateTime.toDate();
-                        const dayIndex = appDate.getDay();
-                        const hourIndex = appDate.getHours();
-                        const slotIndex = (hourIndex - 7) * 8 + (dayIndex + 1);
-                        const targetSlot = calendarGrid.children[slotIndex];
-                        if (targetSlot) {
-                            const appEl = document.createElement('div');
-                            appEl.className = 'bg-indigo-100 p-1 rounded text-xs mb-1 appointment-block';
-                            appEl.innerHTML = `<strong>${app.clientName}</strong><br>${app.serviceName}`;
-                            appEl.addEventListener('click', () => openEditModal(userId, docSnap.id));
-                            targetSlot.appendChild(appEl);
-                        }
-                    });
-                });
-            }
-            
-            document.getElementById('prev-week-btn').addEventListener('click', () => { currentWeekOffset--; renderWeek(userId, currentWeekOffset); });
-            document.getElementById('next-week-btn').addEventListener('click', () => { currentWeekOffset++; renderWeek(userId, currentWeekOffset); });
-            addAppointmentBtn.addEventListener('click', openNewAppointmentModal);
-            renderWeek(userId);
-        }
-
-        // CORRIGIDO: Adicionada função de exclusão e pesquisa de clientes
-        function initializeClients(userId) {
-            const tableBody = document.getElementById('clients-table-body');
-            const searchInput = document.getElementById('client-search-input');
-            const clientsRef = collection(db, 'users', userId, 'clients');
-            let clientsData = []; // Cache local para a pesquisa
-
-            const renderTable = (clients) => {
-                if (clients.length === 0) {
-                    tableBody.innerHTML = `<tr><td colspan="4" class="text-center p-6 text-slate-500">Nenhum cliente encontrado.</td></tr>`;
-                    return;
-                }
-                tableBody.innerHTML = '';
-                clients.forEach(client => {
-                    const row = tableBody.insertRow();
-                    row.innerHTML = `
-                        <td class="px-6 py-4 font-medium text-gray-900">${client.name}</td>
-                        <td class="px-6 py-4">${client.phone}</td>
-                        <td class="px-6 py-4">${client.appointmentCount || 0}</td>
-                        <td class="px-6 py-4 text-center">
-                            <button class="text-red-500 hover:text-red-700 delete-client-btn" data-client-id="${client.id}" data-client-name="${client.name}">
-                                <i data-feather="trash-2" class="w-4 h-4"></i>
-                            </button>
-                        </td>
-                    `;
-                });
-                feather.replace();
-            };
-
-            onSnapshot(query(clientsRef, orderBy("name")), (snapshot) => {
-                clientsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                renderTable(clientsData);
-            });
-
-            searchInput.addEventListener('input', (e) => {
-                const searchTerm = e.target.value.toLowerCase();
-                const filteredClients = clientsData.filter(client => 
-                    client.name.toLowerCase().includes(searchTerm) || 
-                    client.phone.includes(searchTerm)
-                );
-                renderTable(filteredClients);
-            });
-
-            tableBody.addEventListener('click', async (e) => {
-                const deleteButton = e.target.closest('.delete-client-btn');
-                if (deleteButton) {
-                    const clientId = deleteButton.dataset.clientId;
-                    const clientName = deleteButton.dataset.clientName;
-                    if (window.confirm(`Tem certeza que deseja excluir o cliente ${clientName}? Todos os seus agendamentos serão mantidos no histórico, mas o cliente será removido da lista.`)) {
-                        try {
-                            await deleteDoc(doc(db, 'users', userId, 'clients', clientId));
-                            alert('Cliente excluído com sucesso.');
-                        } catch (error) {
-                            console.error("Erro ao excluir cliente:", error);
-                            alert('Não foi possível excluir o cliente.');
-                        }
-                    }
-                }
-            });
-        }
-        
-        function initializeServices(userId) {
-          const form = document.getElementById('service-form');
-          const listDiv = document.getElementById('services-list');
-          form.addEventListener('submit', async (e) => {
-              e.preventDefault();
-              const saveBtn = form.querySelector('button[type="submit"]');
-              saveBtn.disabled = true;
-              try {
-                  await addDoc(collection(db, 'users', userId, 'services'), {
-                      name: form.elements['service-name'].value,
-                      duration: Number(form.elements['service-duration'].value),
-                      price: Number(form.elements['service-price'].value)
-                  });
-                  form.reset();
-              } catch (error) { console.error("Erro ao salvar serviço:", error); } 
-              finally { saveBtn.disabled = false; }
-          });
-          onSnapshot(query(collection(db, 'users', userId, 'services'), orderBy("name")), (snap) => {
-              servicesCache.clear();
-              listDiv.innerHTML = snap.empty ? '<p>Nenhum serviço registrado.</p>' : '';
-              snap.forEach(doc => {
-                  const service = { id: doc.id, ...doc.data() };
-                  servicesCache.set(service.id, service);
-                  const el = document.createElement('div');
-                  el.className = 'flex justify-between items-center bg-slate-50 p-3 rounded-lg';
-                  el.innerHTML = `<div><p class="font-semibold">${service.name}</p><p class="text-sm text-slate-500">${service.duration} min - R$ ${service.price.toFixed(2)}</p></div><button class="text-slate-400 hover:text-red-600"><i data-feather="trash-2" class="w-4 h-4"></i></button>`;
-                  listDiv.appendChild(el);
-              });
-              feather.replace();
-          });
-        }
-
-        function initializeBarbers(userId) {
-          const form = document.getElementById('barber-form');
-          const listDiv = document.getElementById('barbers-list');
-          form.addEventListener('submit', async (e) => {
-              e.preventDefault();
-              const saveBtn = form.querySelector('button[type="submit"]');
-              saveBtn.disabled = true;
-              try {
-                  await addDoc(collection(db, 'users', userId, 'barbers'), { name: form.elements['barber-name'].value });
-                  form.reset();
-              } catch (error) { console.error("Erro ao salvar barbeiro:", error); }
-              finally { saveBtn.disabled = false; }
-          });
-          onSnapshot(query(collection(db, 'users', userId, 'barbers'), orderBy("name")), (snap) => {
-              listDiv.innerHTML = snap.empty ? '<p>Nenhum barbeiro registrado.</p>' : '';
-              snap.forEach(doc => {
-                  const barber = { id: doc.id, ...doc.data() };
-                  const el = document.createElement('div');
-                  el.className = 'flex justify-between items-center bg-slate-50 p-3 rounded-lg';
-                  el.innerHTML = `<p class="font-semibold">${barber.name}</p><button class="text-slate-400 hover:text-red-600"><i data-feather="trash-2" class="w-4 h-4"></i></button>`;
-                  listDiv.appendChild(el);
-              });
-              feather.replace();
-          });
-        }
-
-        function initializeFinance(userId) {
-            const appointmentsRef = collection(db, 'users', userId, 'appointments');
-
-            onSnapshot(query(appointmentsRef), (snap) => {
-                const now = new Date();
-                const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-                const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-                let todayRevenue = 0;
-                let monthRevenue = 0;
-                let monthAppointments = 0;
-
-                snap.forEach(doc => {
-                    const app = doc.data();
-                    const appDate = app.dateTime.toDate();
-                    const price = app.price || 0;
-
-                    if (appDate >= monthStart) {
-                        monthRevenue += price;
-                        monthAppointments++;
-                    }
-                    if (appDate >= todayStart && appDate < new Date(todayStart.getTime() + 24 * 60 * 60 * 1000)) {
-                        todayRevenue += price;
-                    }
-                });
-                document.getElementById('finance-today-revenue').textContent = `R$ ${todayRevenue.toFixed(2)}`;
-                document.getElementById('finance-month-revenue').textContent = `R$ ${monthRevenue.toFixed(2)}`;
-                document.getElementById('finance-avg-ticket').textContent = `R$ ${(monthRevenue / (monthAppointments || 1)).toFixed(2)}`;
-            });
-
-            const generateReportBtn = document.getElementById('generate-report-btn');
-            generateReportBtn.addEventListener('click', async () => {
-                const startDateInput = document.getElementById('filter-start-date').value;
-                const endDateInput = document.getElementById('filter-end-date').value;
-
-                if (!startDateInput || !endDateInput) {
-                    alert('Por favor, selecione a data de início e de fim.');
-                    return;
-                }
-
-                const startTimestamp = Timestamp.fromDate(new Date(`${startDateInput}T00:00:00`));
-                const endTimestamp = Timestamp.fromDate(new Date(`${endDateInput}T23:59:59`));
-
-                const reportQuery = query(appointmentsRef, where("dateTime", ">=", startTimestamp), where("dateTime", "<=", endTimestamp), orderBy("dateTime"));
-                const reportSnap = await getDocs(reportQuery);
-
-                let periodRevenue = 0;
-                const dailyData = new Map();
-
-                reportSnap.forEach(doc => {
-                    const app = doc.data();
-                    const price = app.price || 0;
-                    periodRevenue += price;
-
-                    const day = app.dateTime.toDate().toLocaleDateString('pt-BR', {day: '2-digit', month: '2-digit'});
-                    dailyData.set(day, (dailyData.get(day) || 0) + price);
-                });
-                
-                document.getElementById('report-summary').classList.remove('hidden');
-                document.getElementById('report-summary').classList.add('grid');
-                document.getElementById('finance-period-revenue').textContent = `R$ ${periodRevenue.toFixed(2)}`;
-                
-                const ctx = document.getElementById('revenue-chart').getContext('2d');
-                if (revenueChartInstance) {
-                    revenueChartInstance.destroy();
-                }
-                revenueChartInstance = new Chart(ctx, {
-                    type: 'bar',
-                    data: {
-                        labels: Array.from(dailyData.keys()),
-                        datasets: [{
-                            label: 'Faturamento no Período',
-                            data: Array.from(dailyData.values()),
-                            backgroundColor: '#4f46e5',
-                            borderColor: '#4338ca',
-                            borderWidth: 1
-                        }]
-                    },
-                    options: {
-                        scales: { y: { beginAtZero: true } },
-                        plugins: { legend: { display: false } }
-                    }
+                navigator.clipboard.writeText(linkInput.value).then(() => {
+                    alert('Link copiado para a área de transferência!');
+                }).catch(err => {
+                    console.error('Falha ao copiar o link: ', err);
+                    alert('Não foi possível copiar o link. Por favor, copie manualmente.');
                 });
             });
 
-            const today = new Date();
-            const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0];
-            const todayISO = today.toISOString().split('T')[0];
-            document.getElementById('filter-start-date').value = firstDayOfMonth;
-            document.getElementById('filter-end-date').value = todayISO;
-            generateReportBtn.click();
+            loadHours();
+            saveBtn.addEventListener('click', saveHours);
         }
 
-        function setupSettings(userId) {
-          const form = document.getElementById('working-hours-form');
-          const saveBtn = document.getElementById('save-hours-btn');
-          async function loadHours() {
-              const ref = doc(db, 'users', userId, 'settings', 'workingHours');
-              const docSnap = await getDoc(ref);
-              const hoursData = docSnap.exists() ? docSnap.data() : {};
-              const days = [ { id: 'dom', name: 'Domingo' }, { id: 'seg', name: 'Segunda' }, { id: 'ter', name: 'Terça' }, { id: 'qua', name: 'Quarta' }, { id: 'qui', name: 'Quinta' }, { id: 'sex', name: 'Sexta' }, { id: 'sab', name: 'Sábado' }];
-              form.innerHTML = '';
-              days.forEach(day => {
-                  const dayData = hoursData[day.id] || { isOpen: day.id !== 'dom', start: '09:00', end: '18:00' };
-                  const row = document.createElement('div');
-                  row.className = 'flex items-center justify-between border-t pt-3';
-                  row.innerHTML = `<span class="font-medium">${day.name}</span><div class="flex items-center gap-4"><div class="flex items-center gap-2"><input type="time" id="${day.id}-start" value="${dayData.start}" class="p-1 border rounded-md text-sm" ${!dayData.isOpen ? 'disabled' : ''}><span>às</span><input type="time" id="${day.id}-end" value="${dayData.end}" class="p-1 border rounded-md text-sm" ${!dayData.isOpen ? 'disabled' : ''}></div><div class="relative inline-block w-10 align-middle"><input type="checkbox" id="${day.id}-toggle" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer" ${dayData.isOpen ? 'checked' : ''} /><label for="${day.id}-toggle" class="toggle-label block overflow-hidden h-6 rounded-full bg-slate-300 cursor-pointer"></label></div></div>`;
-                  form.appendChild(row);
-                  row.querySelector(`#${day.id}-toggle`).addEventListener('change', (e) => {
-                      row.querySelectorAll('input[type="time"]').forEach(input => input.disabled = !e.target.checked);
-                  });
-              });
-          }
-          async function saveHours() {
-              const btnText = saveBtn.querySelector('.btn-text');
-              const spinner = saveBtn.querySelector('.spinner');
-              saveBtn.disabled = true;
-              btnText.textContent = 'Salvando...';
-              spinner.classList.remove('hidden');
-
-              const dataToSave = {};
-              ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sab'].forEach(id => {
-                  dataToSave[id] = {
-                      isOpen: document.getElementById(`${id}-toggle`).checked,
-                      start: document.getElementById(`${id}-start`).value,
-                      end: document.getElementById(`${id}-end`).value,
-                  };
-              });
-              try {
-                  await setDoc(doc(db, 'users', userId, 'settings', 'workingHours'), dataToSave);
-                  workingHoursCache = dataToSave;
-                  alert("Horários salvos com sucesso!");
-              } catch(e) { 
-                console.error(e); 
-                alert("Erro ao salvar horários.");
-              }
-              finally { 
-                saveBtn.disabled = false;
-                btnText.textContent = 'Salvar Alterações';
-                spinner.classList.add('hidden');
-              }
-          }
-          document.getElementById('copy-link-btn').addEventListener('click', () => {
-              const input = document.getElementById('public-booking-link');
-              input.value = `${window.location.origin}/booking.html?user=${userId}`;
-              input.select();
-              document.execCommand('copy');
-              alert('Link copiado para a área de transferência!');
-          });
-          loadHours();
-          saveBtn.addEventListener('click', saveHours);
-        }
     </script>
-
 </body>
 </html>
