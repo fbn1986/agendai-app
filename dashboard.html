@@ -26,7 +26,7 @@
 
     <div id="loading-overlay" class="w-full h-screen flex flex-col items-center justify-center">
         <div class="spinner-large"></div>
-        <p class="mt-4 text-slate-600">Verificando autenticação...</p>
+        <p class="mt-4 text-slate-600">A verificar autenticação...</p>
     </div>
 
     <div id="app-container" class="hidden flex min-h-screen w-full">
@@ -53,16 +53,16 @@
             <header class="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-6 flex-shrink-0">
                  <div class="flex items-center">
                     <button id="menu-btn" class="md:hidden mr-4 text-slate-600"><i data-feather="menu" class="w-6 h-6"></i></button>
-                    <h2 id="welcome-message" class="text-xl font-semibold text-slate-800">Carregando...</h2>
+                    <h2 id="welcome-message" class="text-xl font-semibold text-slate-800">A carregar...</h2>
                 </div>
                 <div class="flex items-center space-x-4">
                     <button class="text-slate-500 hover:text-slate-800"><i data-feather="bell" class="w-6 h-6"></i></button>
-                    <img id="user-avatar" src="https://placehold.co/40x40/e2e8f0/64748b?text=A" alt="Avatar do usuário" class="w-10 h-10 rounded-full">
+                    <img id="user-avatar" src="https://placehold.co/40x40/e2e8f0/64748b?text=A" alt="Avatar do utilizador" class="w-10 h-10 rounded-full">
                 </div>
             </header>
 
             <main id="main-content" class="flex-1 p-6 md:p-8 overflow-y-auto">
-                <!-- As seções do painel serão inseridas aqui pelo JS -->
+                <!-- As secções do painel serão inseridas aqui pelo JS -->
             </main>
         </div>
     </div>
@@ -90,7 +90,6 @@
       const auth = getAuth(app);
       const db = getFirestore(app);
 
-      // --- ELEMENTOS GLOBAIS ---
       const loadingOverlay = document.getElementById('loading-overlay');
       const appContainer = document.getElementById('app-container');
       const subscriptionWall = document.getElementById('subscription-wall');
@@ -99,8 +98,6 @@
       let servicesCache = [];
       let allClients = [];
       let currentWeekOffset = 0;
-
-      // --- LÓGICA DE AUTENTICAÇÃO E ROTEAMENTO ---
 
       onAuthStateChanged(auth, async (user) => {
           loadingOverlay.classList.add('hidden');
@@ -120,7 +117,7 @@
               const isTrialActive = new Date() < trialEndDate;
 
               if (hasActiveSubscription || isTrialActive) {
-                  const daysLeft = isTrialActive && !hasActiveSubscription ? Math.ceil((trialEndDate - new Date()) / (1000 * 60 * 60 * 24)) : null;
+                  const daysLeft = isTrialActive && !hasActiveSubscription ? Math.floor((trialEndDate - new Date()) / (1000 * 60 * 60 * 24)) : null;
                   showDashboard(user, userData, daysLeft);
               } else {
                   showSubscriptionWall();
@@ -138,20 +135,17 @@
           
           const trialBanner = document.getElementById('trial-banner');
           if (trialDaysLeft !== null && trialDaysLeft >= 0) {
-              trialBanner.textContent = `Você tem ${trialDaysLeft} dias restantes no seu período de teste.`;
+              trialBanner.textContent = `Você tem ${trialDaysLeft + 1} dias restantes no seu período de teste.`;
               trialBanner.classList.remove('hidden');
           }
 
           initializeDashboard(user.uid);
-          document.getElementById('logout-btn').addEventListener('click', async () => {
-              await signOut(auth);
-              // A verificação onAuthStateChanged irá redirecionar
-          });
+          document.getElementById('logout-btn').addEventListener('click', () => signOut(auth));
       }
 
       function showSubscriptionWall() {
           subscriptionWall.classList.remove('hidden');
-          subscriptionWall.innerHTML = `<div class="bg-white p-8 rounded-lg shadow-lg max-w-md"><i data-feather="clock" class="w-12 h-12 text-yellow-500 mx-auto mb-4"></i><h1 class="text-2xl font-bold text-slate-800">Seu período de teste terminou</h1><p class="text-slate-600 mt-2 mb-6">Para continuar gerenciando sua barbearia, faça sua assinatura.</p><div class="bg-indigo-50 border border-indigo-200 p-6 rounded-lg"><h3 class="font-bold text-indigo-800">Plano Mensal</h3><p class="text-4xl font-bold text-indigo-600 my-2">R$ 27,00<span class="text-lg font-normal text-slate-500">/mês</span></p><a href="https://buy.stripe.com/test_bJe14p8bLftHfq4grW5EY01" class="mt-6 block w-full bg-indigo-600 text-white font-semibold py-3 px-4 rounded-lg shadow-md hover:bg-indigo-700">Assinar Agora</a></div><button id="logout-from-wall-btn" class="mt-4 text-sm text-slate-500 hover:text-slate-800">Sair da conta</button></div>`;
+          subscriptionWall.innerHTML = `<div class="bg-white p-8 rounded-lg shadow-lg max-w-md"><i data-feather="clock" class="w-12 h-12 text-yellow-500 mx-auto mb-4"></i><h1 class="text-2xl font-bold text-slate-800">O seu período de teste terminou</h1><p class="text-slate-600 mt-2 mb-6">Para continuar a gerir a sua barbearia, faça a sua assinatura.</p><div class="bg-indigo-50 border border-indigo-200 p-6 rounded-lg"><h3 class="font-bold text-indigo-800">Plano Mensal</h3><p class="text-4xl font-bold text-indigo-600 my-2">R$ 27,00<span class="text-lg font-normal text-slate-500">/mês</span></p><a href="https://buy.stripe.com/test_bJe14p8bLftHfq4grW5EY01" class="mt-6 block w-full bg-indigo-600 text-white font-semibold py-3 px-4 rounded-lg shadow-md hover:bg-indigo-700">Assinar Agora</a></div><button id="logout-from-wall-btn" class="mt-4 text-sm text-slate-500 hover:text-slate-800">Sair da conta</button></div>`;
           document.getElementById('logout-from-wall-btn').addEventListener('click', () => signOut(auth));
           feather.replace();
       }
@@ -164,13 +158,23 @@
       function initializeDashboard(userId) {
           const mainContent = document.getElementById('main-content');
           mainContent.innerHTML = getDashboardHTML();
-          
           setupNavigation(userId);
           feather.replace();
       }
 
       function setupNavigation(userId) {
           const mainNav = document.getElementById('main-nav');
+          const mainContent = document.getElementById('main-content');
+          const sections = {
+            inicio: () => {},
+            agenda: () => initializeAgenda(userId),
+            clientes: () => initializeClients(userId),
+            servicos: () => initializeServices(userId),
+            barbeiros: () => initializeBarbers(userId),
+            financeiro: () => initializeFinance(userId),
+            configuracoes: () => setupSettings(userId),
+          };
+
           mainNav.addEventListener('click', (e) => {
               const link = e.target.closest('a');
               if (link) {
@@ -179,25 +183,23 @@
                   link.classList.add('bg-indigo-50', 'text-indigo-700');
                   const targetId = link.getAttribute('href').substring(1);
                   document.querySelectorAll('#main-content > div').forEach(section => section.classList.add('hidden'));
-                  document.getElementById(`${targetId}-section`).classList.remove('hidden');
+                  const targetSection = document.getElementById(`${targetId}-section`);
+                  if (targetSection) {
+                      targetSection.classList.remove('hidden');
+                      // Chama a função de inicialização da seção
+                      if(sections[targetId]) {
+                        sections[targetId]();
+                      }
+                  }
               }
           });
-          
-          // Inicializa cada seção quando a navegação é configurada
-          initializeAgenda(userId);
-          initializeClients(userId);
-          initializeServices(userId);
-          initializeBarbers(userId);
-          initializeFinance(userId);
-          setupSettings(userId);
-          
           document.querySelector('#main-nav a[href="#inicio"]').click();
       }
-      
+
       function getDashboardHTML() {
         return `
             <div id="inicio-section">
-                <h2 class="text-2xl font-bold text-slate-800">Início</h2><p>Seja bem-vindo ao seu painel de controle.</p>
+                <h2 class="text-2xl font-bold text-slate-800">Início</h2><p>Seja bem-vindo ao seu painel de controlo.</p>
             </div>
             <div id="agenda-section" class="hidden">
                 <div class="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
@@ -211,19 +213,19 @@
                 <div class="bg-white rounded-lg shadow-sm overflow-hidden"><div id="calendar-grid" class="calendar-grid"></div></div>
             </div>
             <div id="clientes-section" class="hidden">
-                 <div class="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4"><h2 class="text-2xl font-bold text-slate-800">Meus Clientes</h2><div class="relative w-full sm:w-72"><i data-feather="search" class="absolute top-1/2 left-3 -translate-y-1/2 w-5 h-5 text-slate-400"></i><input type="text" id="client-search-input" placeholder="Buscar por nome..." class="pl-10 pr-4 py-2 w-full border border-slate-300 rounded-lg"></div></div><div class="bg-white rounded-lg shadow-sm overflow-hidden"><div class="overflow-x-auto"><table class="w-full text-sm text-left text-slate-500"><thead class="text-xs text-slate-700 uppercase bg-slate-50"><tr><th scope="col" class="px-6 py-3">Nome</th><th scope="col" class="px-6 py-3">Contato</th><th scope="col" class="px-6 py-3">Última Visita</th><th scope="col" class="px-6 py-3">Total Gasto</th></tr></thead><tbody id="clients-table-body"></tbody></table></div></div>
+                 <div class="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4"><h2 class="text-2xl font-bold text-slate-800">Meus Clientes</h2><div class="relative w-full sm:w-72"><i data-feather="search" class="absolute top-1/2 left-3 -translate-y-1/2 w-5 h-5 text-slate-400"></i><input type="text" id="client-search-input" placeholder="Procurar por nome..." class="pl-10 pr-4 py-2 w-full border border-slate-300 rounded-lg"></div></div><div class="bg-white rounded-lg shadow-sm overflow-hidden"><div class="overflow-x-auto"><table class="w-full text-sm text-left text-slate-500"><thead class="text-xs text-slate-700 uppercase bg-slate-50"><tr><th scope="col" class="px-6 py-3">Nome</th><th scope="col" class="px-6 py-3">Contacto</th><th scope="col" class="px-6 py-3">Última Visita</th><th scope="col" class="px-6 py-3">Total Gasto</th></tr></thead><tbody id="clients-table-body"></tbody></table></div></div>
             </div>
             <div id="servicos-section" class="hidden">
-                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-8"><section class="bg-white p-6 rounded-lg shadow-sm"><h3 class="text-lg font-semibold text-slate-800 mb-4">Cadastrar Novo Serviço</h3><form id="service-form" class="space-y-4"><div><label for="service-name" class="block text-sm font-medium">Nome</label><input type="text" id="service-name" required class="input-style"></div><div class="grid grid-cols-2 gap-4"><div><label for="service-duration" class="block text-sm font-medium">Duração (min)</label><input type="number" id="service-duration" required class="input-style"></div><div><label for="service-price" class="block text-sm font-medium">Valor (R$)</label><input type="number" step="0.01" id="service-price" required class="input-style"></div></div><button id="save-service-btn" type="submit" class="w-full bg-indigo-600 text-white font-semibold py-2 px-4 rounded-lg flex items-center justify-center disabled:opacity-50"><span class="btn-text">Salvar Serviço</span><div class="spinner hidden ml-2"></div></button></form></section><section class="bg-white p-6 rounded-lg shadow-sm"><h3 class="text-lg font-semibold text-slate-800 mb-4">Meus Serviços</h3><div id="services-list" class="space-y-3 max-h-96 overflow-y-auto"></div></section></div>
+                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-8"><section class="bg-white p-6 rounded-lg shadow-sm"><h3 class="text-lg font-semibold text-slate-800 mb-4">Registar Novo Serviço</h3><form id="service-form" class="space-y-4"><div><label for="service-name" class="block text-sm font-medium">Nome</label><input type="text" id="service-name" required class="input-style"></div><div class="grid grid-cols-2 gap-4"><div><label for="service-duration" class="block text-sm font-medium">Duração (min)</label><input type="number" id="service-duration" required class="input-style"></div><div><label for="service-price" class="block text-sm font-medium">Valor (R$)</label><input type="number" step="0.01" id="service-price" required class="input-style"></div></div><button id="save-service-btn" type="submit" class="w-full bg-indigo-600 text-white font-semibold py-2 px-4 rounded-lg flex items-center justify-center disabled:opacity-50"><span class="btn-text">Guardar Serviço</span><div class="spinner hidden ml-2"></div></button></form></section><section class="bg-white p-6 rounded-lg shadow-sm"><h3 class="text-lg font-semibold text-slate-800 mb-4">Os Meus Serviços</h3><div id="services-list" class="space-y-3 max-h-96 overflow-y-auto"></div></section></div>
             </div>
             <div id="barbeiros-section" class="hidden">
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8"><section class="bg-white p-6 rounded-lg shadow-sm"><h3 class="text-lg font-semibold text-slate-800 mb-4">Cadastrar Novo Barbeiro</h3><form id="barber-form" class="space-y-4"><div><label for="barber-name" class="block text-sm font-medium">Nome</label><input type="text" id="barber-name" required class="input-style"></div><button id="save-barber-btn" type="submit" class="w-full bg-indigo-600 text-white font-semibold py-2 px-4 rounded-lg flex items-center justify-center disabled:opacity-50"><span class="btn-text">Salvar Barbeiro</span><div class="spinner hidden ml-2"></div></button></form></section><section class="bg-white p-6 rounded-lg shadow-sm"><h3 class="text-lg font-semibold text-slate-800 mb-4">Meus Barbeiros</h3><div id="barbers-list" class="space-y-3 max-h-96 overflow-y-auto"></div></section></div>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8"><section class="bg-white p-6 rounded-lg shadow-sm"><h3 class="text-lg font-semibold text-slate-800 mb-4">Registar Novo Barbeiro</h3><form id="barber-form" class="space-y-4"><div><label for="barber-name" class="block text-sm font-medium">Nome</label><input type="text" id="barber-name" required class="input-style"></div><button id="save-barber-btn" type="submit" class="w-full bg-indigo-600 text-white font-semibold py-2 px-4 rounded-lg flex items-center justify-center disabled:opacity-50"><span class="btn-text">Guardar Barbeiro</span><div class="spinner hidden ml-2"></div></button></form></section><section class="bg-white p-6 rounded-lg shadow-sm"><h3 class="text-lg font-semibold text-slate-800 mb-4">Os Meus Barbeiros</h3><div id="barbers-list" class="space-y-3 max-h-96 overflow-y-auto"></div></section></div>
             </div>
             <div id="financeiro-section" class="hidden">
-                <h2 class="text-2xl font-bold text-slate-800 mb-6">Visão Financeira</h2><section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8"><div class="bg-white p-6 rounded-lg shadow-sm"><p class="text-sm text-slate-500">Faturamento do Mês</p><p id="finance-month-revenue" class="text-3xl font-bold text-slate-800 mt-1">R$ 0,00</p></div><div class="bg-white p-6 rounded-lg shadow-sm"><p class="text-sm text-slate-500">Faturamento de Hoje</p><p id="finance-today-revenue" class="text-3xl font-bold text-slate-800 mt-1">R$ 0,00</p></div><div class="bg-white p-6 rounded-lg shadow-sm"><p class="text-sm text-slate-500">Ticket Médio</p><p id="finance-avg-ticket" class="text-3xl font-bold text-slate-800 mt-1">R$ 0,00</p></div></section><section class="bg-white p-6 rounded-lg shadow-sm"><h3 class="text-lg font-semibold text-slate-800 mb-4">Faturamento (Últimos 7 dias)</h3><div><canvas id="revenue-chart"></canvas></div></section>
+                <h2 class="text-2xl font-bold text-slate-800 mb-6">Visão Financeira</h2><section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8"><div class="bg-white p-6 rounded-lg shadow-sm"><p class="text-sm text-slate-500">Faturação do Mês</p><p id="finance-month-revenue" class="text-3xl font-bold text-slate-800 mt-1">R$ 0,00</p></div><div class="bg-white p-6 rounded-lg shadow-sm"><p class="text-sm text-slate-500">Faturação de Hoje</p><p id="finance-today-revenue" class="text-3xl font-bold text-slate-800 mt-1">R$ 0,00</p></div><div class="bg-white p-6 rounded-lg shadow-sm"><p class="text-sm text-slate-500">Ticket Médio</p><p id="finance-avg-ticket" class="text-3xl font-bold text-slate-800 mt-1">R$ 0,00</p></div></section><section class="bg-white p-6 rounded-lg shadow-sm"><h3 class="text-lg font-semibold text-slate-800 mb-4">Faturação (Últimos 7 dias)</h3><div><canvas id="revenue-chart"></canvas></div></section>
             </div>
             <div id="configuracoes-section" class="hidden">
-                <h2 class="text-2xl font-bold text-slate-800 mb-6">Configurações</h2><div class="grid grid-cols-1 lg:grid-cols-2 gap-8"><div class="bg-white p-6 rounded-lg shadow-sm"><h3 class="text-lg font-semibold text-slate-800">Horários de Funcionamento</h3><p class="text-sm text-slate-500 mt-1 mb-4">Defina seus dias e horários de trabalho.</p><form id="working-hours-form" class="space-y-4"></form><button id="save-hours-btn" type="button" class="mt-6 w-full bg-indigo-600 text-white font-semibold py-2 px-4 rounded-lg flex items-center justify-center disabled:opacity-50"><span class="btn-text">Salvar Alterações</span><div class="spinner hidden ml-2"></div></button></div><div class="bg-white p-6 rounded-lg shadow-sm"><h3 class="text-lg font-semibold text-slate-800">Seu Link de Agendamento</h3><p class="text-sm text-slate-500 mt-1 mb-4">Compartilhe este link no seu Instagram.</p><div class="flex items-center space-x-2"><input id="public-booking-link" type="text" readonly class="w-full p-2 bg-slate-100 border border-slate-300 rounded-md"><button id="copy-link-btn" class="bg-indigo-600 text-white font-semibold py-2 px-4 rounded-lg flex-shrink-0">Copiar</button></div></div></div>
+                <h2 class="text-2xl font-bold text-slate-800 mb-6">Configurações</h2><div class="grid grid-cols-1 lg:grid-cols-2 gap-8"><div class="bg-white p-6 rounded-lg shadow-sm"><h3 class="text-lg font-semibold text-slate-800">Horários de Funcionamento</h3><p class="text-sm text-slate-500 mt-1 mb-4">Defina os seus dias e horários de trabalho.</p><form id="working-hours-form" class="space-y-4"></form><button id="save-hours-btn" type="button" class="mt-6 w-full bg-indigo-600 text-white font-semibold py-2 px-4 rounded-lg flex items-center justify-center disabled:opacity-50"><span class="btn-text">Guardar Alterações</span><div class="spinner hidden ml-2"></div></button></div><div class="bg-white p-6 rounded-lg shadow-sm"><h3 class="text-lg font-semibold text-slate-800">O seu Link de Agendamento</h3><p class="text-sm text-slate-500 mt-1 mb-4">Partilhe este link no seu Instagram.</p><div class="flex items-center space-x-2"><input id="public-booking-link" type="text" readonly class="w-full p-2 bg-slate-100 border border-slate-300 rounded-md"><button id="copy-link-btn" class="bg-indigo-600 text-white font-semibold py-2 px-4 rounded-lg flex-shrink-0">Copiar</button></div></div></div>
             </div>
         `;
       }
@@ -266,7 +268,7 @@
             const btnText = saveHoursBtn.querySelector('.btn-text');
             const spinner = saveHoursBtn.querySelector('.spinner');
             saveHoursBtn.disabled = true;
-            btnText.textContent = 'Salvando...';
+            btnText.textContent = 'A guardar...';
             spinner.classList.remove('hidden');
             const newHoursData = {};
             ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sab'].forEach(dayId => {
@@ -278,10 +280,10 @@
             });
             try {
                 await setDoc(doc(db, 'users', userId, 'settings', 'workingHours'), newHoursData);
-            } catch (error) { console.error("Erro ao salvar horários:", error); } 
+            } catch (error) { console.error("Erro ao guardar horários:", error); } 
             finally {
                 saveHoursBtn.disabled = false;
-                btnText.textContent = 'Salvar Alterações';
+                btnText.textContent = 'Guardar Alterações';
                 spinner.classList.add('hidden');
             }
         }
