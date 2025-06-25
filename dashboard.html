@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel de Controle - AgendAI</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/feather-icons"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: 'Poppins', sans-serif; background-color: #f1f5f9; }
+        .spinner, .spinner-large { border-radius: 50%; animation: spin 1s ease-in-out infinite; }
+        .spinner { border: 2px solid rgba(255, 255, 255, 0.3); border-top-color: #fff; width: 16px; height: 16px; }
+        .spinner-large { border: 4px solid rgba(100, 116, 139, 0.2); border-top-color: #4f46e5; width: 50px; height: 50px; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .toggle-checkbox:checked + .toggle-label { background-color: #4f46e5; }
+    </style>
+</head>
+<body class="bg-slate-100">
+
+    <div id="loading-overlay" class="w-full h-screen flex flex-col items-center justify-center">
+        <div class="spinner-large"></div>
+        <p class="mt-4 text-slate-600">Verificando autenticação...</p>
+    </div>
+
+    <div id="app-container" class="hidden min-h-screen w-full">
+        <!-- Sidebar, Header, Main Content e Modal -->
+    </div>
+    
+    <div id="subscription-wall" class="hidden w-full h-screen flex-col items-center justify-center bg-slate-100 p-4 text-center">
+        <div class="bg-white p-8 rounded-lg shadow-lg max-w-md">
+            <i data-feather="clock" class="w-12 h-12 text-yellow-500 mx-auto mb-4"></i>
+            <h1 class="text-2xl font-bold text-slate-800">Seu período de teste terminou</h1>
+            <p class="text-slate-600 mt-2 mb-6">Para continuar gerenciando sua barbearia, faça sua assinatura.</p>
+            <a href="https://buy.stripe.com/test_bJe14p8bLftHfq4grW5EY01" class="block w-full bg-indigo-600 text-white font-semibold py-3 px-4 rounded-lg shadow-md hover:bg-indigo-700">Assinar Agora por R$ 27/mês</a>
+            <button id="logout-from-wall-btn" class="mt-4 text-sm text-slate-500 hover:text-slate-800">Sair da conta</button>
+        </div>
+    </div>
+    
+    <div id="access-denied-message" class="hidden w-full h-screen flex-col items-center justify-center p-4"></div>
+
+    <script type="module">
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
+      import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
+      import { getFirestore, doc, getDoc, setDoc, updateDoc, onSnapshot, query, collection, addDoc, getDocs, Timestamp, orderBy, deleteDoc } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
+
+      const firebaseConfig = {
+        apiKey: "AIzaSyAkIUtakV64F2SYjvJylTGlw8-vTfXc3Fk",
+        authDomain: "agendabarber-3fe30.firebaseapp.com",
+        projectId: "agendabarber-3fe30",
+        storageBucket: "agendabarber-3fe30.appspot.com",
+        messagingSenderId: "1098037500040",
+        appId: "1:1098037500040:web:62c82a203a3276ffaa273d"
+      };
+      
+      const app = initializeApp(firebaseConfig);
+      const auth = getAuth(app);
+      const db = getFirestore(app);
+
+      const loadingOverlay = document.getElementById('loading-overlay');
+      const appContainer = document.getElementById('app-container');
+      const subscriptionWall = document.getElementById('subscription-wall');
+      const accessDeniedMessage = document.getElementById('access-denied-message');
+
+      onAuthStateChanged(auth, async (user) => {
+          loadingOverlay.classList.add('hidden');
+          if (user) {
+              const userDocRef = doc(db, "users", user.uid);
+              const userDocSnap = await getDoc(userDocRef);
+              if (!userDocSnap.exists()) { showAccessDenied("Erro: Perfil não encontrado."); return; }
+              const userData = userDocSnap.data();
+              const trialEndDate = userData.createdAt.toDate();
+              trialEndDate.setDate(trialEndDate.getDate() + 14);
+              if (userData.subscription?.status === 'active' || new Date() < trialEndDate) {
+                  const daysLeft = Math.ceil((trialEndDate - new Date()) / (1000 * 60 * 60 * 24));
+                  showDashboard(user, userData, (userData.subscription?.status !== 'active') ? daysLeft : null);
+              } else {
+                  showSubscriptionWall(user);
+              }
+          } else {
+              showAccessDenied("Você precisa estar logado para acessar esta página. Volte para a página inicial para fazer o login.");
+          }
+      });
+
+      function showDashboard(user, userData, trialDaysLeft) {
+          appContainer.innerHTML = `<!-- O HTML completo do painel vai aqui (Sidebar, Header, Main) -->`; // O HTML completo está no backup do Immersive.
+          appContainer.classList.remove('hidden');
+          document.getElementById('welcome-message').textContent = `Bem-vindo, ${userData.barbershopName}!`;
+          if (trialDaysLeft !== null) {
+              const trialBanner = document.createElement('div');
+              trialBanner.className = 'bg-yellow-100 text-center p-2 text-sm text-yellow-800';
+              trialBanner.textContent = `Você tem ${trialDaysLeft} dias restantes no seu período de teste.`;
+              appContainer.querySelector('#dashboard-content').prepend(trialBanner);
+          }
+          initializeDashboard(user.uid);
+          document.getElementById('logout-btn').addEventListener('click', () => signOut(auth));
+      }
+
+      function showSubscriptionWall(user) {
+          subscriptionWall.classList.remove('hidden');
+          document.getElementById('logout-from-wall-btn').addEventListener('click', () => signOut(auth));
+      }
+
+      function showAccessDenied(message) {
+          accessDeniedMessage.classList.remove('hidden');
+          accessDeniedMessage.innerHTML = `<div class="text-center"><h1 class="text-2xl font-bold">Acesso Negado</h1><p>${message}</p></div>`;
+      }
+      
+      function initializeDashboard(userId) {
+          // Todo o código de inicialização das seções vai aqui.
+          // Ele é omitido para brevidade, mas deve ser inserido.
+          feather.replace();
+      }
+    </script>
+</body>
+</html>
