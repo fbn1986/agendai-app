@@ -126,8 +126,7 @@
                   showSubscriptionWall();
               }
           } else {
-              // [FIX] Replace direct redirect with access denied message for sandbox environment
-              showAccessDenied("Você precisa de estar autenticado para aceder a esta página.");
+              window.location.href = 'index.html';
           }
       });
 
@@ -159,10 +158,11 @@
           accessDeniedMessage.innerHTML = `<div class="text-center"><h1 class="text-2xl font-bold">Acesso Negado</h1><p class="text-slate-600 mt-2">${message}</p><a href="index.html" class="mt-4 inline-block bg-indigo-600 text-white font-semibold py-2 px-4 rounded-lg">Ir para a Página Inicial</a></div>`;
       }
       
+      // --- LÓGICA DE INICIALIZAÇÃO E CONTEÚDO DAS SEÇÕES ---
+      
       function initializeDashboard(userId) {
           const mainContent = document.getElementById('main-content');
           mainContent.innerHTML = getDashboardHTML();
-          
           setupNavigation(userId);
           feather.replace();
       }
@@ -236,8 +236,92 @@
       // Funções de inicialização de cada seção
       function initializeAgenda(userId) { /* ... Lógica da Agenda ... */ }
       function initializeClients(userId) { /* ... Lógica dos Clientes ... */ }
-      function initializeServices(userId) { /* ... Lógica dos Serviços ... */ }
-      function initializeBarbers(userId) { /* ... Lógica dos Barbeiros ... */ }
+      function initializeServices(userId) {
+        const serviceForm = document.getElementById('service-form');
+        const saveServiceBtn = document.getElementById('save-service-btn');
+        const servicesListDiv = document.getElementById('services-list');
+        
+        serviceForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btnText = saveServiceBtn.querySelector('.btn-text');
+            const spinner = saveServiceBtn.querySelector('.spinner');
+            saveServiceBtn.disabled = true;
+            btnText.textContent = 'A guardar...';
+            spinner.classList.remove('hidden');
+            try {
+                await addDoc(collection(db, 'users', userId, 'services'), {
+                    name: document.getElementById('service-name').value,
+                    duration: Number(document.getElementById('service-duration').value),
+                    price: Number(document.getElementById('service-price').value)
+                });
+                serviceForm.reset();
+            } catch (error) { console.error("Erro ao guardar serviço:", error); } 
+            finally {
+                saveServiceBtn.disabled = false;
+                btnText.textContent = 'Guardar Serviço';
+                spinner.classList.add('hidden');
+            }
+        });
+
+        const q = query(collection(db, 'users', userId, 'services'));
+        onSnapshot(q, (snapshot) => {
+            servicesListDiv.innerHTML = '';
+            if (snapshot.empty) {
+                servicesListDiv.innerHTML = '<p class="text-slate-500">Nenhum serviço registado.</p>';
+                return;
+            }
+            snapshot.forEach(doc => {
+                const service = { id: doc.id, ...doc.data() };
+                const el = document.createElement('div');
+                el.className = 'flex justify-between items-center bg-slate-50 p-3 rounded-lg';
+                el.innerHTML = `<div><p class="font-semibold">${service.name}</p><p class="text-sm text-slate-500">${service.duration} min - R$ ${service.price.toFixed(2)}</p></div><button class="text-slate-400 hover:text-red-600"><i data-feather="trash-2" class="w-4 h-4"></i></button>`;
+                servicesListDiv.appendChild(el);
+            });
+            feather.replace();
+        });
+      }
+      function initializeBarbers(userId) {
+        const barberForm = document.getElementById('barber-form');
+        const saveBarberBtn = document.getElementById('save-barber-btn');
+        const barbersListDiv = document.getElementById('barbers-list');
+
+        barberForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btnText = saveBarberBtn.querySelector('.btn-text');
+            const spinner = saveBarberBtn.querySelector('.spinner');
+            saveBarberBtn.disabled = true;
+            btnText.textContent = 'A guardar...';
+            spinner.classList.remove('hidden');
+            try {
+                await addDoc(collection(db, 'users', userId, 'barbers'), {
+                    name: document.getElementById('barber-name').value
+                });
+                barberForm.reset();
+            } catch (error) { console.error("Erro ao guardar barbeiro:", error); }
+            finally {
+                saveBarberBtn.disabled = false;
+                btnText.textContent = 'Guardar Barbeiro';
+                spinner.classList.add('hidden');
+            }
+        });
+
+        const q = query(collection(db, 'users', userId, 'barbers'));
+        onSnapshot(q, (snapshot) => {
+            barbersListDiv.innerHTML = '';
+            if (snapshot.empty) {
+                barbersListDiv.innerHTML = '<p class="text-slate-500">Nenhum barbeiro registado.</p>';
+                return;
+            }
+            snapshot.forEach(doc => {
+                const barber = { id: doc.id, ...doc.data() };
+                const el = document.createElement('div');
+                el.className = 'flex justify-between items-center bg-slate-50 p-3 rounded-lg';
+                el.innerHTML = `<p class="font-semibold">${barber.name}</p><button class="text-slate-400 hover:text-red-600"><i data-feather="trash-2" class="w-4 h-4"></i></button>`;
+                barbersListDiv.appendChild(el);
+            });
+            feather.replace();
+        });
+      }
       function initializeFinance(userId) { /* ... Lógica do Financeiro ... */ }
       function setupSettings(userId) {
         const workingHoursForm = document.getElementById('working-hours-form');
@@ -258,6 +342,7 @@
                     dayRow.querySelector(`#${day.id}-end`).disabled = !isChecked;
                 });
             });
+            feather.replace();
         }
 
         async function loadWorkingHours() {
