@@ -90,6 +90,7 @@
       const auth = getAuth(app);
       const db = getFirestore(app);
 
+      // --- ELEMENTOS GLOBAIS ---
       const loadingOverlay = document.getElementById('loading-overlay');
       const appContainer = document.getElementById('app-container');
       const subscriptionWall = document.getElementById('subscription-wall');
@@ -98,6 +99,8 @@
       let servicesCache = [];
       let allClients = [];
       let currentWeekOffset = 0;
+
+      // --- LÓGICA DE AUTENTICAÇÃO E ROTEAMENTO ---
 
       onAuthStateChanged(auth, async (user) => {
           loadingOverlay.classList.add('hidden');
@@ -117,7 +120,7 @@
               const isTrialActive = new Date() < trialEndDate;
 
               if (hasActiveSubscription || isTrialActive) {
-                  const daysLeft = isTrialActive && !hasActiveSubscription ? Math.floor((trialEndDate - new Date()) / (1000 * 60 * 60 * 24)) : null;
+                  const daysLeft = isTrialActive && !hasActiveSubscription ? Math.ceil((trialEndDate - new Date()) / (1000 * 60 * 60 * 24)) : null;
                   showDashboard(user, userData, daysLeft);
               } else {
                   showSubscriptionWall();
@@ -135,12 +138,15 @@
           
           const trialBanner = document.getElementById('trial-banner');
           if (trialDaysLeft !== null && trialDaysLeft >= 0) {
-              trialBanner.textContent = `Você tem ${trialDaysLeft + 1} dias restantes no seu período de teste.`;
+              trialBanner.textContent = `Você tem ${trialDaysLeft} dias restantes no seu período de teste.`;
               trialBanner.classList.remove('hidden');
           }
 
           initializeDashboard(user.uid);
-          document.getElementById('logout-btn').addEventListener('click', () => signOut(auth));
+          document.getElementById('logout-btn').addEventListener('click', async () => {
+              await signOut(auth);
+              // A verificação onAuthStateChanged irá redirecionar
+          });
       }
 
       function showSubscriptionWall() {
@@ -160,6 +166,24 @@
           mainContent.innerHTML = getDashboardHTML();
           
           setupNavigation(userId);
+          feather.replace();
+      }
+
+      function setupNavigation(userId) {
+          const mainNav = document.getElementById('main-nav');
+          mainNav.addEventListener('click', (e) => {
+              const link = e.target.closest('a');
+              if (link) {
+                  e.preventDefault();
+                  document.querySelectorAll('#main-nav a').forEach(l => l.classList.remove('bg-indigo-50', 'text-indigo-700'));
+                  link.classList.add('bg-indigo-50', 'text-indigo-700');
+                  const targetId = link.getAttribute('href').substring(1);
+                  document.querySelectorAll('#main-content > div').forEach(section => section.classList.add('hidden'));
+                  document.getElementById(`${targetId}-section`).classList.remove('hidden');
+              }
+          });
+          
+          // Inicializa cada seção quando a navegação é configurada
           initializeAgenda(userId);
           initializeClients(userId);
           initializeServices(userId);
@@ -168,9 +192,8 @@
           setupSettings(userId);
           
           document.querySelector('#main-nav a[href="#inicio"]').click();
-          feather.replace();
       }
-
+      
       function getDashboardHTML() {
         return `
             <div id="inicio-section">
@@ -205,36 +228,12 @@
         `;
       }
       
-      function setupNavigation(userId) {
-          const mainNav = document.getElementById('main-nav');
-          mainNav.addEventListener('click', (e) => {
-              const link = e.target.closest('a');
-              if (link) {
-                  e.preventDefault();
-                  document.querySelectorAll('#main-nav a').forEach(l => l.classList.remove('bg-indigo-50', 'text-indigo-700'));
-                  link.classList.add('bg-indigo-50', 'text-indigo-700');
-                  const targetId = link.getAttribute('href').substring(1);
-                  document.querySelectorAll('#main-content > div').forEach(section => section.classList.add('hidden'));
-                  document.getElementById(`${targetId}-section`).classList.remove('hidden');
-              }
-          });
-      }
-      
-      function initializeServices(userId) {
-        // Lógica para Serviços aqui
-      }
-      function initializeBarbers(userId) {
-        // Lógica para Barbeiros aqui
-      }
-       function initializeFinance(userId) {
-        // Lógica para Finanças aqui
-      }
-       function initializeAgenda(userId) {
-        // Lógica para Agenda aqui
-      }
-      function initializeClients(userId) {
-        // Lógica para Clientes aqui
-      }
+      // Funções de inicialização de cada seção
+      function initializeAgenda(userId) { /* ... Lógica da Agenda ... */ }
+      function initializeClients(userId) { /* ... Lógica dos Clientes ... */ }
+      function initializeServices(userId) { /* ... Lógica dos Serviços ... */ }
+      function initializeBarbers(userId) { /* ... Lógica dos Barbeiros ... */ }
+      function initializeFinance(userId) { /* ... Lógica do Financeiro ... */ }
       function setupSettings(userId) {
         const workingHoursForm = document.getElementById('working-hours-form');
         const saveHoursBtn = document.getElementById('save-hours-btn');
