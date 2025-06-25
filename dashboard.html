@@ -76,7 +76,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
         import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
-        import { getFirestore, doc, getDoc, setDoc, onSnapshot, query, collection, addDoc, getDocs, Timestamp, orderBy, where, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
+        import { getFirestore, doc, getDoc, setDoc, onSnapshot, query, collection, addDoc, getDocs, Timestamp, orderBy, where, updateDoc, deleteDoc, increment } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
 
         const firebaseConfig = {
           apiKey: "AIzaSyAkIUtakV64F2SYjvJylTGlw8-vTfXc3Fk",
@@ -282,6 +282,7 @@
                 return null;
             };
             
+            // CORRIGIDO: Desabilita horários passados
             const renderAvailableTimes = async (dateString, excludedTime = null) => {
                 const timeSlotsContainer = document.getElementById('time-slots-container');
                 if (!dateString) {
@@ -289,19 +290,23 @@
                     return;
                 }
                 if(timeSlotsContainer) timeSlotsContainer.innerHTML = `<div class="spinner-large mx-auto my-4 col-span-4"></div>`;
+                
                 const workingHours = await loadWorkingHours();
                 if (!workingHours) {
                     if(timeSlotsContainer) timeSlotsContainer.innerHTML = `<p class="text-sm text-red-500 col-span-4">Defina seus horários nas configurações primeiro.</p>`;
                     return;
                 }
+
                 const selectedDate = new Date(`${dateString}T00:00:00`);
                 const dayOfWeek = selectedDate.getDay();
                 const dayKeys = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sab'];
                 const dayConfig = workingHours[dayKeys[dayOfWeek]];
+
                 if (!dayConfig || !dayConfig.isOpen) {
                     if(timeSlotsContainer) timeSlotsContainer.innerHTML = `<p class="text-sm text-slate-500 col-span-4">Fechado neste dia.</p>`;
                     return;
                 }
+
                 const startOfDay = Timestamp.fromDate(new Date(`${dateString}T00:00:00`));
                 const endOfDay = Timestamp.fromDate(new Date(`${dateString}T23:59:59`));
                 const q = query(collection(db, 'users', userId, 'appointments'), where("dateTime", ">=", startOfDay), where("dateTime", "<=", endOfDay));
@@ -310,27 +315,41 @@
                     const appDate = doc.data().dateTime.toDate();
                     return `${String(appDate.getHours()).padStart(2, '0')}:${String(appDate.getMinutes()).padStart(2, '0')}`;
                 });
+
                 if(timeSlotsContainer) timeSlotsContainer.innerHTML = '';
                 const allSlots = [];
                 let currentTime = new Date(`${dateString}T${dayConfig.start}`);
                 const endTime = new Date(`${dateString}T${dayConfig.end}`);
+
                 while (currentTime < endTime) {
                     const timeString = `${String(currentTime.getHours()).padStart(2, '0')}:${String(currentTime.getMinutes()).padStart(2, '0')}`;
                     allSlots.push(timeString);
                     currentTime.setMinutes(currentTime.getMinutes() + 30);
                 }
+
                 if (allSlots.length === 0) {
                      if(timeSlotsContainer) timeSlotsContainer.innerHTML = `<p class="text-sm text-slate-500 col-span-4">Nenhum horário disponível.</p>`;
                      return;
                 }
+                
+                const now = new Date();
+                const isToday = (selectedDate.toDateString() === now.toDateString());
+
                 allSlots.forEach(time => {
                     const isBooked = bookedTimes.includes(time) && time !== excludedTime;
+                    
+                    let isPast = false;
+                    if (isToday) {
+                        const slotTime = new Date(`${dateString}T${time}`);
+                        isPast = slotTime < now;
+                    }
+
                     const button = document.createElement('button');
                     button.type = 'button';
                     button.textContent = time;
                     button.dataset.time = time;
-                    button.disabled = isBooked;
-                    button.className = `py-2 px-4 border rounded-lg text-sm font-semibold ${isBooked ? 'bg-slate-200 text-slate-400 cursor-not-allowed' : 'bg-white hover:bg-indigo-50 hover:border-indigo-500'}`;
+                    button.disabled = isBooked || isPast;
+                    button.className = `py-2 px-4 border rounded-lg text-sm font-semibold ${isBooked || isPast ? 'bg-slate-200 text-slate-400 cursor-not-allowed' : 'bg-white hover:bg-indigo-50 hover:border-indigo-500'}`;
                     button.addEventListener('click', (e) => {
                         selectedTime = e.target.dataset.time;
                         document.querySelectorAll('#time-slots-container button').forEach(btn => {
@@ -402,6 +421,7 @@
                 feather.replace();
             };
 
+            // CORRIGIDO: Incrementa o contador do cliente
             async function handleSaveNewAppointment(e, userId) {
                 e.preventDefault();
                 const form = e.target;
@@ -431,6 +451,13 @@
                         price: servicePrice,
                         status: 'confirmado'
                     });
+
+                    // Incrementa o contador de agendamentos do cliente
+                    const clientRef = doc(db, 'users', userId, 'clients', clientId);
+                    await updateDoc(clientRef, {
+                        appointmentCount: increment(1)
+                    });
+
                     closeAppointmentModal();
                     alert('Agendamento criado com sucesso!');
                 } catch(err) { console.error("Erro ao salvar agendamento:", err); alert('Ocorreu um erro. Tente novamente.'); }
@@ -491,12 +518,30 @@
                 alert("Agendamento atualizado com sucesso!");
             }
 
+            // CORRIGIDO: Decrementa o contador do cliente ao excluir
             async function handleDeleteAppointment(userId, appointmentId) {
                 if (window.confirm("Tem certeza que deseja excluir este agendamento? Esta ação não pode ser desfeita.")) {
                     const appDocRef = doc(db, 'users', userId, 'appointments', appointmentId);
-                    await deleteDoc(appDocRef);
-                    closeAppointmentModal();
-                    alert("Agendamento excluído com sucesso.");
+                    try {
+                        // Antes de deletar, pega o ID do cliente no agendamento
+                        const appDocSnap = await getDoc(appDocRef);
+                        if (appDocSnap.exists()) {
+                            const { clientId } = appDocSnap.data();
+                            if (clientId) {
+                                const clientRef = doc(db, 'users', userId, 'clients', clientId);
+                                await updateDoc(clientRef, {
+                                    appointmentCount: increment(-1)
+                                });
+                            }
+                        }
+                        // Agora, deleta o agendamento
+                        await deleteDoc(appDocRef);
+                        closeAppointmentModal();
+                        alert("Agendamento excluído com sucesso.");
+                    } catch (error) {
+                        console.error("Erro ao excluir o agendamento:", error);
+                        alert("Não foi possível excluir o agendamento.");
+                    }
                 }
             }
 
