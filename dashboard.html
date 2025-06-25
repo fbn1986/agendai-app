@@ -18,12 +18,8 @@
         .spinner-large { border: 4px solid rgba(100, 116, 139, 0.2); border-top-color: #4f46e5; width: 50px; height: 50px; }
         @keyframes spin { to { transform: rotate(360deg); } }
         .toggle-checkbox:checked + .toggle-label { background-color: #4f46e5; }
-        .calendar-grid { display: grid; grid-template-columns: 50px repeat(7, 1fr); position: relative; }
-        .day-column { position: relative; }
-        .time-slot { height: 60px; }
+        .calendar-grid { display: grid; grid-template-columns: 50px repeat(7, 1fr); grid-template-rows: auto; }
         .input-style { margin-top: 0.25rem; display: block; width: 100%; padding: 0.5rem; border: 1px solid #cbd5e1; border-radius: 0.375rem; }
-        .time-slot-btn:disabled { background-color: #f1f5f9; color: #94a3b8; cursor: not-allowed; border-color: #e2e8f0; }
-        .time-slot-btn.selected { background-color: #4f46e5; color: white; }
     </style>
 </head>
 <body class="bg-slate-100">
@@ -66,8 +62,7 @@
             </header>
 
             <main id="main-content" class="flex-1 p-6 md:p-8 overflow-y-auto">
-                <!-- As secções do painel serão inseridas aqui pelo JS -->
-            </main>
+                </main>
         </div>
     </div>
     
@@ -187,7 +182,6 @@
                         sections[targetId]();
                         initializedSections.add(targetId);
                       }
-                      feather.replace();
                   }
               }
           });
@@ -232,29 +226,262 @@
       function initializeAgenda(userId) {
             const addAppointmentBtn = document.getElementById('add-appointment-btn');
             const appointmentModal = document.getElementById('appointment-modal');
+            const calendarGrid = document.getElementById('calendar-grid');
+
             const openAppointmentModal = () => {
-                const modalContent = `<div class="bg-white rounded-lg shadow-2xl p-8 max-w-lg w-full relative"><button id="close-modal-btn" class="absolute top-4 right-4 text-gray-400 hover:text-gray-800"><i data-feather="x" class="w-6 h-6"></i></button><h3 class="text-lg font-semibold text-slate-800 mb-4">Novo Agendamento</h3><form id="appointment-form" class="space-y-4"><div><label for="client-name" class="block text-sm font-medium text-slate-600">Nome do Cliente</label><input type="text" id="client-name" required class="input-style"></div><div class="grid grid-cols-1 md:grid-cols-2 gap-4"><div><label for="appointment-service" class="block text-sm font-medium text-slate-600">Serviço</label><select id="appointment-service" required class="input-style"></select></div><div><label for="appointment-barber" class="block text-sm font-medium text-slate-600">Barbeiro</label><select id="appointment-barber" required class="input-style"></select></div></div><div class="grid grid-cols-1 md:grid-cols-2 gap-4"><div><label for="appointment-date" class="block text-sm font-medium text-slate-600">Data</label><input type="date" id="appointment-date" required class="input-style"></div><div id="time-slots-wrapper"><label class="block text-sm font-medium text-slate-600">Hora</label><div id="appointment-time-slots" class="grid grid-cols-4 gap-2 mt-1"></div><input type="hidden" id="appointment-time"></div></div><button id="save-appointment-btn" type="submit" class="w-full bg-indigo-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:bg-indigo-700 flex items-center justify-center disabled:opacity-50"><span class="btn-text">Guardar Agendamento</span><div class="spinner hidden ml-2"></div></button></form></div>`;
-                appointmentModal.innerHTML = modalContent;
+                appointmentModal.innerHTML = `<div class="bg-white rounded-lg shadow-2xl p-8 max-w-lg w-full relative"><button id="close-modal-btn" class="absolute top-4 right-4 text-gray-400 hover:text-gray-800"><i data-feather="x" class="w-6 h-6"></i></button><h3 class="text-lg font-semibold text-slate-800 mb-4">Novo Agendamento</h3><form id="appointment-form" class="space-y-4"><div><label for="client-name" class="block text-sm font-medium text-slate-600">Nome do Cliente</label><input type="text" id="client-name" required class="input-style"></div><div class="grid grid-cols-1 md:grid-cols-2 gap-4"><div><label for="appointment-service" class="block text-sm font-medium text-slate-600">Serviço</label><select id="appointment-service" required class="input-style"></select></div><div><label for="appointment-barber" class="block text-sm font-medium text-slate-600">Barbeiro</label><select id="appointment-barber" required class="input-style"></select></div></div><div class="grid grid-cols-1 md:grid-cols-2 gap-4"><div><label for="appointment-date" class="block text-sm font-medium text-slate-600">Data</label><input type="date" id="appointment-date" required class="input-style"></div><div><label for="appointment-time" class="block text-sm font-medium text-slate-600">Hora</label><input type="time" id="appointment-time" required class="input-style"></div></div><button id="save-appointment-btn" type="submit" class="w-full bg-indigo-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:bg-indigo-700 flex items-center justify-center disabled:opacity-50"><span class="btn-text">Guardar Agendamento</span><div class="spinner hidden ml-2"></div></button></form></div>`;
                 appointmentModal.classList.remove('hidden');
                 appointmentModal.classList.add('flex');
                 document.getElementById('close-modal-btn').addEventListener('click', closeAppointmentModal);
                 document.getElementById('appointment-form').addEventListener('submit', (e) => handleSaveAppointment(e, userId));
                 populateSelectWithOptions(userId, 'services', 'appointment-service', 'Nenhum serviço');
                 populateSelectWithOptions(userId, 'barbers', 'appointment-barber', 'Nenhum barbeiro');
-                document.getElementById('appointment-date').addEventListener('change', (e) => loadAvailableTimesForDashboard(e.target.value, userId));
                 feather.replace();
             };
             const closeAppointmentModal = () => {
                 appointmentModal.innerHTML = '';
                 appointmentModal.classList.add('hidden');
             };
+            async function populateSelectWithOptions(userId, coll, selectId, emptyMsg) {
+                const selectEl = document.getElementById(selectId);
+                onSnapshot(query(collection(db, 'users', userId, coll)), (snap) => {
+                    selectEl.innerHTML = '';
+                    if (snap.empty) { selectEl.innerHTML = `<option disabled selected>${emptyMsg}</option>`; return; }
+                    snap.forEach(doc => {
+                        const opt = document.createElement('option');
+                        opt.value = doc.id; 
+                        opt.textContent = doc.data().name;
+                        selectEl.appendChild(opt);
+                    });
+                });
+            }
+            async function handleSaveAppointment(e, userId) {
+                e.preventDefault();
+                const form = e.target;
+                const saveBtn = form.querySelector('button[type="submit"]');
+                saveBtn.disabled = true;
+                try {
+                    const date = form.elements['appointment-date'].value;
+                    const time = form.elements['appointment-time'].value;
+                    const dateTime = Timestamp.fromDate(new Date(`${date}T${time}`));
+                    
+                    const serviceRef = doc(db, 'users', userId, 'services', form.elements['appointment-service'].value);
+                    const serviceSnap = await getDoc(serviceRef);
+                    const servicePrice = serviceSnap.exists() ? serviceSnap.data().price : 0;
+                    
+                    await addDoc(collection(db, 'users', userId, 'appointments'), {
+                        clientName: form.elements['client-name'].value,
+                        serviceId: form.elements['appointment-service'].value,
+                        serviceName: form.elements['appointment-service'].options[form.elements['appointment-service'].selectedIndex].text,
+                        barberName: form.elements['appointment-barber'].options[form.elements['appointment-barber'].selectedIndex].text,
+                        dateTime: dateTime,
+                        price: servicePrice,
+                        status: 'confirmado'
+                    });
+                    closeAppointmentModal();
+                } catch(err) { console.error("Erro ao guardar agendamento:", err); }
+                finally { saveBtn.disabled = false; }
+            }
+            function renderWeek(userId, offset = 0) {
+              const today = new Date();
+              today.setDate(today.getDate() + offset * 7);
+              const dayOfWeek = today.getDay();
+              const weekStart = new Date(today.setDate(today.getDate() - dayOfWeek));
+              const weekEnd = new Date(new Date(weekStart).setDate(weekStart.getDate() + 6));
+              
+              document.getElementById('week-display').textContent = `${weekStart.toLocaleDateString()} - ${weekEnd.toLocaleDateString()}`;
+              
+              calendarGrid.innerHTML = ''; // Limpa a grelha
+              
+              const days = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+              calendarGrid.innerHTML += `<div class="time-column"></div>` + days.map(d => `<div class="text-center font-bold p-2 border-b">${d}</div>`).join('');
+              
+              for(let i = 7; i < 22; i++) { // Horas das 7h às 21h
+                calendarGrid.innerHTML += `<div class="text-center text-xs p-1 border-r">${i}:00</div>` + days.map(() => `<div class="day-slot border-r border-b p-1"></div>`).join('');
+              }
+
+              const startTimestamp = Timestamp.fromDate(weekStart);
+              const endTimestamp = Timestamp.fromDate(new Date(weekEnd.getFullYear(), weekEnd.getMonth(), weekEnd.getDate(), 23, 59, 59));
+              
+              const q = query(collection(db, 'users', userId, 'appointments'), where("dateTime", ">=", startTimestamp), where("dateTime", "<=", endTimestamp));
+
+              onSnapshot(q, (snapshot) => {
+                  snapshot.forEach(doc => {
+                      const app = doc.data();
+                      const appDate = app.dateTime.toDate();
+                      const dayIndex = appDate.getDay();
+                      const hourIndex = appDate.getHours();
+                      
+                      const slotIndex = (hourIndex - 7) * 8 + (dayIndex + 1);
+                      const targetSlot = calendarGrid.children[slotIndex];
+
+                      if (targetSlot) {
+                         const appEl = document.createElement('div');
+                         appEl.className = 'bg-indigo-100 p-1 rounded text-xs';
+                         appEl.innerHTML = `<strong>${app.clientName}</strong><br>${app.serviceName}`;
+                         targetSlot.appendChild(appEl);
+                      }
+                  });
+              });
+            }
+            
+            document.getElementById('prev-week-btn').addEventListener('click', () => { currentWeekOffset--; renderWeek(userId, currentWeekOffset); });
+            document.getElementById('next-week-btn').addEventListener('click', () => { currentWeekOffset++; renderWeek(userId, currentWeekOffset); });
+
             addAppointmentBtn.addEventListener('click', openAppointmentModal);
+            renderWeek(userId); // Renderiza a semana atual ao iniciar
       }
       function initializeClients(userId) { /* ... */ }
-      function initializeServices(userId) { /* ... */ }
-      function initializeBarbers(userId) { /* ... */ }
-      function initializeFinance(userId) { /* ... */ }
-      function setupSettings(userId) { /* ... */ }
+      function initializeServices(userId) {
+        const form = document.getElementById('service-form');
+        const listDiv = document.getElementById('services-list');
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const saveBtn = form.querySelector('button[type="submit"]');
+            saveBtn.disabled = true;
+            try {
+                await addDoc(collection(db, 'users', userId, 'services'), {
+                    name: form.elements['service-name'].value,
+                    duration: Number(form.elements['service-duration'].value),
+                    price: Number(form.elements['service-price'].value)
+                });
+                form.reset();
+            } catch (error) { console.error("Erro ao guardar serviço:", error); } 
+            finally { saveBtn.disabled = false; }
+        });
+        onSnapshot(query(collection(db, 'users', userId, 'services')), (snap) => {
+            servicesCache.clear();
+            listDiv.innerHTML = snap.empty ? '<p>Nenhum serviço.</p>' : '';
+            snap.forEach(doc => {
+                const service = { id: doc.id, ...doc.data() };
+                servicesCache.set(service.id, service);
+                const el = document.createElement('div');
+                el.className = 'flex justify-between items-center bg-slate-50 p-3 rounded-lg';
+                el.innerHTML = `<div><p class="font-semibold">${service.name}</p><p class="text-sm text-slate-500">${service.duration} min - R$ ${service.price.toFixed(2)}</p></div><button class="text-slate-400 hover:text-red-600"><i data-feather="trash-2" class="w-4 h-4"></i></button>`;
+                listDiv.appendChild(el);
+            });
+            feather.replace();
+        });
+      }
+      function initializeBarbers(userId) {
+        const form = document.getElementById('barber-form');
+        const listDiv = document.getElementById('barbers-list');
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const saveBtn = form.querySelector('button[type="submit"]');
+            saveBtn.disabled = true;
+            try {
+                await addDoc(collection(db, 'users', userId, 'barbers'), { name: form.elements['barber-name'].value });
+                form.reset();
+            } catch (error) { console.error("Erro ao guardar barbeiro:", error); }
+            finally { saveBtn.disabled = false; }
+        });
+        onSnapshot(query(collection(db, 'users', userId, 'barbers')), (snap) => {
+            listDiv.innerHTML = snap.empty ? '<p>Nenhum barbeiro.</p>' : '';
+            snap.forEach(doc => {
+                const barber = { id: doc.id, ...doc.data() };
+                const el = document.createElement('div');
+                el.className = 'flex justify-between items-center bg-slate-50 p-3 rounded-lg';
+                el.innerHTML = `<p class="font-semibold">${barber.name}</p><button class="text-slate-400 hover:text-red-600"><i data-feather="trash-2" class="w-4 h-4"></i></button>`;
+                listDiv.appendChild(el);
+            });
+            feather.replace();
+        });
+      }
+      function initializeFinance(userId) {
+        onSnapshot(query(collection(db, 'users', userId, 'appointments')), (snap) => {
+            const now = new Date();
+            const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+            
+            let todayRevenue = 0;
+            let monthRevenue = 0;
+            let totalAppointments = 0;
+            const last7Days = Array(7).fill(0);
+
+            snap.forEach(doc => {
+                const app = doc.data();
+                const appDate = app.dateTime.toDate();
+                const price = app.price || 0;
+
+                totalAppointments++;
+                if (appDate >= monthStart) monthRevenue += price;
+                if (appDate >= todayStart) todayRevenue += price;
+
+                const diffDays = Math.floor((now - appDate) / (1000 * 60 * 60 * 24));
+                if (diffDays >= 0 && diffDays < 7) {
+                    last7Days[diffDays] += price;
+                }
+            });
+            
+            document.getElementById('finance-today-revenue').textContent = `R$ ${todayRevenue.toFixed(2)}`;
+            document.getElementById('finance-month-revenue').textContent = `R$ ${monthRevenue.toFixed(2)}`;
+            document.getElementById('finance-avg-ticket').textContent = `R$ ${(monthRevenue / totalAppointments || 0).toFixed(2)}`;
+            
+            const ctx = document.getElementById('revenue-chart').getContext('2d');
+            if (revenueChartInstance) revenueChartInstance.destroy();
+            revenueChartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: Array.from({length: 7}, (_, i) => {
+                        const d = new Date();
+                        d.setDate(d.getDate() - i);
+                        return d.toLocaleDateString('pt-BR', { weekday: 'short' });
+                    }).reverse(),
+                    datasets: [{
+                        label: 'Faturação',
+                        data: last7Days.reverse(),
+                        borderColor: '#4f46e5',
+                        tension: 0.1
+                    }]
+                }
+            });
+        });
+      }
+      function setupSettings(userId) {
+        const form = document.getElementById('working-hours-form');
+        const saveBtn = document.getElementById('save-hours-btn');
+        async function loadHours() {
+            const ref = doc(db, 'users', userId, 'settings', 'workingHours');
+            const docSnap = await getDoc(ref);
+            const hoursData = docSnap.exists() ? docSnap.data() : {};
+            const days = [ { id: 'dom', name: 'Domingo' }, { id: 'seg', name: 'Segunda' }, { id: 'ter', name: 'Terça' }, { id: 'qua', name: 'Quarta' }, { id: 'qui', name: 'Quinta' }, { id: 'sex', name: 'Sexta' }, { id: 'sab', name: 'Sábado' }];
+            form.innerHTML = '';
+            days.forEach(day => {
+                const dayData = hoursData[day.id] || { isOpen: day.id !== 'dom', start: '09:00', end: '18:00' };
+                const row = document.createElement('div');
+                row.className = 'flex items-center justify-between border-t pt-3';
+                row.innerHTML = `<span class="font-medium">${day.name}</span><div class="flex items-center gap-4"><div class="flex items-center gap-2"><input type="time" id="${day.id}-start" value="${dayData.start}" class="p-1 border rounded-md text-sm" ${!dayData.isOpen ? 'disabled' : ''}><span>às</span><input type="time" id="${day.id}-end" value="${dayData.end}" class="p-1 border rounded-md text-sm" ${!dayData.isOpen ? 'disabled' : ''}></div><div class="relative inline-block w-10 align-middle"><input type="checkbox" id="${day.id}-toggle" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer" ${dayData.isOpen ? 'checked' : ''} /><label for="${day.id}-toggle" class="toggle-label block overflow-hidden h-6 rounded-full bg-slate-300 cursor-pointer"></label></div></div>`;
+                form.appendChild(row);
+                row.querySelector(`#${day.id}-toggle`).addEventListener('change', (e) => {
+                    row.querySelectorAll('input[type="time"]').forEach(input => input.disabled = !e.target.checked);
+                });
+            });
+        }
+        async function saveHours() {
+            saveBtn.disabled = true;
+            const dataToSave = {};
+            ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sab'].forEach(id => {
+                dataToSave[id] = {
+                    isOpen: document.getElementById(`${id}-toggle`).checked,
+                    start: document.getElementById(`${id}-start`).value,
+                    end: document.getElementById(`${id}-end`).value,
+                };
+            });
+            try {
+                await setDoc(doc(db, 'users', userId, 'settings', 'workingHours'), dataToSave);
+            } catch(e) { console.error(e); }
+            finally { saveBtn.disabled = false; }
+        }
+        document.getElementById('copy-link-btn').addEventListener('click', () => {
+            const input = document.getElementById('public-booking-link');
+            input.value = `${window.location.origin}/booking.html?user=${userId}`;
+            input.select();
+            document.execCommand('copy');
+        });
+        loadHours();
+        saveBtn.addEventListener('click', saveHours);
+      }
 
     </script>
 </body>
