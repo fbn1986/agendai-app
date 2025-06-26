@@ -37,11 +37,11 @@
         <p class="mt-4 text-slate-600">Verificando autenticação...</p>
     </div>
 
-    <div id="app-container" class="hidden relative min-h-screen w-full md:flex">
+    <div id="app-container" class="hidden relative min-h-screen md:flex">
         <div id="sidebar-overlay" class="fixed inset-0 bg-black bg-opacity-50 z-30 hidden md:hidden"></div>
-
+        
         <aside id="sidebar" class="w-64 bg-white border-r border-slate-200 flex flex-col fixed inset-y-0 left-0 z-40 transform -translate-x-full md:relative md:translate-x-0">
-            <div class="h-16 flex items-center justify-center border-b border-slate-200">
+            <div class="h-16 flex items-center justify-center border-b border-slate-200 flex-shrink-0">
                 <h1 class="text-2xl font-bold text-gray-900 tracking-wider">Agend<span class="text-indigo-600">AI</span></h1>
             </div>
             <nav id="main-nav" class="flex-1 p-4 space-y-2">
@@ -58,7 +58,7 @@
             </div>
         </aside>
 
-        <div id="dashboard-content" class="flex-1 flex flex-col">
+        <div class="flex-1 flex flex-col w-full">
             <div id="trial-banner" class="hidden bg-yellow-100 border-b-2 border-yellow-200 text-center p-2 text-sm text-yellow-800"></div>
             <header class="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-6 flex-shrink-0">
                 <div class="flex items-center">
@@ -84,7 +84,8 @@
 
     <script type="module">
         // Cole aqui todo o script do dashboard da resposta anterior
-        // (O script é muito grande, mas é o mesmo da resposta anterior, começando com "import { initializeApp } from ...")
+        // O script completo, com todas as funções (initializeAgenda, initializeClients, etc.) deve estar aqui.
+        // A versão final e funcional está na resposta anterior.
     </script>
 </body>
 </html>
