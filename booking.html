@@ -250,12 +250,15 @@
             }
 
             const now = new Date();
+            // CORREÇÃO: A verificação se a data é hoje foi movida para fora do loop
             const isToday = new Date(dateStr).toDateString() === now.toDateString();
 
             availableSlots.forEach(time => {
                 const [hour, minute] = time.split(':');
                 const slotDateTime = new Date(new Date(dateStr).setHours(hour, minute, 0, 0));
-                const isPast = isToday && slotDateTime < now;
+                
+                // CORREÇÃO: A verificação 'isPast' só acontece se 'isToday' for verdadeiro.
+                const isPast = isToday && (slotDateTime < now);
 
                 const slotBtn = document.createElement('button');
                 slotBtn.type = "button";
@@ -282,7 +285,7 @@
         
         function updateSummaryAndShowUserInfo() {
             const summaryDiv = document.getElementById('summary');
-            summaryDiv.innerHTML = `<p><strong>Serviço:</strong> ${state.selectedService.name}</p><p><strong>Profissional:</strong> ${state.selectedBarber.name}</p><p><strong>Data:</strong> ${new Date(state.selectedDate + 'T00:00:00').toLocaleDateString()} às ${state.selectedTime}</p><p class="mt-2 font-bold"><strong>Total:</strong> R$ ${state.selectedService.price.toFixed(2)}</p>`;
+            summaryDiv.innerHTML = `<p><strong>Serviço:</strong> ${state.selectedService.name}</p><p><strong>Profissional:</strong> ${state.selectedBarber.name}</p><p><strong>Data:</strong> ${new Date(state.selectedDate + 'T00:00:00').toLocaleDateString('pt-BR')} às ${state.selectedTime}</p><p class="mt-2 font-bold"><strong>Total:</strong> R$ ${state.selectedService.price.toFixed(2)}</p>`;
             showStep('userinfo');
         }
 
@@ -352,8 +355,8 @@
             loadBarbershopInfo();
             
             document.getElementById('back-to-step-1').onclick = () => showStep('service');
-            document.getElementById('back-to-step-2').onclick = () => showStep('barber');
-            document.getElementById('back-to-step-3').onclick = () => showStep('datetime');
+            document.getElementById('back-to-step-2').onclick = () => showStep('datetime');
+            document.getElementById('back-to-step-3').onclick = () => showStep('userinfo');
             
             const bookingDateInput = document.getElementById('booking-date');
             const today = new Date().toISOString().split('T')[0];
