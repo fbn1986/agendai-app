@@ -62,10 +62,7 @@
     </main>
 
     <div id="login-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden items-center justify-center p-4">
-        <div class="bg-white rounded-xl shadow-2xl p-8 max-w-sm w-full relative">
-            <button id="close-modal-btn" class="absolute top-4 right-4 text-gray-400 hover:text-gray-800">
-                <i data-feather="x" class="w-6 h-6"></i>
-            </button>
+        <div id="modal-content" class="bg-white rounded-xl shadow-2xl p-8 max-w-sm w-full relative">
             </div>
     </div>
     
@@ -87,6 +84,7 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
 
+        // Se o usuário já estiver logado, redireciona para o dashboard
         onAuthStateChanged(auth, (user) => {
             if (user) { window.location.href = 'dashboard.html'; }
         });
@@ -99,8 +97,9 @@
         });
 
         const modal = document.getElementById('login-modal');
-        const closeModalBtn = document.getElementById('close-modal-btn');
-        const buttons = [
+        const modalContent = document.getElementById('modal-content');
+
+        const buttonsToOpenModal = [
             document.getElementById('login-btn-desktop'),
             document.getElementById('signup-btn-desktop'),
             document.getElementById('login-btn-mobile'),
@@ -108,21 +107,22 @@
             document.getElementById('cta-btn')
         ];
 
-        const loginHTML = ``;
-        const signupHTML = ``;
+        const closeModal = () => {
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        };
 
         const openModal = (type) => {
             modal.classList.remove('hidden');
             modal.classList.add('flex');
-            const content = modal.querySelector('.relative');
-            content.innerHTML = `<button id="close-modal-btn" class="absolute top-4 right-4 text-gray-400 hover:text-gray-800"><i data-feather="x" class="w-6 h-6"></i></button>`;
+            modalContent.innerHTML = `<button id="close-modal-btn" class="absolute top-4 right-4 text-gray-400 hover:text-gray-800"><i data-feather="x" class="w-6 h-6"></i></button>`;
             
             if (type === 'login') {
-                content.innerHTML += `<h2 class="text-2xl font-bold text-center mb-6">Acessar Painel</h2><form id="login-form" class="space-y-4"><div><label for="login-email" class="block text-sm font-medium">Email</label><input type="email" id="login-email" required class="w-full p-2 border rounded-md mt-1"></div><div><label for="login-password" class="block text-sm font-medium">Senha</label><input type="password" id="login-password" required class="w-full p-2 border rounded-md mt-1"></div><button type="submit" class="w-full bg-indigo-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-indigo-700">Entrar</button></form><p class="text-center text-sm mt-4">Não tem uma conta? <a href="#" id="switch-to-signup" class="text-indigo-600 font-semibold">Crie agora</a></p>`;
+                modalContent.innerHTML += `<h2 class="text-2xl font-bold text-center mb-6">Acessar Painel</h2><form id="login-form" class="space-y-4"><div><label for="login-email" class="block text-sm font-medium">Email</label><input type="email" id="login-email" required class="w-full p-2 border rounded-md mt-1"></div><div><label for="login-password" class="block text-sm font-medium">Senha</label><input type="password" id="login-password" required class="w-full p-2 border rounded-md mt-1"></div><button type="submit" class="w-full bg-indigo-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-indigo-700">Entrar</button></form><p class="text-center text-sm mt-4">Não tem uma conta? <a href="#" id="switch-to-signup" class="text-indigo-600 font-semibold">Crie agora</a></p>`;
                 document.getElementById('login-form').addEventListener('submit', handleLogin);
                 document.getElementById('switch-to-signup').addEventListener('click', (e) => { e.preventDefault(); openModal('signup'); });
             } else {
-                content.innerHTML += `<h2 class="text-2xl font-bold text-center mb-6">Crie sua Conta Grátis</h2><form id="signup-form" class="space-y-4"><div><label for="signup-shop" class="block text-sm font-medium">Nome da Barbearia</label><input type="text" id="signup-shop" required class="w-full p-2 border rounded-md mt-1"></div><div><label for="signup-email" class="block text-sm font-medium">Email</label><input type="email" id="signup-email" required class="w-full p-2 border rounded-md mt-1"></div><div><label for="signup-password" class="block text-sm font-medium">Senha</label><input type="password" id="signup-password" required class="w-full p-2 border rounded-md mt-1"></div><button type="submit" class="w-full bg-indigo-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-indigo-700">Criar Conta</button></form><p class="text-center text-sm mt-4">Já tem uma conta? <a href="#" id="switch-to-login" class="text-indigo-600 font-semibold">Faça login</a></p>`;
+                modalContent.innerHTML += `<h2 class="text-2xl font-bold text-center mb-6">Crie sua Conta Grátis</h2><form id="signup-form" class="space-y-4"><div><label for="signup-shop" class="block text-sm font-medium">Nome da Barbearia</label><input type="text" id="signup-shop" required class="w-full p-2 border rounded-md mt-1"></div><div><label for="signup-email" class="block text-sm font-medium">Email</label><input type="email" id="signup-email" required class="w-full p-2 border rounded-md mt-1"></div><div><label for="signup-password" class="block text-sm font-medium">Senha</label><input type="password" id="signup-password" required class="w-full p-2 border rounded-md mt-1"></div><button type="submit" class="w-full bg-indigo-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-indigo-700">Criar Conta</button></form><p class="text-center text-sm mt-4">Já tem uma conta? <a href="#" id="switch-to-login" class="text-indigo-600 font-semibold">Faça login</a></p>`;
                 document.getElementById('signup-form').addEventListener('submit', handleSignup);
                 document.getElementById('switch-to-login').addEventListener('click', (e) => { e.preventDefault(); openModal('login'); });
             }
@@ -130,21 +130,15 @@
             document.getElementById('close-modal-btn').addEventListener('click', closeModal);
         };
 
-        const closeModal = () => {
-            modal.classList.add('hidden');
-            modal.classList.remove('flex');
-        };
-
-        buttons.forEach(btn => {
+        buttonsToOpenModal.forEach(btn => {
             btn.addEventListener('click', (e) => {
                 e.preventDefault();
-                mobileMenu.classList.add('hidden'); // Fecha o menu mobile ao abrir o modal
+                mobileMenu.classList.add('hidden');
                 const type = btn.id.includes('login') ? 'login' : 'signup';
                 openModal(type);
             });
         });
         
-        closeModalBtn.addEventListener('click', closeModal);
         modal.addEventListener('click', (e) => {
             if (e.target === modal) closeModal();
         });
@@ -157,7 +151,7 @@
             createUserWithEmailAndPassword(auth, email, password)
                 .then((userCredential) => {
                     const user = userCredential.user;
-                    setDoc(doc(db, "users", user.uid), {
+                    return setDoc(doc(db, "users", user.uid), {
                         barbershopName: barbershopName,
                         email: email,
                         createdAt: Timestamp.now()
