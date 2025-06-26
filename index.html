@@ -16,30 +16,14 @@
     <header class="bg-white/80 backdrop-blur-md fixed top-0 left-0 right-0 z-50 shadow-sm">
         <div class="container mx-auto px-6 py-4 flex justify-between items-center">
             <h1 class="text-2xl font-bold tracking-wider">Agend<span class="text-indigo-600">AI</span></h1>
-            <nav class="hidden md:flex items-center space-x-8">
+            <nav class="flex items-center space-x-8">
                 <a href="#" class="text-sm font-semibold hover:text-indigo-600">Início</a>
                 <a href="#" class="text-sm font-semibold hover:text-indigo-600">Recursos</a>
                 <a href="#" class="text-sm font-semibold hover:text-indigo-600">Contato</a>
             </nav>
-            <div class="hidden md:flex items-center space-x-2">
-                 <a href="#login-modal" id="login-btn-desktop" class="text-sm font-semibold bg-slate-100 hover:bg-slate-200 px-4 py-2 rounded-lg">Entrar</a>
-                <a href="#login-modal" id="signup-btn-desktop" class="text-sm font-semibold bg-indigo-600 text-white hover:bg-indigo-700 px-4 py-2 rounded-lg">Criar Conta Grátis</a>
-            </div>
-            <div class="md:hidden">
-                <button id="mobile-menu-button" class="text-slate-800 focus:outline-none">
-                    <i data-feather="menu" class="w-6 h-6"></i>
-                </button>
-            </div>
-        </div>
-        <div id="mobile-menu" class="hidden md:hidden">
-            <div class="px-6 pt-2 pb-4 space-y-2 border-t border-slate-200">
-                <a href="#" class="block text-sm font-semibold hover:text-indigo-600 py-2">Início</a>
-                <a href="#" class="block text-sm font-semibold hover:text-indigo-600 py-2">Recursos</a>
-                <a href="#" class="block text-sm font-semibold hover:text-indigo-600 py-2">Contato</a>
-                <div class="border-t border-slate-200 pt-4 space-y-3">
-                     <a href="#login-modal" id="login-btn-mobile" class="block text-center text-sm font-semibold bg-slate-100 hover:bg-slate-200 px-4 py-2 rounded-lg">Entrar</a>
-                    <a href="#login-modal" id="signup-btn-mobile" class="block text-center text-sm font-semibold bg-indigo-600 text-white hover:bg-indigo-700 px-4 py-2 rounded-lg">Criar Conta Grátis</a>
-                </div>
+            <div class="flex items-center space-x-2">
+                 <a href="#login-modal" id="login-btn" class="text-sm font-semibold bg-slate-100 hover:bg-slate-200 px-4 py-2 rounded-lg">Entrar</a>
+                <a href="#login-modal" id="signup-btn" class="text-sm font-semibold bg-indigo-600 text-white hover:bg-indigo-700 px-4 py-2 rounded-lg">Criar Conta Grátis</a>
             </div>
         </div>
     </header>
@@ -53,7 +37,7 @@
             <p class="mt-6 text-lg text-slate-600 max-w-2xl mx-auto">
                 Agenda online, controle financeiro e lembretes automáticos via WhatsApp. Tudo que você precisa para focar no que faz de melhor: cortes incríveis.
             </p>
-            <div class="mt-8 flex justify-center flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4">
+            <div class="mt-8 flex justify-center">
                 <a href="#login-modal" id="cta-btn" class="bg-indigo-600 text-white font-semibold px-8 py-3 rounded-lg shadow-lg hover:bg-indigo-700 transition-transform transform hover:scale-105">
                     Começar Teste Grátis de 14 Dias
                 </a>
@@ -91,21 +75,12 @@
             }
         });
 
-        // Lógica do Menu Mobile
-        const mobileMenuButton = document.getElementById('mobile-menu-button');
-        const mobileMenu = document.getElementById('mobile-menu');
-        mobileMenuButton.addEventListener('click', () => {
-            mobileMenu.classList.toggle('hidden');
-        });
-
         const modal = document.getElementById('login-modal');
         const modalContent = document.getElementById('modal-content');
 
         const buttonsToOpenModal = [
-            document.getElementById('login-btn-desktop'),
-            document.getElementById('signup-btn-desktop'),
-            document.getElementById('login-btn-mobile'),
-            document.getElementById('signup-btn-mobile'),
+            document.getElementById('login-btn'),
+            document.getElementById('signup-btn'),
             document.getElementById('cta-btn')
         ];
 
@@ -136,7 +111,6 @@
             if (btn) {
                 btn.addEventListener('click', (e) => {
                     e.preventDefault();
-                    if (mobileMenu) mobileMenu.classList.add('hidden');
                     const type = btn.id.includes('login') ? 'login' : 'signup';
                     openModal(type);
                 });
