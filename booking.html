@@ -242,7 +242,7 @@
             
             timeSlotsContainer.innerHTML = '';
             const grid = document.createElement('div');
-            grid.className = "grid grid-cols-4 gap-2";
+            grid.className = "grid grid-cols-3 sm:grid-cols-4 gap-2";
 
             if (availableSlots.length === 0) {
                  timeSlotsContainer.innerHTML = '<p class="text-slate-500 text-sm">Nenhum horário disponível para este dia.</p>';
@@ -250,7 +250,7 @@
             }
 
             const now = new Date();
-            // CORREÇÃO: A verificação se a data é hoje foi movida para fora do loop
+            // CORREÇÃO: A verificação se a data é hoje é feita uma vez.
             const isToday = new Date(dateStr).toDateString() === now.toDateString();
 
             availableSlots.forEach(time => {
@@ -273,8 +273,10 @@
                     slotBtn.onclick = () => {
                         state.selectedDate = dateStr;
                         state.selectedTime = time;
-                        document.querySelectorAll('.time-slot').forEach(btn => btn.classList.remove('bg-indigo-500', 'text-white'));
-                        slotBtn.classList.add('bg-indigo-500', 'text-white');
+                        document.querySelectorAll('.time-slot').forEach(btn => {
+                            btn.classList.remove('bg-indigo-500', 'text-white');
+                            btn.classList.add('bg-indigo-500', 'text-white');
+                        });
                         updateSummaryAndShowUserInfo();
                     };
                 }
