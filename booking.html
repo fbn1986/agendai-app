@@ -8,22 +8,10 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/feather-icons"></script>
     <style>
-        body {
-            font-family: 'Poppins', sans-serif;
-            background-color: #f8fafc;
-        }
-        .step-card {
-            transition: all 0.3s ease;
-        }
-        .time-slot {
-            transition: all 0.2s ease;
-        }
-        .time-slot:disabled {
-            background-color: #f1f5f9;
-            color: #94a3b8;
-            cursor: not-allowed;
-            border-color: #e2e8f0;
-        }
+        body { font-family: 'Poppins', sans-serif; background-color: #f8fafc; }
+        .step-card { transition: all 0.3s ease; }
+        .time-slot { transition: all 0.2s ease; }
+        .time-slot:disabled { background-color: #f1f5f9; color: #94a3b8; cursor: not-allowed; border-color: #e2e8f0; }
     </style>
 </head>
 <body class="flex justify-center items-start min-h-screen p-4 sm:p-6 md:p-8">
@@ -84,11 +72,11 @@
             </div>
 
             <div id="step-5-confirmation" class="hidden text-center">
-                <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <div id="confirmation-icon" class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
                     <i data-feather="check" class="w-10 h-10 text-green-600"></i>
                 </div>
-                <h2 class="font-bold text-xl text-slate-800">Agendamento Confirmado!</h2>
-                <p class="text-slate-600 mt-2">Seu horário foi reservado com sucesso.</p>
+                <h2 id="confirmation-title" class="font-bold text-xl text-slate-800">Agendamento Confirmado!</h2>
+                <p id="confirmation-message" class="text-slate-600 mt-2">Seu horário foi reservado com sucesso.</p>
                 <div id="confirmation-summary" class="bg-slate-50 p-4 rounded-lg mt-6 text-sm text-left space-y-1"></div>
                 <div id="confirmation-actions" class="mt-6 space-y-3">
                     </div>
@@ -103,7 +91,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
-        import { getFirestore, doc, getDoc, addDoc, collection, query, where, Timestamp, getDocs, increment, updateDoc } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
+        import { getFirestore, doc, getDoc, addDoc, collection, query, where, Timestamp, getDocs, increment, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
         
         const firebaseConfig = {
             apiKey: "AIzaSyAkIUtakV64F2SYjvJylTGlw8-vTfXc3Fk",
@@ -199,7 +187,7 @@
                 container.innerHTML = '<p class="text-red-500 col-span-full">Não foi possível carregar os profissionais.</p>'; 
             } 
         }
-
+        
         async function loadAvailableTimes(dateStr) {
             const timeSlotsContainer = document.getElementById('time-slots-container');
             timeSlotsContainer.innerHTML = '<div class="text-center"><p class="text-slate-500 text-sm">Verificando horários...</p></div>';
@@ -235,7 +223,7 @@
                         currentMinute -= 60;
                     }
                 }
-
+                
                 const startOfDay = Timestamp.fromDate(new Date(`${dateStr}T00:00:00`));
                 const endOfDay = Timestamp.fromDate(new Date(`${dateStr}T23:59:59`));
                 const appointmentsQuery = query(collection(db, "users", BARBERSHOP_OWNER_ID, "appointments"), where('dateTime', '>=', startOfDay), where('dateTime', '<=', endOfDay));
@@ -246,7 +234,7 @@
                 }));
 
                 const availableSlots = allPossibleSlots.filter(slot => !bookedTimes.has(slot));
-
+                
                 timeSlotsContainer.innerHTML = '';
                 const grid = document.createElement('div');
                 grid.className = "grid grid-cols-3 sm:grid-cols-4 gap-2 mt-4";
@@ -277,7 +265,7 @@
                     slotBtn.textContent = time;
                     slotBtn.className = `time-slot border rounded-md py-2 text-sm font-semibold`;
                     slotBtn.disabled = isPast;
-
+                    
                     if (isPast) {
                         slotBtn.classList.add('bg-slate-100', 'text-slate-400', 'cursor-not-allowed');
                     } else {
@@ -342,14 +330,15 @@
                     serviceName: state.selectedService.name,
                     barberId: state.selectedBarber.id,
                     barberName: state.selectedBarber.name,
-                    barberPhone: state.selectedBarber.phone || null, // Adiciona o telefone do barbeiro
+                    barberPhone: state.selectedBarber.phone || null,
                     dateTime: Timestamp.fromDate(dateTime),
                     price: state.selectedService.price,
                     status: 'confirmado',
                     lembreteEnviado: null
                 };
                 
-                await addDoc(collection(db, "users", BARBERSHOP_OWNER_ID, "appointments"), appointmentData);
+                const newAppointmentRef = await addDoc(collection(db, "users", BARBERSHOP_OWNER_ID, "appointments"), appointmentData);
+                const newAppointmentId = newAppointmentRef.id;
 
                 const clientRef = doc(db, 'users', BARBERSHOP_OWNER_ID, 'clients', clientId);
                 await updateDoc(clientRef, { appointmentCount: increment(1) });
@@ -357,22 +346,7 @@
                 const confirmationSummaryDiv = document.getElementById('confirmation-summary');
                 confirmationSummaryDiv.innerHTML = document.getElementById('summary').innerHTML;
                 
-                // Adiciona o botão do WhatsApp dinamicamente
-                if (state.selectedBarber.phone) {
-                    const actionsContainer = document.getElementById('confirmation-actions');
-                    const whatsappNumber = String(state.selectedBarber.phone).replace(/\D/g, "");
-                    // Inclui o nome do cliente e o serviço na mensagem
-                    const textMessage = encodeURIComponent(`Olá ${state.selectedBarber.name}, sou ${clientName}. Tenho uma dúvida sobre meu agendamento de ${state.selectedService.name} no dia ${new Date(state.selectedDate + 'T12:00:00').toLocaleDateString('pt-BR')} às ${state.selectedTime}.`);
-                    const whatsappLink = `https://wa.me/55${whatsappNumber}?text=${textMessage}`;
-                    
-                    actionsContainer.innerHTML = `
-                        <a href="${whatsappLink}" target="_blank" class="inline-flex items-center justify-center w-full bg-green-500 text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:bg-green-600">
-                            <i data-feather="message-circle" class="w-5 h-5 mr-2"></i>Falar com ${state.selectedBarber.name}
-                        </a>
-                        <p class="text-xs text-slate-400 mt-2">As opções para editar ou cancelar seu agendamento serão enviadas no lembrete do WhatsApp.</p>
-                    `;
-                    feather.replace();
-                }
+                renderConfirmationActions(newAppointmentId, clientId);
                 
                 showStep('confirmation');
 
@@ -381,6 +355,66 @@
                 alert("Não foi possível confirmar o agendamento. Tente novamente.");
                 btn.disabled = false;
                 btn.innerHTML = 'Confirmar Agendamento';
+            }
+        }
+        
+        // NOVA FUNÇÃO: Renderiza os botões de ação na tela de confirmação
+        function renderConfirmationActions(appointmentId, clientId) {
+            const actionsContainer = document.getElementById('confirmation-actions');
+            actionsContainer.innerHTML = ''; // Limpa ações anteriores
+
+            // Botão Falar com o Profissional
+            if (state.selectedBarber.phone) {
+                const whatsappNumber = String(state.selectedBarber.phone).replace(/\D/g, "");
+                const clientName = document.getElementById('public-client-name').value;
+                const textMessage = encodeURIComponent(`Olá ${state.selectedBarber.name}, sou ${clientName}. Tenho uma dúvida sobre meu agendamento de ${state.selectedService.name} no dia ${new Date(state.selectedDate + 'T12:00:00').toLocaleDateString('pt-BR')} às ${state.selectedTime}.`);
+                const whatsappLink = `https://wa.me/55${whatsappNumber}?text=${textMessage}`;
+                
+                const whatsappButton = document.createElement('a');
+                whatsappButton.href = whatsappLink;
+                whatsappButton.target = "_blank";
+                whatsappButton.className = "inline-flex items-center justify-center w-full bg-green-500 text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:bg-green-600";
+                whatsappButton.innerHTML = `<i data-feather="message-circle" class="w-5 h-5 mr-2"></i>Falar com ${state.selectedBarber.name}`;
+                actionsContainer.appendChild(whatsappButton);
+            }
+
+            // Botão Cancelar Agendamento
+            const cancelButton = document.createElement('button');
+            cancelButton.id = "cancel-booking-btn";
+            cancelButton.className = "w-full bg-red-100 text-red-700 font-semibold py-2 px-4 rounded-lg hover:bg-red-200";
+            cancelButton.innerHTML = "Cancelar Agendamento";
+            cancelButton.onclick = () => handleCancelBooking(appointmentId, clientId);
+            actionsContainer.appendChild(cancelButton);
+
+            feather.replace();
+        }
+
+        // NOVA FUNÇÃO: Lógica para o cancelamento pelo cliente
+        async function handleCancelBooking(appointmentId, clientId) {
+            if (window.confirm("Tem certeza que deseja cancelar seu agendamento?")) {
+                try {
+                    const appointmentRef = doc(db, 'users', BARBERSHOP_OWNER_ID, 'appointments', appointmentId);
+                    await deleteDoc(appointmentRef);
+
+                    if (clientId) {
+                        const clientRef = doc(db, 'users', BARBERSHOP_OWNER_ID, 'clients', clientId);
+                        await updateDoc(clientRef, { appointmentCount: increment(-1) });
+                    }
+                    
+                    document.getElementById('confirmation-title').textContent = "Agendamento Cancelado";
+                    document.getElementById('confirmation-message').textContent = "Seu horário foi cancelado com sucesso.";
+                    document.getElementById('confirmation-summary').classList.add('hidden');
+                    document.getElementById('confirmation-actions').classList.add('hidden');
+                    const iconContainer = document.getElementById('confirmation-icon');
+                    iconContainer.classList.remove('bg-green-100');
+                    iconContainer.classList.add('bg-red-100');
+                    iconContainer.innerHTML = '<i data-feather="x-circle" class="w-10 h-10 text-red-600"></i>';
+                    feather.replace();
+
+                } catch (error) {
+                    console.error("Erro ao cancelar agendamento:", error);
+                    alert("Ocorreu um erro ao tentar cancelar. Por favor, tente novamente ou entre em contato com a barbearia.");
+                }
             }
         }
 
