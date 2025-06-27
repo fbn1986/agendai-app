@@ -172,134 +172,82 @@
             } 
         }
 
-        // Função para carregar os horários disponíveis
-        async function loadAvailableTimes(dateStr) {
-            const timeSlotsContainer = document.getElementById('time-slots-container');
-            timeSlotsContainer.innerHTML = '<div class="text-center"><p class="text-slate-500 text-sm">Verificando horários...</p></div>';
+        async function handleConfirmBooking(e) {
+            e.preventDefault();
+            const btn = document.getElementById('confirm-booking-btn');
+            btn.disabled = true;
+            btn.innerHTML = 'Confirmando...';
 
             try {
-                console.log(`Carregando horários para a data: ${dateStr}`);
+                const clientName = document.getElementById('public-client-name').value;
+                const clientPhone = document.getElementById('public-client-phone').value;
+                const clientId = await findOrCreateClient(BARBERSHOP_OWNER_ID, clientName, clientPhone);
+                const dateTime = new Date(`${state.selectedDate}T${state.selectedTime}`);
 
-                const settingsRef = doc(db, 'users', BARBERSHOP_OWNER_ID, 'settings', 'workingHours');
-                const settingsSnap = await getDoc(settingsRef);
-                const workingHours = settingsSnap.exists() ? settingsSnap.data() : {};
+                const appointmentData = {
+                    clientName,
+                    clientPhone,
+                    clientId,
+                    serviceId: state.selectedService.id,
+                    serviceName: state.selectedService.name,
+                    barberId: state.selectedBarber.id,
+                    barberName: state.selectedBarber.name,
+                    dateTime: Timestamp.fromDate(dateTime),
+                    price: state.selectedService.price,
+                    status: 'confirmado',
+                    lembreteEnviado: null // aqui adiciona o campo que a função do Firebase usa
+                };
 
-                const selectedDate = new Date(`${dateStr}T12:00:00`);
-                const dayOfWeek = selectedDate.getDay();
-                const dayKeys = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sab'];
-                const daySettings = workingHours[dayKeys[dayOfWeek]];
+                await addDoc(collection(db, "users", BARBERSHOP_OWNER_ID, "appointments"), appointmentData);
+                const clientRef = doc(db, 'users', BARBERSHOP_OWNER_ID, 'clients', clientId);
+                await updateDoc(clientRef, { appointmentCount: increment(1) });
 
-                if (!daySettings || !daySettings.isOpen) {
-                    timeSlotsContainer.innerHTML = '<p class="text-slate-500 text-sm text-center mt-4">Fechado neste dia. Por favor, escolha outra data.</p>';
-                    return;
-                }
-
-                const allPossibleSlots = [];
-                let startHour = parseInt(daySettings.start.split(':')[0]);
-                let startMinute = parseInt(daySettings.start.split(':')[1]);
-                let endHour = parseInt(daySettings.end.split(':')[0]);
-                let endMinute = parseInt(daySettings.end.split(':')[1]);
-                let currentHour = startHour;
-                let currentMinute = startMinute;
-
-                while (currentHour < endHour || (currentHour === endHour && currentMinute < endMinute)) {
-                    allPossibleSlots.push(`${String(currentHour).padStart(2, '0')}:${String(currentMinute).padStart(2, '0')}`);
-                    currentMinute += 30;
-                    if (currentMinute >= 60) {
-                        currentHour++;
-                        currentMinute -= 60;
-                    }
-                }
-
-                const startOfDay = Timestamp.fromDate(new Date(`${dateStr}T00:00:00`));
-                const endOfDay = Timestamp.fromDate(new Date(`${dateStr}T23:59:59`));
-                const appointmentsQuery = query(collection(db, "users", BARBERSHOP_OWNER_ID, "appointments"), where('dateTime', '>=', startOfDay), where('dateTime', '<=', endOfDay));
-                const querySnapshot = await getDocs(appointmentsQuery);
-                const bookedTimes = new Set(querySnapshot.docs.map(doc => {
-                    const date = doc.data().dateTime.toDate();
-                    return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
-                }));
-
-                const availableSlots = allPossibleSlots.filter(slot => !bookedTimes.has(slot));
-
-                timeSlotsContainer.innerHTML = '';
-                const grid = document.createElement('div');
-                grid.className = "grid grid-cols-3 sm:grid-cols-4 gap-2 mt-4";
-
-                if (availableSlots.length === 0) {
-                    timeSlotsContainer.innerHTML = '<p class="text-slate-500 text-sm text-center mt-4">Nenhum horário disponível para este dia.</p>';
-                    return;
-                }
-
-                const now = new Date();
-                const isToday = now.getFullYear() === selectedDate.getFullYear() && now.getMonth() === selectedDate.getMonth() && now.getDate() === selectedDate.getDate();
-
-                availableSlots.forEach(time => {
-                    const slotHour = parseInt(time.split(':')[0]);
-                    const slotMinute = parseInt(time.split(':')[1]);
-                    let isPast = false;
-
-                    if (isToday) {
-                        const currentHour = now.getHours();
-                        const currentMinute = now.getMinutes();
-                        if (slotHour < currentHour || (slotHour === currentHour && slotMinute < currentMinute)) {
-                            isPast = true;
-                        }
-                    }
-
-                    const slotBtn = document.createElement('button');
-                    slotBtn.type = "button";
-                    slotBtn.textContent = time;
-                    slotBtn.className = `time-slot border rounded-md py-2 text-sm font-semibold`;
-                    slotBtn.disabled = isPast;
-
-                    if (isPast) {
-                        slotBtn.classList.add('bg-slate-100', 'text-slate-400', 'cursor-not-allowed');
-                    } else {
-                        slotBtn.classList.add('border-slate-300', 'text-slate-700', 'hover:bg-indigo-500', 'hover:text-white', 'focus:bg-indigo-500', 'focus:text-white');
-                        slotBtn.onclick = () => {
-                            state.selectedDate = dateStr;
-                            state.selectedTime = time;
-                            document.querySelectorAll('.time-slot').forEach(btn => { btn.classList.remove('bg-indigo-500', 'text-white'); });
-                            slotBtn.classList.add('bg-indigo-500', 'text-white');
-                            updateSummaryAndShowUserInfo();  // Agora a função está definida corretamente
-                        };
-                    }
-
-                    grid.appendChild(slotBtn);
-                });
-
-                timeSlotsContainer.appendChild(grid);
+                const confirmationSummaryDiv = document.getElementById('confirmation-summary');
+                confirmationSummaryDiv.innerHTML = document.getElementById('summary').innerHTML;
+                showStep('confirmation');
             } catch (error) {
-                console.error("Erro ao carregar horários:", error);
-                timeSlotsContainer.innerHTML = '<p class="text-red-500 text-sm text-center mt-4">Não foi possível carregar os horários. Tente novamente.</p>';
+                console.error("Erro ao confirmar agendamento: ", error);
+                alert("Não foi possível confirmar o agendamento. Tente novamente.");
+                btn.disabled = false;
+                btn.innerHTML = 'Confirmar Agendamento';
             }
         }
 
-        // Função que atualiza o resumo da reserva
-        function updateSummaryAndShowUserInfo() {
-            const summaryDiv = document.getElementById('summary');
-            summaryDiv.innerHTML = `<p><strong>Serviço:</strong> ${state.selectedService.name}</p>
-                                    <p><strong>Profissional:</strong> ${state.selectedBarber.name}</p>
-                                    <p><strong>Data:</strong> ${new Date(state.selectedDate + 'T12:00:00').toLocaleDateString('pt-BR')} às ${state.selectedTime}</p>
-                                    <p class="mt-2 font-bold text-lg"><strong>Total:</strong> R$ ${state.selectedService.price.toFixed(2)}</p>`;
-            showStep('userinfo');
-        }
+        const findOrCreateClient = async (userId, clientName, clientPhone) => {
+            const clientsRef = collection(db, 'users', userId, 'clients');
+            const q = query(clientsRef, where("phone", "==", clientPhone));
+            const querySnapshot = await getDocs(q);
 
-        document.addEventListener('DOMContentLoaded', () => { 
-            loadBarbershopInfo(); 
-            document.getElementById('back-to-step-1').onclick = () => showStep('service'); 
-            document.getElementById('back-to-step-2').onclick = () => showStep('datetime'); 
-            document.getElementById('back-to-step-3').onclick = () => showStep('userinfo'); 
-            const bookingDateInput = document.getElementById('booking-date'); 
-            const today = new Date(); 
-            const todayStr = today.toISOString().split('T')[0]; 
-            bookingDateInput.setAttribute('min', todayStr); 
-            bookingDateInput.addEventListener('change', (e) => { 
-                loadAvailableTimes(e.target.value); 
-            }); 
-            document.getElementById('client-info-form').addEventListener('submit', handleConfirmBooking); 
-            feather.replace(); 
+            if (!querySnapshot.empty) {
+                return querySnapshot.docs[0].id;
+            } else {
+                const newClientRef = await addDoc(clientsRef, {
+                    name: clientName,
+                    phone: clientPhone,
+                    createdAt: Timestamp.now(),
+                    appointmentCount: 0
+                });
+                return newClientRef.id;
+            }
+        };
+
+        document.addEventListener('DOMContentLoaded', () => {
+            loadBarbershopInfo();
+            document.getElementById('back-to-step-1').onclick = () => showStep('service');
+            document.getElementById('back-to-step-2').onclick = () => showStep('datetime');
+            document.getElementById('back-to-step-3').onclick = () => showStep('userinfo');
+
+            const bookingDateInput = document.getElementById('booking-date');
+            const today = new Date();
+            const todayStr = today.toISOString().split('T')[0];
+            bookingDateInput.setAttribute('min', todayStr);
+
+            bookingDateInput.addEventListener('change', (e) => {
+                loadAvailableTimes(e.target.value);
+            });
+
+            document.getElementById('client-info-form').addEventListener('submit', handleConfirmBooking);
+            feather.replace();
         });
     </script>
 </body>
