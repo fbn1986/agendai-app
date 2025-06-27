@@ -81,6 +81,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
         import { getFirestore, doc, getDoc, addDoc, collection, query, where, Timestamp, getDocs, increment, updateDoc } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
+        
         const firebaseConfig = {
             apiKey: "AIzaSyAkIUtakV64F2SYjvJylTGlw8-vTfXc3Fk",
             authDomain: "agendabarber-3fe30.firebaseapp.com",
@@ -89,13 +90,16 @@
             messagingSenderId: "1098037500040",
             appId: "1:1098037500040:web:62c82a203a3276ffaa273d"
         };
+        
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
         const urlParams = new URLSearchParams(window.location.search);
         const BARBERSHOP_OWNER_ID = urlParams.get('user');
         const state = { selectedService: null, selectedBarber: null, selectedDate: null, selectedTime: null };
         const steps = { service: document.getElementById('step-1-service'), barber: document.getElementById('step-2-barber'), datetime: document.getElementById('step-3-datetime'), userinfo: document.getElementById('step-4-userinfo'), confirmation: document.getElementById('step-5-confirmation') };
+
         function showStep(stepName) { Object.values(steps).forEach(step => step.classList.add('hidden')); if (steps[stepName]) { steps[stepName].classList.remove('hidden'); } }
+
         async function loadBarbershopInfo() { 
             if (!BARBERSHOP_OWNER_ID) { 
                 document.getElementById('error-container').classList.remove('hidden'); 
@@ -119,6 +123,7 @@
                 document.getElementById('error-container').classList.remove('hidden'); 
             } 
         }
+
         async function loadServices() { 
             const container = document.getElementById('services-options'); 
             container.innerHTML = ''; 
@@ -142,6 +147,7 @@
                 container.innerHTML = '<p class="text-red-500 col-span-full">Não foi possível carregar os serviços.</p>'; 
             } 
         }
+
         async function loadBarbers() { 
             const container = document.getElementById('barbers-options'); 
             container.innerHTML = ''; 
@@ -165,6 +171,7 @@
                 container.innerHTML = '<p class="text-red-500 col-span-full">Não foi possível carregar os profissionais.</p>'; 
             } 
         }
+
         async function handleConfirmBooking(e) { 
             e.preventDefault(); 
             const btn = document.getElementById('confirm-booking-btn'); 
@@ -202,6 +209,7 @@
                 btn.innerHTML = 'Confirmar Agendamento'; 
             } 
         }
+
         document.addEventListener('DOMContentLoaded', () => { 
             loadBarbershopInfo(); 
             document.getElementById('back-to-step-1').onclick = () => showStep('service'); 
