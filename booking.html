@@ -98,8 +98,13 @@
         const state = { selectedService: null, selectedBarber: null, selectedDate: null, selectedTime: null };
         const steps = { service: document.getElementById('step-1-service'), barber: document.getElementById('step-2-barber'), datetime: document.getElementById('step-3-datetime'), userinfo: document.getElementById('step-4-userinfo'), confirmation: document.getElementById('step-5-confirmation') };
 
-        function showStep(stepName) { Object.values(steps).forEach(step => step.classList.add('hidden')); if (steps[stepName]) { steps[stepName].classList.remove('hidden'); } }
+        // Função de navegação entre etapas
+        function showStep(stepName) { 
+            Object.values(steps).forEach(step => step.classList.add('hidden')); 
+            if (steps[stepName]) { steps[stepName].classList.remove('hidden'); } 
+        }
 
+        // Função para carregar as informações da barbearia
         async function loadBarbershopInfo() { 
             if (!BARBERSHOP_OWNER_ID) { 
                 document.getElementById('error-container').classList.remove('hidden'); 
@@ -124,6 +129,7 @@
             } 
         }
 
+        // Função para carregar serviços
         async function loadServices() { 
             const container = document.getElementById('services-options'); 
             container.innerHTML = ''; 
@@ -148,6 +154,7 @@
             } 
         }
 
+        // Função para carregar barbeiros
         async function loadBarbers() { 
             const container = document.getElementById('barbers-options'); 
             container.innerHTML = ''; 
@@ -172,7 +179,7 @@
             } 
         }
 
-        // Função para carregar os horários disponíveis
+        // Função para carregar horários disponíveis
         async function loadAvailableTimes(dateStr) {
             const timeSlotsContainer = document.getElementById('time-slots-container');
             timeSlotsContainer.innerHTML = '<div class="text-center"><p class="text-slate-500 text-sm">Verificando horários...</p></div>';
