@@ -8,48 +8,31 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/feather-icons"></script>
     <style>
-        body {
-            font-family: 'Poppins', sans-serif;
-            background-color: #f8fafc;
-        }
-        .step-card {
-            transition: all 0.3s ease;
-        }
-        .time-slot {
-            transition: all 0.2s ease;
-        }
-        .time-slot:disabled {
-            background-color: #f1f5f9;
-            color: #94a3b8;
-            cursor: not-allowed;
-            border-color: #e2e8f0;
-        }
+        body { font-family: 'Poppins', sans-serif; background-color: #f8fafc; }
+        .step-card { transition: all 0.3s ease; }
+        .time-slot { transition: all 0.2s ease; }
+        .time-slot:disabled { background-color: #f1f5f9; color: #94a3b8; cursor: not-allowed; border-color: #e2e8f0; }
     </style>
 </head>
 <body class="flex justify-center items-start min-h-screen p-4 sm:p-6 md:p-8">
-
     <div id="main-container" class="w-full max-w-2xl mx-auto hidden">
         <header class="text-center mb-8">
             <img src="https://placehold.co/100x100/1e293b/ffffff?text=Logo" alt="Logo da Barbearia" class="w-24 h-24 rounded-full mx-auto mb-4">
             <h1 id="barbershop-name" class="text-2xl sm:text-3xl font-bold text-slate-800">Nome da Barbearia</h1>
             <p class="text-slate-500 mt-1">Faça seu agendamento online</p>
         </header>
-
         <main class="bg-white p-4 sm:p-6 md:p-8 rounded-lg shadow-md space-y-8">
-            
             <div id="step-1-service">
                 <h2 class="font-semibold text-lg text-slate-700 mb-4">1. Escolha um serviço</h2>
                 <div id="services-options" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <p class="text-slate-500 col-span-full">Carregando serviços...</p>
                 </div>
             </div>
-
             <div id="step-2-barber" class="hidden">
                 <h2 class="font-semibold text-lg text-slate-700 mb-4">2. Escolha um profissional</h2>
                 <div id="barbers-options" class="grid grid-cols-1 sm:grid-cols-2 gap-4"></div>
                  <button id="back-to-step-1" class="mt-4 text-sm text-slate-500 hover:text-slate-800">&larr; Voltar para serviços</button>
             </div>
-            
             <div id="step-3-datetime" class="hidden">
                 <h2 class="font-semibold text-lg text-slate-700 mb-4">3. Escolha a data e o horário</h2>
                 <div>
@@ -61,8 +44,7 @@
                 </div>
                 <button id="back-to-step-2" class="mt-4 text-sm text-slate-500 hover:text-slate-800">&larr; Voltar para barbeiros</button>
             </div>
-
-             <div id="step-4-userinfo" class="hidden">
+            <div id="step-4-userinfo" class="hidden">
                  <h2 class="font-semibold text-lg text-slate-700 mb-4">4. Suas informações</h2>
                  <div id="summary" class="bg-slate-50 p-4 rounded-lg mb-4 text-sm space-y-1"></div>
                  <form id="client-info-form">
@@ -82,25 +64,20 @@
                      </div>
                  </form>
             </div>
-
             <div id="step-5-confirmation" class="hidden text-center">
                 <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
                     <i data-feather="check" class="w-10 h-10 text-green-600"></i>
                 </div>
                 <h2 class="font-bold text-xl text-slate-800">Agendamento Confirmado!</h2>
-                <p class="text-slate-600 mt-2">Seu horário foi reservado com sucesso.</p>
+                <p class="text-slate-600 mt-2">Seu horário foi reservado com sucesso. Um lembrete será enviado no seu WhatsApp.</p>
                 <div id="confirmation-summary" class="bg-slate-50 p-4 rounded-lg mt-6 text-sm text-left space-y-1"></div>
-                <div id="confirmation-actions" class="mt-6 space-y-3">
-                    </div>
             </div>
         </main>
     </div>
-    
     <div id="error-container" class="hidden text-center p-4">
         <h1 class="text-2xl font-bold text-red-600">Link de Agendamento Inválido</h1>
         <p class="text-slate-600 mt-2">Não foi possível encontrar a barbearia. Por favor, verifique o link ou entre em contato com o estabelecimento.</p>
     </div>
-
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
         import { getFirestore, doc, getDoc, addDoc, collection, query, where, Timestamp, getDocs, increment, updateDoc } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
@@ -121,6 +98,7 @@
         const state = { selectedService: null, selectedBarber: null, selectedDate: null, selectedTime: null };
         const steps = { service: document.getElementById('step-1-service'), barber: document.getElementById('step-2-barber'), datetime: document.getElementById('step-3-datetime'), userinfo: document.getElementById('step-4-userinfo'), confirmation: document.getElementById('step-5-confirmation') };
 
+        // Função para exibir a etapa do agendamento
         function showStep(stepName) { 
             Object.values(steps).forEach(step => step.classList.add('hidden')); 
             if (steps[stepName]) { steps[stepName].classList.remove('hidden'); } 
@@ -152,11 +130,10 @@
 
         async function loadServices() { 
             const container = document.getElementById('services-options'); 
-            container.innerHTML = '<p class="text-slate-500 col-span-full">Carregando serviços...</p>'; 
+            container.innerHTML = ''; 
             try { 
                 const q = query(collection(db, "users", BARBERSHOP_OWNER_ID, "services")); 
-                const querySnapshot = await getDocs(q);
-                container.innerHTML = '';
+                const querySnapshot = await getDocs(q); 
                 if (querySnapshot.empty) { 
                     container.innerHTML = '<p class="text-slate-500 col-span-full">Nenhum serviço disponível no momento.</p>'; 
                     return; 
@@ -177,11 +154,10 @@
 
         async function loadBarbers() { 
             const container = document.getElementById('barbers-options'); 
-            container.innerHTML = '<p class="text-slate-500 col-span-full">Carregando profissionais...</p>';
+            container.innerHTML = ''; 
             try { 
                 const q = query(collection(db, "users", BARBERSHOP_OWNER_ID, "barbers")); 
-                const querySnapshot = await getDocs(q);
-                container.innerHTML = '';
+                const querySnapshot = await getDocs(q); 
                 if (querySnapshot.empty) { 
                     container.innerHTML = '<p class="text-slate-500 col-span-full">Nenhum profissional disponível.</p>'; 
                     return; 
@@ -200,11 +176,14 @@
             } 
         }
 
+        // Função para carregar os horários disponíveis
         async function loadAvailableTimes(dateStr) {
             const timeSlotsContainer = document.getElementById('time-slots-container');
             timeSlotsContainer.innerHTML = '<div class="text-center"><p class="text-slate-500 text-sm">Verificando horários...</p></div>';
 
             try {
+                console.log(`Carregando horários para a data: ${dateStr}`);
+
                 const settingsRef = doc(db, 'users', BARBERSHOP_OWNER_ID, 'settings', 'workingHours');
                 const settingsSnap = await getDoc(settingsRef);
                 const workingHours = settingsSnap.exists() ? settingsSnap.data() : {};
@@ -252,8 +231,8 @@
                 grid.className = "grid grid-cols-3 sm:grid-cols-4 gap-2 mt-4";
 
                 if (availableSlots.length === 0) {
-                     timeSlotsContainer.innerHTML = '<p class="text-slate-500 text-sm text-center mt-4">Nenhum horário disponível para este dia.</p>';
-                     return;
+                    timeSlotsContainer.innerHTML = '<p class="text-slate-500 text-sm text-center mt-4">Nenhum horário disponível para este dia.</p>';
+                    return;
                 }
 
                 const now = new Date();
@@ -287,121 +266,23 @@
                             state.selectedTime = time;
                             document.querySelectorAll('.time-slot').forEach(btn => { btn.classList.remove('bg-indigo-500', 'text-white'); });
                             slotBtn.classList.add('bg-indigo-500', 'text-white');
-                            updateSummaryAndShowUserInfo();
+                            updateSummaryAndShowUserInfo();  // Agora a função está definida corretamente
                         };
                     }
+
                     grid.appendChild(slotBtn);
                 });
+
                 timeSlotsContainer.appendChild(grid);
             } catch (error) {
                 console.error("Erro ao carregar horários:", error);
                 timeSlotsContainer.innerHTML = '<p class="text-red-500 text-sm text-center mt-4">Não foi possível carregar os horários. Tente novamente.</p>';
             }
         }
-        
+
+        // Função que atualiza o resumo da reserva
         function updateSummaryAndShowUserInfo() {
             const summaryDiv = document.getElementById('summary');
-            summaryDiv.innerHTML = `<p><strong>Serviço:</strong> ${state.selectedService.name}</p><p><strong>Profissional:</strong> ${state.selectedBarber.name}</p><p><strong>Data:</strong> ${new Date(state.selectedDate + 'T12:00:00').toLocaleDateString('pt-BR')} às ${state.selectedTime}</p><p class="mt-2 font-bold text-lg"><strong>Total:</strong> R$ ${state.selectedService.price.toFixed(2)}</p>`;
-            showStep('userinfo');
-        }
-
-        const findOrCreateClient = async (userId, clientName, clientPhone) => {
-            const clientsRef = collection(db, 'users', userId, 'clients');
-            const q = query(clientsRef, where("phone", "==", clientPhone));
-            const querySnapshot = await getDocs(q);
-            if (!querySnapshot.empty) {
-                return querySnapshot.docs[0].id;
-            } else {
-                const newClientRef = await addDoc(clientsRef, {
-                    name: clientName,
-                    phone: clientPhone,
-                    createdAt: Timestamp.now(),
-                    appointmentCount: 0
-                });
-                return newClientRef.id;
-            }
-        };
-
-        async function handleConfirmBooking(e) {
-            e.preventDefault();
-            const btn = document.getElementById('confirm-booking-btn');
-            btn.disabled = true;
-            btn.innerHTML = 'Confirmando...';
-
-            try {
-                const clientName = document.getElementById('public-client-name').value;
-                const clientPhone = document.getElementById('public-client-phone').value;
-                const clientId = await findOrCreateClient(BARBERSHOP_OWNER_ID, clientName, clientPhone);
-                const dateTime = new Date(`${state.selectedDate}T${state.selectedTime}`);
-
-                const appointmentData = {
-                    clientName,
-                    clientPhone,
-                    clientId,
-                    serviceId: state.selectedService.id,
-                    serviceName: state.selectedService.name,
-                    barberId: state.selectedBarber.id,
-                    barberName: state.selectedBarber.name,
-                    barberPhone: state.selectedBarber.phone || null, // Adiciona o telefone do barbeiro
-                    dateTime: Timestamp.fromDate(dateTime),
-                    price: state.selectedService.price,
-                    status: 'confirmado',
-                    lembreteEnviado: null
-                };
-                
-                await addDoc(collection(db, "users", BARBERSHOP_OWNER_ID, "appointments"), appointmentData);
-
-                const clientRef = doc(db, 'users', BARBERSHOP_OWNER_ID, 'clients', clientId);
-                await updateDoc(clientRef, { appointmentCount: increment(1) });
-
-                const confirmationSummaryDiv = document.getElementById('confirmation-summary');
-                confirmationSummaryDiv.innerHTML = document.getElementById('summary').innerHTML;
-                
-                // Adiciona o botão do WhatsApp dinamicamente
-                if (state.selectedBarber.phone) {
-                    const actionsContainer = document.getElementById('confirmation-actions');
-                    const whatsappNumber = String(state.selectedBarber.phone).replace(/\D/g, "");
-                    // Inclui o nome do cliente e o serviço na mensagem
-                    const textMessage = encodeURIComponent(`Olá ${state.selectedBarber.name}, sou ${clientName}. Tenho uma dúvida sobre meu agendamento de ${state.selectedService.name} no dia ${new Date(state.selectedDate + 'T12:00:00').toLocaleDateString('pt-BR')} às ${state.selectedTime}.`);
-                    const whatsappLink = `https://wa.me/55${whatsappNumber}?text=${textMessage}`;
-                    
-                    actionsContainer.innerHTML = `
-                        <a href="${whatsappLink}" target="_blank" class="inline-flex items-center justify-center w-full bg-green-500 text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:bg-green-600">
-                            <i data-feather="message-circle" class="w-5 h-5 mr-2"></i>Falar com ${state.selectedBarber.name}
-                        </a>
-                        <p class="text-xs text-slate-400 mt-2">As opções para editar ou cancelar seu agendamento serão enviadas no lembrete do WhatsApp.</p>
-                    `;
-                    feather.replace();
-                }
-                
-                showStep('confirmation');
-
-            } catch (error) {
-                console.error("Erro ao confirmar agendamento: ", error);
-                alert("Não foi possível confirmar o agendamento. Tente novamente.");
-                btn.disabled = false;
-                btn.innerHTML = 'Confirmar Agendamento';
-            }
-        }
-
-        document.addEventListener('DOMContentLoaded', () => {
-            loadBarbershopInfo();
-            document.getElementById('back-to-step-1').onclick = () => showStep('service');
-            document.getElementById('back-to-step-2').onclick = () => showStep('datetime');
-            document.getElementById('back-to-step-3').onclick = () => showStep('userinfo');
-
-            const bookingDateInput = document.getElementById('booking-date'); 
-            const today = new Date(); 
-            const todayStr = today.toISOString().split('T')[0]; 
-            bookingDateInput.setAttribute('min', todayStr); 
-
-            bookingDateInput.addEventListener('change', (e) => { 
-                loadAvailableTimes(e.target.value); 
-            });
-
-            document.getElementById('client-info-form').addEventListener('submit', handleConfirmBooking);
-            feather.replace(); 
-        });
-    </script>
-</body>
-</html>
+            summaryDiv.innerHTML = `<p><strong>Serviço:</strong> ${state.selectedService.name}</p>
+                                    <p><strong>Profissional:</strong> ${state.selectedBarber.name}</p>
+                                    <p><strong>Data:</strong> ${new Date(state.selec
