@@ -262,7 +262,7 @@
                             state.selectedTime = time;
                             document.querySelectorAll('.time-slot').forEach(btn => { btn.classList.remove('bg-indigo-500', 'text-white'); });
                             slotBtn.classList.add('bg-indigo-500', 'text-white');
-                            updateSummaryAndShowUserInfo();
+                            updateSummaryAndShowUserInfo();  // Agora a função está definida corretamente
                         };
                     }
 
@@ -274,6 +274,16 @@
                 console.error("Erro ao carregar horários:", error);
                 timeSlotsContainer.innerHTML = '<p class="text-red-500 text-sm text-center mt-4">Não foi possível carregar os horários. Tente novamente.</p>';
             }
+        }
+
+        // Função que atualiza o resumo da reserva
+        function updateSummaryAndShowUserInfo() {
+            const summaryDiv = document.getElementById('summary');
+            summaryDiv.innerHTML = `<p><strong>Serviço:</strong> ${state.selectedService.name}</p>
+                                    <p><strong>Profissional:</strong> ${state.selectedBarber.name}</p>
+                                    <p><strong>Data:</strong> ${new Date(state.selectedDate + 'T12:00:00').toLocaleDateString('pt-BR')} às ${state.selectedTime}</p>
+                                    <p class="mt-2 font-bold text-lg"><strong>Total:</strong> R$ ${state.selectedService.price.toFixed(2)}</p>`;
+            showStep('userinfo');
         }
 
         document.addEventListener('DOMContentLoaded', () => { 
