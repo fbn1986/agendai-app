@@ -301,7 +301,10 @@
                 const clientName = document.getElementById('public-client-name').value;
                 const clientPhone = document.getElementById('public-client-phone').value;
                 const clientId = await findOrCreateClient(BARBERSHOP_OWNER_ID, clientName, clientPhone);
-                const dateTime = new Date(`${state.selectedDate}T${state.selectedTime}`);
+                
+                // Corrigir o horário com base no fuso horário local
+                const dateTime = new Date(`${state.selectedDate}T${state.selectedTime}:00`);  // Data selecionada + hora
+                dateTime.setHours(dateTime.getHours() - 3);  // Subtraímos 3 horas para ajustar para o horário local do Brasil
 
                 const appointmentData = {
                     clientName,
@@ -311,7 +314,7 @@
                     serviceName: state.selectedService.name,
                     barberId: state.selectedBarber.id,
                     barberName: state.selectedBarber.name,
-                    dateTime: Timestamp.fromDate(dateTime),
+                    dateTime: Timestamp.fromDate(dateTime),  // Agora usamos a data corrigida
                     price: state.selectedService.price,
                     status: 'confirmado',
                     lembreteEnviado: null // Adicionando campo lembreteEnviado
