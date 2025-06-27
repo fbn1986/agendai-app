@@ -100,6 +100,7 @@
 
         function showStep(stepName) { Object.values(steps).forEach(step => step.classList.add('hidden')); if (steps[stepName]) { steps[stepName].classList.remove('hidden'); } }
 
+        // Função para carregar os horários disponíveis
         async function loadAvailableTimes(dateStr) {
             const timeSlotsContainer = document.getElementById('time-slots-container');
             timeSlotsContainer.innerHTML = '<div class="text-center"><p class="text-slate-500 text-sm">Verificando horários...</p></div>';
