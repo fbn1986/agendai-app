@@ -74,7 +74,7 @@
             </header>
 
             <main id="main-content" class="flex-1 p-4 md:p-8 overflow-y-auto">
-                 </main>
+            </main>
         </div>
     </div>
     
@@ -324,8 +324,6 @@
           `;
         }
         
-        // --- FUNÇÕES DE CADA ABA ---
-
         function initializeHome(userId) {
             const container = document.getElementById('latest-appointments-list');
             const appointmentsRef = collection(db, 'users', userId, 'appointments');
@@ -363,7 +361,7 @@
                 }
             });
         }
-
+        
         function initializeAgenda(userId) {
             const addAppointmentBtn = document.getElementById('add-appointment-btn');
             const appointmentsListContainer = document.getElementById('appointments-list');
@@ -444,35 +442,7 @@
             async function handleSaveNewAppointment(e, userId) { e.preventDefault(); const form = e.target; if (!selectedTime) { alert("Por favor, selecione um horário."); return; } const saveBtn = form.querySelector('button[type="submit"]'); const btnText = saveBtn.querySelector('.btn-text'); const spinner = saveBtn.querySelector('.spinner'); saveBtn.disabled = true; btnText.textContent = 'Salvando...'; spinner.classList.remove('hidden'); try { const clientName = form.elements['client-name'].value; const clientPhone = form.elements['client-phone'].value; const clientId = await findOrCreateClient(userId, clientName, clientPhone); const date = form.elements['appointment-date'].value; const dateTime = Timestamp.fromDate(new Date(`${date}T${selectedTime}`)); const serviceRef = doc(db, 'users', userId, 'services', form.elements['appointment-service'].value); const serviceSnap = await getDoc(serviceRef); const servicePrice = serviceSnap.exists() ? serviceSnap.data().price : 0; const selectedBarberOption = form.elements['appointment-barber']; const selectedBarberId = selectedBarberOption.value; const barberData = barbersData.find(b => b.id === selectedBarberId); await addDoc(collection(db, 'users', userId, 'appointments'), { clientName, clientPhone, clientId, serviceId: form.elements['appointment-service'].value, serviceName: form.elements['appointment-service'].options[form.elements['appointment-service'].selectedIndex].text, barberId: selectedBarberId, barberName: barberData.name, barberPhone: barberData.phone, dateTime, price: servicePrice, status: 'confirmado', lembreteEnviado: null, createdAt: Timestamp.now() }); const clientRef = doc(db, 'users', userId, 'clients', clientId); await updateDoc(clientRef, { appointmentCount: increment(1) }); closeAppointmentModal(); alert('Agendamento criado com sucesso!'); } catch(err) { console.error("Erro ao salvar agendamento:", err); alert('Ocorreu um erro. Tente novamente.'); } finally { saveBtn.disabled = false; btnText.textContent = 'Salvar Agendamento'; spinner.classList.add('hidden'); } }
             const openEditModal = async (userId, appointmentId) => { const appDocRef = doc(db, 'users', userId, 'appointments', appointmentId); const appDocSnap = await getDoc(appDocRef); if (!appDocSnap.exists()) { alert("Agendamento não encontrado."); return; } const appointmentData = appDocSnap.data(); const appDate = appointmentData.dateTime.toDate(); const dateString = appDate.toISOString().split('T')[0]; const timeString = `${String(appDate.getHours()).padStart(2, '0')}:${String(appDate.getMinutes()).padStart(2, '0')}`; selectedTime = timeString; appointmentModal.innerHTML = `<div class="bg-white rounded-lg shadow-2xl p-8 max-w-2xl w-full relative"><button id="close-modal-btn" class="absolute top-4 right-4 text-gray-400 hover:text-gray-800"><i data-feather="x" class="w-6 h-6"></i></button><h3 class="text-lg font-semibold text-slate-800 mb-6">Editar Agendamento</h3><form id="edit-appointment-form" class="space-y-4"><p class="text-sm font-semibold">Cliente: ${appointmentData.clientName}</p><div class="grid grid-cols-1 md:grid-cols-2 gap-4"><div><label for="appointment-service" class="block text-sm font-medium text-slate-600">Serviço</label><select id="appointment-service" required class="input-style"></select></div><div><label for="appointment-barber" class="block text-sm font-medium text-slate-600">Barbeiro</label><select id="appointment-barber" required class="input-style"></select></div></div><div class="grid grid-cols-1 md:grid-cols-2 gap-4"><div><label for="appointment-date" class="block text-sm font-medium text-slate-600">Data</label><input type="date" id="appointment-date" required class="input-style" value="${dateString}"></div><div><label class="block text-sm font-medium text-slate-600">Hora</label><div id="time-slots-container" class="mt-2 grid grid-cols-3 sm:grid-cols-4 gap-2 border p-2 rounded-md min-h-[80px]"></div></div></div><div class="flex items-center gap-4 mt-6"><button id="update-appointment-btn" type="submit" class="w-full bg-indigo-600 text-white font-semibold py-3 px-4 rounded-lg shadow-md hover:bg-indigo-700">Salvar Alterações</button><button id="delete-appointment-btn" type="button" class="w-auto bg-red-600 text-white font-semibold py-3 px-4 rounded-lg shadow-md hover:bg-red-700"><i data-feather="trash-2" class="w-5 h-5"></i></button></div></form></div>`; appointmentModal.classList.remove('hidden'); appointmentModal.classList.add('flex'); document.getElementById('close-modal-btn').addEventListener('click', closeAppointmentModal); document.getElementById('edit-appointment-form').addEventListener('submit', (e) => handleUpdateAppointment(e, userId, appointmentId)); document.getElementById('delete-appointment-btn').addEventListener('click', () => handleDeleteAppointment(userId, appointmentId)); const dateInput = document.getElementById('appointment-date'); dateInput.min = new Date().toISOString().split("T")[0]; dateInput.addEventListener('change', () => renderAvailableTimes(dateInput.value, timeString)); await populateSelectWithOptions(userId, 'services', 'appointment-service', 'Nenhum serviço', appointmentData.serviceId); await populateSelectWithOptions(userId, 'barbers', 'appointment-barber', 'Nenhum barbeiro', appointmentData.barberId); await renderAvailableTimes(dateString, timeString); document.querySelector(`#time-slots-container button[data-time="${timeString}"]`)?.click(); feather.replace(); };
             async function handleUpdateAppointment(e, userId, appointmentId) { e.preventDefault(); if (!selectedTime) { alert("Por favor, selecione um horário."); return; } const form = e.target; const date = form.elements['appointment-date'].value; const newDateTime = Timestamp.fromDate(new Date(`${date}T${selectedTime}`)); const serviceId = form.elements['appointment-service'].value; const serviceName = form.elements['appointment-service'].options[form.elements['appointment-service'].selectedIndex].text; const barberId = form.elements['appointment-barber'].value; const barberName = form.elements['appointment-barber'].options[form.elements['appointment-barber'].selectedIndex].text; const appDocRef = doc(db, 'users', userId, 'appointments', appointmentId); await updateDoc(appDocRef, { dateTime: newDateTime, serviceId: serviceId, serviceName: serviceName, barberId: barberId, barberName: barberName, }); closeAppointmentModal(); alert("Agendamento atualizado com sucesso!"); }
-            async function handleDeleteAppointment(userId, appointmentId) {
-                if (!window.confirm("Tem certeza que deseja excluir este agendamento? Esta ação não pode ser desfeita.")) return;
-                
-                const appDocRef = doc(db, 'users', userId, 'appointments', appointmentId);
-                try {
-                    const appDocSnap = await getDoc(appDocRef);
-                    if (appDocSnap.exists()) {
-                        const { clientId } = appDocSnap.data();
-                        if (clientId) {
-                            const clientRef = doc(db, 'users', userId, 'clients', clientId);
-                            const clientSnap = await getDoc(clientRef);
-                            if (clientSnap.exists()) {
-                                const currentCount = clientSnap.data().appointmentCount;
-                                if (currentCount <= 1) {
-                                    await deleteDoc(clientRef);
-                                } else {
-                                    await updateDoc(clientRef, { appointmentCount: increment(-1) });
-                                }
-                            }
-                        }
-                    }
-                    await deleteDoc(appDocRef);
-                    closeAppointmentModal();
-                    alert("Agendamento excluído com sucesso.");
-                } catch (error) {
-                    console.error("Erro ao excluir agendamento e cliente:", error);
-                    alert("Não foi possível excluir o agendamento.");
-                }
-            }
+            async function handleDeleteAppointment(userId, appointmentId) { if (window.confirm("Tem certeza que deseja excluir este agendamento? Esta ação não pode ser desfeita.")) { const appDocRef = doc(db, 'users', userId, 'appointments', appointmentId); try { const appDocSnap = await getDoc(appDocRef); if (appDocSnap.exists()) { const { clientId } = appDocSnap.data(); if (clientId) { const clientRef = doc(db, 'users', userId, 'clients', clientId); const clientSnap = await getDoc(clientRef); if (clientSnap.exists()) { const currentCount = clientSnap.data().appointmentCount; if (currentCount <= 1) { await deleteDoc(clientRef); } else { await updateDoc(clientRef, { appointmentCount: increment(-1) }); } } } } await deleteDoc(appDocRef); closeAppointmentModal(); alert("Agendamento excluído com sucesso."); } catch (error) { console.error("Erro ao excluir o agendamento e atualizar cliente:", error); alert("Não foi possível excluir o agendamento."); } } }
 
             document.getElementById('prev-week-btn').addEventListener('click', () => renderAppointmentsForWeek(currentWeekOffset - 1));
             document.getElementById('next-week-btn').addEventListener('click', () => renderAppointmentsForWeek(currentWeekOffset + 1));
