@@ -401,30 +401,40 @@
         }
 
         async function handleCancelBooking(appointmentId, clientId) {
-            if (window.confirm("Tem certeza que deseja cancelar seu agendamento?")) {
-                try {
-                    const appointmentRef = doc(db, 'users', BARBERSHOP_OWNER_ID, 'appointments', appointmentId);
-                    await deleteDoc(appointmentRef);
+            if (!window.confirm("Tem certeza que deseja cancelar seu agendamento?")) return;
+            
+            try {
+                const appointmentRef = doc(db, 'users', BARBERSHOP_OWNER_ID, 'appointments', appointmentId);
+                
+                if (clientId) {
+                    const clientRef = doc(db, 'users', BARBERSHOP_OWNER_ID, 'clients', clientId);
+                    const clientSnap = await getDoc(clientRef);
 
-                    if (clientId) {
-                        const clientRef = doc(db, 'users', BARBERSHOP_OWNER_ID, 'clients', clientId);
-                        await updateDoc(clientRef, { appointmentCount: increment(-1) });
+                    if (clientSnap.exists()) {
+                        const currentCount = clientSnap.data().appointmentCount;
+                        if (currentCount <= 1) {
+                            await deleteDoc(clientRef);
+                        } else {
+                            await updateDoc(clientRef, { appointmentCount: increment(-1) });
+                        }
                     }
-                    
-                    document.getElementById('confirmation-title').textContent = "Agendamento Cancelado";
-                    document.getElementById('confirmation-message').textContent = "Seu horário foi cancelado com sucesso.";
-                    document.getElementById('confirmation-summary').classList.add('hidden');
-                    document.getElementById('confirmation-actions').classList.add('hidden');
-                    const iconContainer = document.getElementById('confirmation-icon');
-                    iconContainer.classList.remove('bg-green-100');
-                    iconContainer.classList.add('bg-red-100');
-                    iconContainer.innerHTML = '<i data-feather="x-circle" class="w-10 h-10 text-red-600"></i>';
-                    feather.replace();
-
-                } catch (error) {
-                    console.error("Erro ao cancelar agendamento:", error);
-                    alert("Ocorreu um erro ao tentar cancelar. Por favor, tente novamente ou entre em contato com a barbearia.");
                 }
+
+                await deleteDoc(appointmentRef);
+                
+                document.getElementById('confirmation-title').textContent = "Agendamento Cancelado";
+                document.getElementById('confirmation-message').textContent = "Seu horário foi cancelado com sucesso.";
+                document.getElementById('confirmation-summary').classList.add('hidden');
+                document.getElementById('confirmation-actions').classList.add('hidden');
+                const iconContainer = document.getElementById('confirmation-icon');
+                iconContainer.classList.remove('bg-green-100');
+                iconContainer.classList.add('bg-red-100');
+                iconContainer.innerHTML = '<i data-feather="x-circle" class="w-10 h-10 text-red-600"></i>';
+                feather.replace();
+
+            } catch (error) {
+                console.error("Erro ao cancelar agendamento:", error);
+                alert("Ocorreu um erro ao tentar cancelar. Por favor, tente novamente ou entre em contato com a barbearia.");
             }
         }
 
