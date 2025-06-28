@@ -74,7 +74,7 @@
             </header>
 
             <main id="main-content" class="flex-1 p-4 md:p-8 overflow-y-auto">
-                 </main>
+            </main>
         </div>
     </div>
     
@@ -85,7 +85,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
         import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
-        import { getFirestore, doc, getDoc, setDoc, onSnapshot, query, collection, addDoc, getDocs, Timestamp, orderBy, where, updateDoc, deleteDoc, increment } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
+        import { getFirestore, doc, getDoc, setDoc, onSnapshot, query, collection, addDoc, getDocs, Timestamp, orderBy, where, updateDoc, deleteDoc, increment, limit } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
 
         const firebaseConfig = {
           apiKey: "AIzaSyAkIUtakV64F2SYjvJylTGlw8-vTfXc3Fk",
@@ -175,6 +175,7 @@
             const mainContent = document.getElementById('main-content');
             mainContent.innerHTML = getDashboardHTML();
             setupNavigation(userId);
+            initializeHome(userId);
             feather.replace();
         }
 
@@ -186,7 +187,7 @@
             const initializedSections = new Set();
             
             const sections = {
-                inicio: () => {},
+                inicio: () => initializeHome(userId),
                 agenda: () => initializeAgenda(userId),
                 clientes: () => initializeClients(userId),
                 servicos: () => initializeServices(userId),
@@ -236,7 +237,13 @@
         function getDashboardHTML() {
           return `
               <div id="inicio-section">
-                  <h2 class="text-2xl font-bold text-slate-800">Início</h2><p>Seja bem-vindo ao seu painel de controle.</p>
+                  <h2 class="text-2xl font-bold text-slate-800 mb-6">Início</h2>
+                  <div class="bg-white p-6 rounded-lg shadow-sm">
+                      <h3 class="text-lg font-semibold text-slate-800 mb-4">Últimos Agendamentos Recebidos</h3>
+                      <div id="latest-appointments-list" class="space-y-4">
+                          <p class="text-slate-500">Buscando agendamentos...</p>
+                      </div>
+                  </div>
               </div>
               <div id="agenda-section" class="hidden">
                   <div class="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
@@ -317,18 +324,54 @@
           `;
         }
         
+        function initializeHome(userId) {
+            const container = document.getElementById('latest-appointments-list');
+            const appointmentsRef = collection(db, 'users', userId, 'appointments');
+            const q = query(appointmentsRef, orderBy("createdAt", "desc"), limit(5));
+
+            onSnapshot(q, (snapshot) => {
+                if (snapshot.empty) {
+                    container.innerHTML = `<p class="text-slate-500">Nenhum agendamento recente.</p>`;
+                    return;
+                }
+                container.innerHTML = '';
+                snapshot.forEach(doc => {
+                    const app = doc.data();
+                    const appDate = app.dateTime.toDate();
+                    const card = document.createElement('div');
+                    card.className = 'p-4 border rounded-lg flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2';
+                    card.innerHTML = `
+                        <div class="flex-1">
+                            <p class="font-bold text-slate-800">${app.clientName}</p>
+                            <p class="text-sm text-slate-600">${app.serviceName}</p>
+                        </div>
+                        <div class="text-sm text-slate-500 text-left sm:text-right">
+                            <p>${appDate.toLocaleDateString('pt-BR', {weekday: 'long', day: '2-digit', month: '2-digit'})}</p>
+                            <p class="font-semibold">${appDate.toLocaleTimeString('pt-BR', {hour: '2-digit', minute: '2-digit'})}</p>
+                        </div>
+                    `;
+                    container.appendChild(card);
+                });
+            }, (error) => {
+                console.error("Erro ao buscar últimos agendamentos:", error);
+                if (error.code === 'failed-precondition') {
+                    container.innerHTML = `<div class="p-4 bg-red-100 text-red-700 rounded-lg"><p class="font-bold">Ação necessária!</p><p class="text-sm">O Firestore precisa de um índice para esta consulta. Abra o console do navegador (F12), encontre o erro em vermelho e clique no link que ele fornece para criar o índice automaticamente.</p></div>`;
+                } else {
+                    container.innerHTML = `<p class="text-red-500">Erro ao carregar agendamentos.</p>`;
+                }
+            });
+        }
+
         function initializeAgenda(userId) {
             const addAppointmentBtn = document.getElementById('add-appointment-btn');
             const appointmentsListContainer = document.getElementById('appointments-list');
             let selectedTime = null;
-            let barbersData = []; // Cache para dados dos barbeiros
-            
+            let barbersData = [];
             const cacheBarbers = async () => {
                 const barbersQuery = query(collection(db, 'users', userId, 'barbers'));
                 const snapshot = await getDocs(barbersQuery);
                 barbersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             };
-
             const renderAppointmentsForWeek = (offset = 0) => {
                 currentWeekOffset = offset;
                 const today = new Date();
