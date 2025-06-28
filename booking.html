@@ -116,6 +116,7 @@
         
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
+        
         const urlParams = new URLSearchParams(window.location.search);
         const BARBERSHOP_OWNER_ID = urlParams.get('user');
         const state = { selectedService: null, selectedBarber: null, selectedDate: null, selectedTime: null };
@@ -346,7 +347,8 @@
                     dateTime: Timestamp.fromDate(dateTime),
                     price: state.selectedService.price,
                     status: 'confirmado',
-                    lembreteEnviado: null
+                    lembreteEnviado: null,
+                    createdAt: Timestamp.now()
                 };
                 
                 const newAppointmentRef = await addDoc(collection(db, "users", BARBERSHOP_OWNER_ID, "appointments"), appointmentData);
@@ -429,7 +431,6 @@
         document.addEventListener('DOMContentLoaded', () => {
             loadBarbershopInfo();
             document.getElementById('back-to-step-1').onclick = () => showStep('service');
-            // CORREÇÃO DOS BOTÕES VOLTAR
             document.getElementById('back-to-step-2').onclick = () => showStep('barber');
             document.getElementById('back-to-step-3').onclick = () => showStep('datetime');
 
