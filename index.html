@@ -1,209 +1,243 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" class="scroll-smooth">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AgendAI - Sistema de Agendamento para Barbearias</title>
+    <title>AgendAI – Sistema de Agendamento Online para Barbearias</title>
+    <meta name="description" content="Organize sua barbearia com o AgendAI. Agenda online com 14 dias de teste grátis, lembretes via WhatsApp, lista de espera, e muito mais.">
+    <meta name="keywords" content="agendador para barbearia, agenda de cortes online, barbeiro com agendamento automático, sistema para barbearia, agendamento online, app para barbeiro, microSaaS, AgendAI">
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/feather-icons"></script>
     <style>
-        body { font-family: 'Poppins', sans-serif; }
+        body { font-family: 'Poppins', sans-serif; background-color: #f8f9fa; }
+        .hero-section { background-color: #111827; }
+        .cta-button { transition: all 0.3s ease; }
+        .cta-button:hover { transform: translateY(-3px); box-shadow: 0 10px 20px rgba(0,0,0,0.1); }
     </style>
 </head>
-<body class="bg-slate-50 text-slate-800">
+<body class="text-gray-800">
 
-    <header id="main-header" class="bg-white/80 backdrop-blur-md fixed top-0 left-0 right-0 z-50 shadow-sm">
+    <div id="auth-modal" class="fixed inset-0 bg-black bg-opacity-70 z-50 hidden items-center justify-center p-4">
+        <div class="bg-white rounded-lg shadow-2xl p-8 max-w-sm w-full relative transform transition-all duration-300 scale-95">
+            <button id="close-modal" class="absolute top-4 right-4 text-gray-400 hover:text-gray-800"><i data-feather="x"></i></button>
+            <div id="auth-content"></div>
+        </div>
+    </div>
+
+    <header id="header" class="bg-white/80 backdrop-blur-lg fixed top-0 left-0 right-0 z-40 border-b border-gray-200">
         <div class="container mx-auto px-6 py-4 flex justify-between items-center">
-            <h1 class="text-2xl font-bold tracking-wider">Agend<span class="text-indigo-600">AI</span></h1>
+            <a href="#" class="text-2xl font-bold text-gray-900 tracking-wider">Agend<span class="text-indigo-600">AI</span></a>
+            
             <nav class="hidden md:flex items-center space-x-8">
-                <a href="#" class="text-sm font-semibold hover:text-indigo-600">Início</a>
-                <a href="#" class="text-sm font-semibold hover:text-indigo-600">Recursos</a>
-                <a href="#" class="text-sm font-semibold hover:text-indigo-600">Contato</a>
+                <a href="#how-it-works" class="text-gray-600 hover:text-indigo-600">Como Funciona</a>
+                <a href="#features" class="text-gray-600 hover:text-indigo-600">Funcionalidades</a>
+                <a href="#pricing" class="text-gray-600 hover:text-indigo-600">Planos</a>
             </nav>
-            <div class="hidden md:flex items-center space-x-2">
-                 <a href="#login-modal" id="login-btn-desktop" class="text-sm font-semibold bg-slate-100 hover:bg-slate-200 px-4 py-2 rounded-lg">Entrar</a>
-                <a href="#login-modal" id="signup-btn-desktop" class="text-sm font-semibold bg-indigo-600 text-white hover:bg-indigo-700 px-4 py-2 rounded-lg">Criar Conta Grátis</a>
-            </div>
+            <div id="auth-buttons-container-desktop" class="hidden md:flex items-center space-x-4">
+                 </div>
+
             <div class="md:hidden">
-                <button id="mobile-menu-button" class="text-slate-800 focus:outline-none">
-                    <i data-feather="menu" class="w-6 h-6"></i>
+                <button id="mobile-menu-button" class="text-gray-900">
+                    <i data-feather="menu"></i>
                 </button>
             </div>
         </div>
-        <div id="mobile-menu" class="hidden md:hidden">
-            <div class="px-6 pt-2 pb-4 space-y-2 border-t border-slate-200">
-                <a href="#" class="block text-sm font-semibold hover:text-indigo-600 py-2">Início</a>
-                <a href="#" class="block text-sm font-semibold hover:text-indigo-600 py-2">Recursos</a>
-                <a href="#" class="block text-sm font-semibold hover:text-indigo-600 py-2">Contato</a>
-                <div class="border-t border-slate-200 pt-4 space-y-3">
-                     <a href="#login-modal" id="login-btn-mobile" class="block text-center text-sm font-semibold bg-slate-100 hover:bg-slate-200 px-4 py-2 rounded-lg">Entrar</a>
-                    <a href="#login-modal" id="signup-btn-mobile" class="block text-center text-sm font-semibold bg-indigo-600 text-white hover:bg-indigo-700 px-4 py-2 rounded-lg">Criar Conta Grátis</a>
-                </div>
-            </div>
+
+        <div id="mobile-menu" class="hidden md:hidden bg-white border-t border-gray-200">
+            <a href="#how-it-works" class="block py-2 px-6 text-gray-600 hover:bg-gray-100">Como Funciona</a>
+            <a href="#features" class="block py-2 px-6 text-gray-600 hover:bg-gray-100">Funcionalidades</a>
+            <a href="#pricing" class="block py-2 px-6 text-gray-600 hover:bg-gray-100">Planos</a>
+            <div id="auth-buttons-container-mobile" class="p-4 border-t border-gray-200 space-y-3">
+                 </div>
         </div>
     </header>
 
-    <main id="landing-page-content" class="pt-32 pb-16">
-        <div class="container mx-auto px-6 text-center">
-            <h2 class="text-4xl md:text-6xl font-bold leading-tight">
-                Otimize sua Barbearia. <br class="hidden md:block">
-                <span class="text-indigo-600">Nunca mais perca um cliente.</span>
-            </h2>
-            <p class="mt-6 text-lg text-slate-600 max-w-2xl mx-auto">
-                Agenda online, controle financeiro e lembretes automáticos via WhatsApp. Tudo que você precisa para focar no que faz de melhor: cortes incríveis.
-            </p>
-            <div class="mt-8 flex justify-center flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4">
-                <a href="#login-modal" id="cta-btn" class="bg-indigo-600 text-white font-semibold px-8 py-3 rounded-lg shadow-lg hover:bg-indigo-700 transition-transform transform hover:scale-105">
-                    Começar Teste Grátis de 14 Dias
-                </a>
+    <main>
+        <section class="hero-section text-white pt-32 pb-20">
+            <div class="container mx-auto px-6 text-center">
+                <h1 class="text-4xl md:text-6xl font-bold leading-tight mb-4">Sua Barbearia no Piloto Automático</h1>
+                <p class="text-lg md:text-xl text-gray-300 max-w-3xl mx-auto mb-8">Deixe seus clientes agendarem sozinhos e foque no que você faz de melhor: cortes incríveis.</p>
+                <button id="main-cta-hero" class="bg-white text-indigo-600 px-8 py-4 rounded-lg font-bold text-lg shadow-lg hover:bg-gray-100 cta-button">Comece grátis por 14 dias</button>
+                <div class="mt-16 max-w-4xl mx-auto">
+                    <img src="https://www.prit.app/blog/assets/img/agendamento-barbearia.jpg" alt="[Imagem de 'Mockup do painel da agenda do AgendAI']" class="mx-auto rounded-lg shadow-2xl w-full h-auto object-cover">
+                </div>
             </div>
-        </div>
+        </section>
+
+        <section id="how-it-works" class="py-20 bg-white">
+            <div class="container mx-auto px-6 text-center">
+                <h2 class="text-3xl md:text-4xl font-bold text-gray-900 mb-4">Como funciona em 3 passos simples</h2>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-12 mt-12">
+                    <div class="flex flex-col items-center"><div class="bg-indigo-100 text-indigo-600 rounded-full p-5 mb-4"><i data-feather="settings" class="w-8 h-8"></i></div><h3 class="font-bold text-xl mb-2">1. Configure</h3><p class="text-gray-600">Cadastre seus serviços, barbeiros e horários de funcionamento.</p></div>
+                    <div class="flex flex-col items-center"><div class="bg-indigo-100 text-indigo-600 rounded-full p-5 mb-4"><i data-feather="share-2" class="w-8 h-8"></i></div><h3 class="font-bold text-xl mb-2">2. Compartilhe</h3><p class="text-gray-600">Copie seu link exclusivo e coloque na bio do seu Instagram ou WhatsApp.</p></div>
+                    <div class="flex flex-col items-center"><div class="bg-indigo-100 text-indigo-600 rounded-full p-5 mb-4"><i data-feather="calendar" class="w-8 h-8"></i></div><h3 class="font-bold text-xl mb-2">3. Receba Agendamentos</h3><p class="text-gray-600">Seus clientes agendam sozinhos e os horários aparecem no seu painel.</p></div>
+                </div>
+            </div>
+        </section>
+
+        <section id="pricing" class="py-20">
+            <div class="container mx-auto px-6 text-center">
+                 <h2 class="text-3xl md:text-4xl font-bold text-gray-900 mb-4">Escolha o plano ideal para você</h2>
+                 <p class="text-gray-600 max-w-2xl mx-auto mb-12">Comece de graça e evolua quando estiver pronto. Simples e transparente.</p>
+                 <div class="flex flex-col lg:flex-row justify-center items-center gap-8">
+                     <div class="w-full lg:w-1/3 border border-slate-200 rounded-lg p-8 bg-white">
+                         <h3 class="font-bold text-2xl mb-2">Teste Gratuito</h3>
+                         <p class="text-slate-500 mb-6">14 dias para testar tudo.</p>
+                         <ul class="space-y-4 text-left mb-8">
+                             <li class="flex items-center"><i data-feather="check" class="w-5 h-5 text-indigo-500 mr-3"></i><span class="font-semibold">Todas as funcionalidades Premium:</span></li>
+                             <li class="flex items-center"><i data-feather="check" class="w-5 h-5 text-green-500 mr-3"></i><span>Agenda Online e Link Público</span></li>
+                             <li class="flex items-center"><i data-feather="check" class="w-5 h-5 text-green-500 mr-3"></i><span>Lembretes via WhatsApp (Premium)</span></li>
+                             <li class="flex items-center"><i data-feather="check" class="w-5 h-5 text-green-500 mr-3"></i><span>Painel Financeiro</span></li>
+                             <li class="flex items-center"><i data-feather="check" class="w-5 h-5 text-green-500 mr-3"></i><span>Histórico de Clientes</span></li>
+                         </ul>
+                         <button id="pricing-free-btn" class="w-full bg-slate-800 text-white font-bold py-3 rounded-lg cta-button">Começar gratuitamente</button>
+                     </div>
+                     <div class="w-full lg:w-1/3 border-2 border-indigo-600 rounded-lg p-8 shadow-xl relative bg-white">
+                         <span class="absolute top-0 -translate-y-1/2 bg-indigo-600 text-white text-xs font-bold px-3 py-1 rounded-full">MAIS POPULAR</span>
+                         <h3 class="font-bold text-2xl mb-2">Premium</h3>
+                         <p class="text-slate-500 mb-4">Todas as ferramentas para crescer.</p>
+                         <p class="font-bold text-5xl mb-6">R$ 27<span class="text-lg font-medium text-slate-500">/mês</span></p>
+                         <ul class="space-y-4 text-left mb-8">
+                             <li class="flex items-center"><i data-feather="check" class="w-5 h-5 text-green-500 mr-3"></i><span class="font-semibold">Tudo do plano gratuito, e mais:</span></li>
+                             <li class="flex items-center"><i data-feather="check" class="w-5 h-5 text-green-500 mr-3"></i><span>Suporte Prioritário</span></li>
+                         </ul>
+                         <a href="https://buy.stripe.com/test_bJe14p8bLftHfq4grW5EY01" target="_blank" class="block w-full bg-indigo-600 text-white font-bold py-3 rounded-lg cta-button">Assinar o Premium</a>
+                     </div>
+                  </div>
+            </div>
+        </section>
+
+        <section class="bg-gray-900 text-white">
+            <div class="container mx-auto px-6 py-20 text-center">
+                <h2 class="text-3xl md:text-4xl font-bold mb-4">Pronto para organizar sua agenda?</h2>
+                <button id="main-cta-final" class="bg-indigo-600 text-white px-8 py-4 rounded-lg font-bold text-lg shadow-lg hover:bg-indigo-700 cta-button">Criar minha agenda grátis</button>
+            </div>
+        </section>
     </main>
 
-    <div id="logged-in-view" class="hidden container mx-auto px-6 text-center pt-32 pb-16">
-        <h2 id="logged-in-welcome" class="text-3xl md:text-5xl font-bold leading-tight">Bem-vindo de volta!</h2>
-        <p class="mt-4 text-lg text-slate-600">Acesse seu painel para gerenciar seus agendamentos.</p>
-        <div class="mt-8 flex flex-col sm:flex-row justify-center items-center gap-4">
-            <a href="dashboard.html" class="w-full sm:w-auto bg-indigo-600 text-white font-semibold px-8 py-3 rounded-lg shadow-lg hover:bg-indigo-700">
-                Acessar meu Painel
-            </a>
-            <button id="logout-btn-main" class="w-full sm:w-auto text-sm font-semibold text-slate-600 hover:text-red-600">
-                Sair
-            </button>
-        </div>
-    </div>
+    <footer class="bg-gray-800 text-white"><div class="container mx-auto p-6 text-center text-sm text-gray-400">&copy; 2024 AgendAI. Todos os direitos reservados.</div></footer>
 
-    <div id="login-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden items-center justify-center p-4">
-        <div id="modal-content" class="bg-white rounded-xl shadow-2xl p-8 max-w-sm w-full relative">
-        </div>
-    </div>
-    
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
-        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
-        import { getFirestore, doc, setDoc, Timestamp, getDoc } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
+      import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
+      import { getFirestore, doc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
+    
+      const firebaseConfig = {
+        apiKey: "AIzaSyAkIUtakV64F2SYjvJylTGlw8-vTfXc3Fk",
+        authDomain: "agendabarber-3fe30.firebaseapp.com",
+        projectId: "agendabarber-3fe30",
+        storageBucket: "agendabarber-3fe30.appspot.com",
+        messagingSenderId: "1098037500040",
+        appId: "1:1098037500040:web:62c82a203a3276ffaa273d"
+      };
+    
+      const app = initializeApp(firebaseConfig);
+      const auth = getAuth(app);
+      const db = getFirestore(app);
 
-        const firebaseConfig = {
-          apiKey: "AIzaSyAkIUtakV64F2SYjvJylTGlw8-vTfXc3Fk",
-          authDomain: "agendabarber-3fe30.firebaseapp.com",
-          projectId: "agendabarber-3fe30",
-          storageBucket: "agendabarber-3fe30.appspot.com",
-          messagingSenderId: "1098037500040",
-          appId: "1:1098037500040:web:62c82a203a3276ffaa273d"
-        };
-        
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
+      const authModal = document.getElementById('auth-modal');
+      const closeModalBtn = document.getElementById('close-modal');
+      const authContent = document.getElementById('auth-content');
+      
+      const loginFormHTML = `<h2 class="text-2xl font-bold text-center mb-1 text-gray-900">Bem-vindo de volta!</h2><p class="text-center text-gray-500 mb-6">Acesse sua conta para gerenciar.</p><form id="login-form"><div class="mb-4"><label for="login-email" class="block text-sm font-medium text-gray-700 mb-1">E-mail</label><input type="email" id="login-email" required class="w-full px-4 py-2 border rounded-lg"></div><div class="mb-6"><label for="login-password" class="block text-sm font-medium text-gray-700 mb-1">Senha</label><input type="password" id="login-password" required class="w-full px-4 py-2 border rounded-lg"></div><button type="submit" class="w-full bg-indigo-600 text-white py-3 rounded-lg font-semibold cta-button">Entrar</button></form><p class="text-center text-sm text-gray-600 mt-4">Não tem uma conta? <a href="#" id="show-register" class="font-medium text-indigo-600 hover:underline">Cadastre-se</a></p>`;
+      const registerFormHTML = `<h2 class="text-2xl font-bold text-center mb-1 text-gray-900">Crie sua conta grátis</h2><p class="text-center text-gray-500 mb-6">Comece agora seu teste de 14 dias.</p><form id="register-form"><div class="mb-4"><label for="register-name" class="block text-sm font-medium text-gray-700 mb-1">Nome da Barbearia</label><input type="text" id="register-name" required class="w-full px-4 py-2 border rounded-lg"></div><div class="mb-4"><label for="register-email" class="block text-sm font-medium text-gray-700 mb-1">E-mail</label><input type="email" id="register-email" required class="w-full px-4 py-2 border rounded-lg"></div><div class="mb-6"><label for="register-password" class="block text-sm font-medium text-gray-700 mb-1">Senha</label><input type="password" id="register-password" required class="w-full px-4 py-2 border rounded-lg"></div><button type="submit" class="w-full bg-indigo-600 text-white py-3 rounded-lg font-semibold cta-button">Criar Conta Grátis</button></form><p class="text-center text-sm text-gray-600 mt-4">Já tem uma conta? <a href="#" id="show-login" class="font-medium text-indigo-600 hover:underline">Entrar</a></p>`;
+      
+      function openModal(content) {
+          authContent.innerHTML = content;
+          authModal.classList.remove('hidden');
+          authModal.classList.add('flex');
+          feather.replace();
+          if(content === registerFormHTML) {
+              document.getElementById('register-form').addEventListener('submit', handleRegister);
+              document.getElementById('show-login').addEventListener('click', (e) => { e.preventDefault(); openModal(loginFormHTML); });
+          }
+          if(content === loginFormHTML) {
+              document.getElementById('login-form').addEventListener('submit', handleLogin);
+              document.getElementById('show-register').addEventListener('click', (e) => { e.preventDefault(); openModal(registerFormHTML); });
+          }
+      }
+      function closeModal() { authModal.classList.add('hidden'); }
 
-        const landingPageContent = document.getElementById('landing-page-content');
-        const loggedInView = document.getElementById('logged-in-view');
-        const mainHeader = document.getElementById('main-header');
+      closeModalBtn.addEventListener('click', closeModal);
+      authModal.addEventListener('click', (e) => { if (e.target === authModal) closeModal(); });
 
-        onAuthStateChanged(auth, async (user) => {
-            if (user) {
-                // Usuário está logado
-                mainHeader.classList.add('hidden'); // Esconde o header principal
-                landingPageContent.classList.add('hidden'); // Esconde o conteúdo de vendas
-                loggedInView.classList.remove('hidden'); // Mostra a tela de boas-vindas
-                
-                const userDoc = await getDoc(doc(db, "users", user.uid));
-                if(userDoc.exists()){
-                    document.getElementById('logged-in-welcome').textContent = `Bem-vindo de volta, ${userDoc.data().barbershopName}!`;
-                }
-                
-                document.getElementById('logout-btn-main').addEventListener('click', () => {
-                    signOut(auth);
-                });
-            } else {
-                // Usuário não está logado
-                mainHeader.classList.remove('hidden'); // Garante que o header esteja visível
-                landingPageContent.classList.remove('hidden'); // Mostra o conteúdo de vendas
-                loggedInView.classList.add('hidden'); // Esconde a tela de boas-vindas
-            }
-        });
+      async function handleRegister(e) {
+          e.preventDefault();
+          try {
+              const userCredential = await createUserWithEmailAndPassword(auth, document.getElementById('register-email').value, document.getElementById('register-password').value);
+              await setDoc(doc(db, "users", userCredential.user.uid), {
+                  barbershopName: document.getElementById('register-name').value,
+                  email: userCredential.user.email,
+                  createdAt: serverTimestamp()
+              });
+              // Redirecionamento para o dashboard acontece automaticamente pelo onAuthStateChanged
+          } catch (error) { console.error("Erro no registro:", error); alert(`Erro: ${error.message}`); }
+      }
 
-        const mobileMenuButton = document.getElementById('mobile-menu-button');
-        const mobileMenu = document.getElementById('mobile-menu');
-        mobileMenuButton.addEventListener('click', () => {
-            mobileMenu.classList.toggle('hidden');
-        });
+      async function handleLogin(e) {
+          e.preventDefault();
+          try {
+              await signInWithEmailAndPassword(auth, document.getElementById('login-email').value, document.getElementById('login-password').value);
+              // Redirecionamento para o dashboard acontece automaticamente pelo onAuthStateChanged
+          } catch (error) { console.error("Erro no login:", error); alert("E-mail ou senha inválidos."); }
+      }
 
-        const modal = document.getElementById('login-modal');
-        const modalContent = document.getElementById('modal-content');
-        const buttonsToOpenModal = [
-            document.getElementById('login-btn-desktop'),
-            document.getElementById('signup-btn-desktop'),
-            document.getElementById('login-btn-mobile'),
-            document.getElementById('signup-btn-mobile'),
-            document.getElementById('cta-btn')
-        ];
+      const authButtonsContainerDesktop = document.getElementById('auth-buttons-container-desktop');
+      const authButtonsContainerMobile = document.getElementById('auth-buttons-container-mobile');
 
-        const closeModal = () => {
-            modal.classList.add('hidden');
-            modal.classList.remove('flex');
-        };
+      onAuthStateChanged(auth, (user) => {
+          if (user) {
+              // Lógica para usuário logado: Botão "Meu Painel" e "Sair"
+              const loggedInHTML = `
+                  <a href="dashboard.html" class="bg-indigo-600 text-white px-5 py-2 rounded-lg font-semibold shadow-md hover:bg-indigo-700 cta-button">Meu Painel</a>
+                  <button id="logout-btn" class="text-gray-600 hover:text-indigo-600 font-semibold">Sair</button>
+              `;
+              const loggedInHTMLMobile = `
+                  <a href="dashboard.html" class="block text-center bg-indigo-600 text-white px-4 py-2 rounded-lg font-semibold">Meu Painel</a>
+                  <button id="logout-btn-mobile" class="block w-full text-center text-gray-600 hover:bg-gray-100 py-2 rounded-lg font-semibold">Sair</button>
+              `;
+              authButtonsContainerDesktop.innerHTML = loggedInHTML;
+              authButtonsContainerMobile.innerHTML = loggedInHTMLMobile;
+              
+              document.getElementById('logout-btn').addEventListener('click', () => signOut(auth));
+              document.getElementById('logout-btn-mobile').addEventListener('click', () => signOut(auth));
 
-        const openModal = (type) => {
-            modal.classList.remove('hidden');
-            modal.classList.add('flex');
-            modalContent.innerHTML = `<button id="close-modal-btn" class="absolute top-4 right-4 text-gray-400 hover:text-gray-800"><i data-feather="x" class="w-6 h-6"></i></button>`;
-            
-            if (type === 'login') {
-                modalContent.innerHTML += `<h2 class="text-2xl font-bold text-center mb-6">Acessar Painel</h2><form id="login-form" class="space-y-4"><div><label for="login-email" class="block text-sm font-medium">Email</label><input type="email" id="login-email" required class="w-full p-2 border rounded-md mt-1"></div><div><label for="login-password" class="block text-sm font-medium">Senha</label><input type="password" id="login-password" required class="w-full p-2 border rounded-md mt-1"></div><button type="submit" class="w-full bg-indigo-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-indigo-700">Entrar</button></form><p class="text-center text-sm mt-4">Não tem uma conta? <a href="#" id="switch-to-signup" class="text-indigo-600 font-semibold">Crie agora</a></p>`;
-                document.getElementById('login-form').addEventListener('submit', handleLogin);
-                document.getElementById('switch-to-signup').addEventListener('click', (e) => { e.preventDefault(); openModal('signup'); });
-            } else {
-                modalContent.innerHTML += `<h2 class="text-2xl font-bold text-center mb-6">Crie sua Conta Grátis</h2><form id="signup-form" class="space-y-4"><div><label for="signup-shop" class="block text-sm font-medium">Nome da Barbearia</label><input type="text" id="signup-shop" required class="w-full p-2 border rounded-md mt-1"></div><div><label for="signup-email" class="block text-sm font-medium">Email</label><input type="email" id="signup-email" required class="w-full p-2 border rounded-md mt-1"></div><div><label for="signup-password" class="block text-sm font-medium">Senha</label><input type="password" id="signup-password" required class="w-full p-2 border rounded-md mt-1"></div><button type="submit" class="w-full bg-indigo-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-indigo-700">Criar Conta</button></form><p class="text-center text-sm mt-4">Já tem uma conta? <a href="#" id="switch-to-login" class="text-indigo-600 font-semibold">Faça login</a></p>`;
-                document.getElementById('signup-form').addEventListener('submit', handleSignup);
-                document.getElementById('switch-to-login').addEventListener('click', (e) => { e.preventDefault(); openModal('login'); });
-            }
-            feather.replace();
-            document.getElementById('close-modal-btn').addEventListener('click', closeModal);
-        };
+          } else {
+              // Lógica para usuário deslogado: Botões "Entrar" e "Comece Grátis"
+              const loggedOutHTML = `
+                  <button id="login-btn" class="hidden sm:block text-gray-600 hover:text-indigo-600">Entrar</button>
+                  <button id="register-btn" class="bg-indigo-600 text-white px-5 py-2 rounded-lg font-semibold cta-button">Comece grátis</button>
+              `;
+              const loggedOutHTMLMobile = `
+                  <button id="login-btn-mobile" class="block w-full text-center text-gray-600 hover:bg-gray-100 py-2 rounded-lg font-semibold">Entrar</button>
+                  <button id="register-btn-mobile" class="block w-full text-center bg-indigo-600 text-white px-4 py-2 rounded-lg font-semibold">Comece grátis</button>
+              `;
+              authButtonsContainerDesktop.innerHTML = loggedOutHTML;
+              authButtonsContainerMobile.innerHTML = loggedOutHTMLMobile;
+              
+              document.getElementById('login-btn').addEventListener('click', () => openModal(loginFormHTML));
+              document.getElementById('register-btn').addEventListener('click', () => openModal(registerFormHTML));
+              document.getElementById('login-btn-mobile').addEventListener('click', () => { mobileMenu.classList.add('hidden'); openModal(loginFormHTML); });
+              document.getElementById('register-btn-mobile').addEventListener('click', () => { mobileMenu.classList.add('hidden'); openModal(registerFormHTML); });
+          }
+      });
 
-        buttonsToOpenModal.forEach(btn => {
-            if (btn) {
-                btn.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    if (mobileMenu) mobileMenu.classList.add('hidden');
-                    const type = btn.id.includes('login') ? 'login' : 'signup';
-                    openModal(type);
-                });
-            }
-        });
-        
-        modal.addEventListener('click', (e) => {
-            if (e.target === modal) closeModal();
-        });
+      // Lógica para os CTAs principais
+      document.getElementById('main-cta-hero').addEventListener('click', () => openModal(registerFormHTML));
+      document.getElementById('pricing-free-btn').addEventListener('click', () => openModal(registerFormHTML));
+      document.getElementById('main-cta-final').addEventListener('click', () => openModal(registerFormHTML));
+      
+      // Lógica do menu mobile
+      const mobileMenuButton = document.getElementById('mobile-menu-button');
+      const mobileMenu = document.getElementById('mobile-menu');
+      mobileMenuButton.addEventListener('click', () => {
+          mobileMenu.classList.toggle('hidden');
+      });
 
-        const handleSignup = (e) => {
-            e.preventDefault();
-            const email = document.getElementById('signup-email').value;
-            const password = document.getElementById('signup-password').value;
-            const barbershopName = document.getElementById('signup-shop').value;
-            createUserWithEmailAndPassword(auth, email, password)
-                .then((userCredential) => {
-                    const user = userCredential.user;
-                    return setDoc(doc(db, "users", user.uid), {
-                        barbershopName: barbershopName,
-                        email: email,
-                        createdAt: Timestamp.now()
-                    });
-                })
-                .catch((error) => alert(error.message));
-        };
-
-        const handleLogin = (e) => {
-            e.preventDefault();
-            const email = document.getElementById('login-email').value;
-            const password = document.getElementById('login-password').value;
-            signInWithEmailAndPassword(auth, email, password)
-                .catch((error) => alert("Email ou senha inválidos."));
-        };
-
-        feather.replace();
+      feather.replace();
     </script>
 </body>
 </html>
