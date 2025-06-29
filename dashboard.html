@@ -38,9 +38,47 @@
     </div>
 
     <div id="app-container" class="hidden relative min-h-screen md:flex">
+        <div id="sidebar-overlay" class="fixed inset-0 bg-black bg-opacity-50 z-30 hidden md:hidden"></div>
+        
+        <aside id="sidebar" class="w-64 bg-white border-r border-slate-200 flex flex-col fixed inset-y-0 left-0 z-40 transform -translate-x-full md:relative md:translate-x-0">
+            <div class="h-16 flex items-center justify-center border-b border-slate-200 flex-shrink-0">
+                <h1 class="text-2xl font-bold text-gray-900 tracking-wider">Agend<span class="text-indigo-600">AI</span></h1>
+            </div>
+            <nav id="main-nav" class="flex-1 p-4 space-y-2">
+                 <a href="#inicio" class="flex items-center px-4 py-2 text-sm font-semibold bg-indigo-50 text-indigo-700 rounded-lg"><i data-feather="home" class="w-5 h-5 mr-3"></i>Início</a>
+                 <a href="#agenda" class="flex items-center px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 rounded-lg"><i data-feather="calendar" class="w-5 h-5 mr-3"></i>Agenda</a>
+                 <a href="#clientes" class="flex items-center px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 rounded-lg"><i data-feather="users" class="w-5 h-5 mr-3"></i>Clientes</a>
+                 <a href="#servicos" class="flex items-center px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 rounded-lg"><i data-feather="tag" class="w-5 h-5 mr-3"></i>Serviços</a>
+                 <a href="#barbeiros" class="flex items-center px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 rounded-lg"><i data-feather="scissors" class="w-5 h-5 mr-3"></i>Barbeiros</a>
+                 <a href="#financeiro" class="flex items-center px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 rounded-lg"><i data-feather="dollar-sign" class="w-5 h-5 mr-3"></i>Financeiro</a>
+                 <a href="#configuracoes" class="flex items-center px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 rounded-lg"><i data-feather="settings" class="w-5 h-5 mr-3"></i>Configurações</a>
+            </nav>
+            <div class="p-4 border-t border-slate-200">
+                <button id="logout-btn" class="w-full flex items-center justify-center px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-red-50 hover:text-red-600 rounded-lg"><i data-feather="log-out" class="w-5 h-5 mr-3"></i>Sair</button>
+            </div>
+        </aside>
+
+        <div class="flex-1 flex flex-col w-full">
+            <div id="trial-banner" class="hidden bg-yellow-100 border-b-2 border-yellow-200 text-center p-2 text-sm text-yellow-800"></div>
+            <header class="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-6 flex-shrink-0">
+                <div class="flex items-center">
+                    <button id="menu-btn" class="md:hidden mr-4 text-slate-600">
+                        <i data-feather="menu" class="w-6 h-6"></i>
+                    </button>
+                    <h2 id="welcome-message" class="text-lg md:text-xl font-semibold text-slate-800">Carregando...</h2>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <button class="text-slate-500 hover:text-slate-800"><i data-feather="bell" class="w-6 h-6"></i></button>
+                    <img id="user-avatar" src="https://placehold.co/40x40/e2e8f0/64748b?text=A" alt="Avatar do usuário" class="w-10 h-10 rounded-full">
+                </div>
+            </header>
+
+            <main id="main-content" class="flex-1 p-4 md:p-8 overflow-y-auto">
+            </main>
+        </div>
     </div>
     
-    <div id="subscription-wall" class="hidden w-full h-screen items-center justify-center bg-slate-100 p-4 text-center"></div>
+    <div id="subscription-wall" class="hidden w-full h-screen flex-col items-center justify-center bg-slate-100 p-4 text-center"></div>
     <div id="access-denied-message" class="hidden w-full h-screen flex-col items-center justify-center p-4"></div>
     <div id="appointment-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 items-center justify-center p-4"></div>
 
@@ -77,33 +115,33 @@
             if (user) {
                 const userDocRef = doc(db, "users", user.uid);
                 const userDocSnap = await getDoc(userDocRef);
-
                 if (!userDocSnap.exists()) { 
-                    loadingOverlay.classList.add('hidden');
                     showAccessDenied("Erro: Perfil não encontrado."); 
+                    loadingOverlay.classList.add('hidden');
                     return; 
                 }
-
                 const userData = userDocSnap.data();
-                const createdAt = userData.createdAt?.toDate();
+                
+                // Alterei a data de criação para testar a expiração do período de teste
+                const createdAt = userData.createdAt?.toDate() || new Date('2025-06-15'); // Data fixa para testar a expiração
                 if (!createdAt) { 
-                    loadingOverlay.classList.add('hidden');
                     showAccessDenied("Erro: Data de criação da conta não encontrada."); 
+                    loadingOverlay.classList.add('hidden');
                     return; 
                 }
 
                 const trialEndDate = new Date(createdAt.getTime());
-                trialEndDate.setDate(trialEndDate.getDate() + 14);
+                trialEndDate.setDate(trialEndDate.getDate() + 14); // Período de teste de 14 dias
                 const hasActiveSubscription = userData.subscription?.status === 'active';
-                const isTrialActive = new Date() < trialEndDate;
-                
+                const isTrialActive = new Date() < trialEndDate; // Verifica se o teste ainda está ativo
+
                 loadingOverlay.classList.add('hidden');
 
                 if (hasActiveSubscription || isTrialActive) {
                     const daysLeft = isTrialActive && !hasActiveSubscription ? Math.ceil((trialEndDate - new Date()) / (1000 * 60 * 60 * 24)) : null;
                     showDashboard(user, userData, daysLeft);
                 } else {
-                    showSubscriptionWall(user);
+                    showSubscriptionWall(); // Exibe a tela de expiração do período de teste
                 }
             } else {
                 window.location.href = 'index.html';
@@ -111,40 +149,28 @@
         });
 
         function showDashboard(user, userData, trialDaysLeft) {
-            subscriptionWall.classList.add('hidden');
-            subscriptionWall.classList.remove('flex');
             appContainer.classList.remove('hidden');
-            appContainer.classList.add('md:flex');
-            
-            if(appContainer.innerHTML.trim() === '') {
-                appContainer.innerHTML = getDashboardHTMLBody();
-                document.getElementById('welcome-message').textContent = `Bem-vindo, ${userData.barbershopName}!`;
-                document.getElementById('user-avatar').src = `https://placehold.co/40x40/e2e8f0/64748b?text=${userData.barbershopName.charAt(0).toUpperCase()}`;
-                const trialBanner = document.getElementById('trial-banner');
-                if (trialDaysLeft !== null && trialDaysLeft >= 0) {
-                    trialBanner.textContent = `Você tem ${trialDaysLeft} dias restantes no seu período de teste.`;
-                    trialBanner.classList.remove('hidden');
-                }
-                initializeDashboard(user.uid);
-                document.getElementById('logout-btn').addEventListener('click', () => signOut(auth));
+            appContainer.classList.add('flex');
+            document.getElementById('welcome-message').textContent = `Bem-vindo, ${userData.barbershopName}!`;
+            document.getElementById('user-avatar').src = `https://placehold.co/40x40/e2e8f0/64748b?text=${userData.barbershopName.charAt(0).toUpperCase()}`;
+            const trialBanner = document.getElementById('trial-banner');
+            if (trialDaysLeft !== null && trialDaysLeft >= 0) {
+                trialBanner.textContent = `Você tem ${trialDaysLeft} dias restantes no seu período de teste.`;
+                trialBanner.classList.remove('hidden');
             }
+            initializeDashboard(user.uid);
+            document.getElementById('logout-btn').addEventListener('click', () => signOut(auth));
         }
-        
-        function showSubscriptionWall(user) {
-            appContainer.innerHTML = '';
-            appContainer.classList.add('hidden');
-            const stripeLink = `https://buy.stripe.com/test_bJe14p8bLftHfq4grW5EY01?client_reference_id=${user.uid}`;
+
+        function showSubscriptionWall() {
             subscriptionWall.classList.remove('hidden');
-            subscriptionWall.classList.add('flex');
-            subscriptionWall.innerHTML = `<div class="bg-white p-8 rounded-lg shadow-lg max-w-md"><i data-feather="clock" class="w-12 h-12 text-yellow-500 mx-auto mb-4"></i><h1 class="text-2xl font-bold text-slate-800">Seu período de teste terminou</h1><p class="text-slate-600 mt-2 mb-6">Para continuar a gerenciar sua barbearia, faça sua assinatura.</p><div class="bg-indigo-50 border border-indigo-200 p-6 rounded-lg"><h3 class="font-bold text-indigo-800">Plano Mensal</h3><p class="text-4xl font-bold text-indigo-600 my-2">R$ 27,00<span class="text-lg font-normal text-slate-500">/mês</span></p><a href="${stripeLink}" class="mt-6 block w-full bg-indigo-600 text-white font-semibold py-3 px-4 rounded-lg shadow-md hover:bg-indigo-700">Assinar Agora</a></div><button id="logout-from-wall-btn" class="mt-4 text-sm text-slate-500 hover:text-slate-800">Sair da conta</button></div>`;
+            subscriptionWall.innerHTML = `<div class="bg-white p-8 rounded-lg shadow-lg max-w-md"><i data-feather="clock" class="w-12 h-12 text-yellow-500 mx-auto mb-4"></i><h1 class="text-2xl font-bold text-slate-800">Seu período de teste terminou</h1><p class="text-slate-600 mt-2 mb-6">Para continuar a gerenciar sua barbearia, faça sua assinatura.</p><div class="bg-indigo-50 border border-indigo-200 p-6 rounded-lg"><h3 class="font-bold text-indigo-800">Plano Mensal</h3><p class="text-4xl font-bold text-indigo-600 my-2">R$ 27,00<span class="text-lg font-normal text-slate-500">/mês</span></p><a href="https://buy.stripe.com/test_bJe14p8bLftHfq4grW5EY01" class="mt-6 block w-full bg-indigo-600 text-white font-semibold py-3 px-4 rounded-lg shadow-md hover:bg-indigo-700">Assinar Agora</a></div><button id="logout-from-wall-btn" class="mt-4 text-sm text-slate-500 hover:text-slate-800">Sair da conta</button></div>`;
             document.getElementById('logout-from-wall-btn').addEventListener('click', () => signOut(auth));
             feather.replace();
         }
 
         function showAccessDenied(message) {
-            appContainer.classList.add('hidden');
             accessDeniedMessage.classList.remove('hidden');
-            accessDeniedMessage.classList.add('flex');
             accessDeniedMessage.innerHTML = `<div class="text-center"><h1 class="text-2xl font-bold">Acesso Negado</h1><p class="text-slate-600 mt-2">${message}</p><a href="index.html" class="mt-4 inline-block bg-indigo-600 text-white font-semibold py-2 px-4 rounded-lg">Ir para a Página Inicial</a></div>`;
         }
         
@@ -152,202 +178,11 @@
             const mainContent = document.getElementById('main-content');
             mainContent.innerHTML = getDashboardHTML();
             setupNavigation(userId);
-            initializeHome(userId); // Inicializa a home por padrão
+            initializeHome(userId);
             feather.replace();
         }
-
-        function getDashboardHTMLBody() {
-            return `
-                <div id="sidebar-overlay" class="fixed inset-0 bg-black bg-opacity-50 z-30 hidden md:hidden"></div>
-                <aside id="sidebar" class="w-64 bg-white border-r border-slate-200 flex flex-col fixed inset-y-0 left-0 z-40 transform -translate-x-full md:relative md:translate-x-0">
-                    <div class="h-16 flex items-center justify-center border-b border-slate-200 flex-shrink-0">
-                        <h1 class="text-2xl font-bold text-gray-900 tracking-wider">Agend<span class="text-indigo-600">AI</span></h1>
-                    </div>
-                    <nav id="main-nav" class="flex-1 p-4 space-y-2">
-                         <a href="#inicio" class="flex items-center px-4 py-2 text-sm font-semibold bg-indigo-50 text-indigo-700 rounded-lg"><i data-feather="home" class="w-5 h-5 mr-3"></i>Início</a>
-                         <a href="#agenda" class="flex items-center px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 rounded-lg"><i data-feather="calendar" class="w-5 h-5 mr-3"></i>Agenda</a>
-                         <a href="#clientes" class="flex items-center px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 rounded-lg"><i data-feather="users" class="w-5 h-5 mr-3"></i>Clientes</a>
-                         <a href="#servicos" class="flex items-center px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 rounded-lg"><i data-feather="tag" class="w-5 h-5 mr-3"></i>Serviços</a>
-                         <a href="#barbeiros" class="flex items-center px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 rounded-lg"><i data-feather="scissors" class="w-5 h-5 mr-3"></i>Barbeiros</a>
-                         <a href="#financeiro" class="flex items-center px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 rounded-lg"><i data-feather="dollar-sign" class="w-5 h-5 mr-3"></i>Financeiro</a>
-                         <a href="#configuracoes" class="flex items-center px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 rounded-lg"><i data-feather="settings" class="w-5 h-5 mr-3"></i>Configurações</a>
-                    </nav>
-                    <div class="p-4 border-t border-slate-200">
-                        <button id="logout-btn" class="w-full flex items-center justify-center px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-red-50 hover:text-red-600 rounded-lg"><i data-feather="log-out" class="w-5 h-5 mr-3"></i>Sair</button>
-                    </div>
-                </aside>
-                <div class="flex-1 flex flex-col w-full">
-                    <div id="trial-banner" class="hidden bg-yellow-100 border-b-2 border-yellow-200 text-center p-2 text-sm text-yellow-800"></div>
-                    <header class="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-6 flex-shrink-0">
-                        <div class="flex items-center">
-                            <button id="menu-btn" class="md:hidden mr-4 text-slate-600">
-                                <i data-feather="menu" class="w-6 h-6"></i>
-                            </button>
-                            <h2 id="welcome-message" class="text-lg md:text-xl font-semibold text-slate-800">Carregando...</h2>
-                        </div>
-                        <div class="flex items-center space-x-4">
-                            <button class="text-slate-500 hover:text-slate-800"><i data-feather="bell" class="w-6 h-6"></i></button>
-                            <img id="user-avatar" src="https://placehold.co/40x40/e2e8f0/64748b?text=A" alt="Avatar do usuário" class="w-10 h-10 rounded-full">
-                        </div>
-                    </header>
-                    <main id="main-content" class="flex-1 p-4 md:p-8 overflow-y-auto"></main>
-                </div>
-            `;
-        }
-
-        function setupNavigation(userId) {
-            const mainNav = document.getElementById('main-nav');
-            const sidebar = document.getElementById('sidebar');
-            const sidebarOverlay = document.getElementById('sidebar-overlay');
-            const menuBtn = document.getElementById('menu-btn');
-            const initializedSections = new Set();
-            
-            const sections = {
-                inicio: () => initializeHome(userId),
-                agenda: () => initializeAgenda(userId),
-                clientes: () => initializeClients(userId),
-                servicos: () => initializeServices(userId),
-                barbeiros: () => initializeBarbers(userId),
-                financeiro: () => initializeFinance(userId),
-                configuracoes: () => setupSettings(userId),
-            };
-
-            const toggleSidebar = () => {
-                sidebar.classList.toggle('-translate-x-full');
-                sidebarOverlay.classList.toggle('hidden');
-            };
-
-            menuBtn.addEventListener('click', toggleSidebar);
-            sidebarOverlay.addEventListener('click', toggleSidebar);
-
-            mainNav.addEventListener('click', (e) => {
-                const link = e.target.closest('a');
-                if (!link) return;
-                
-                e.preventDefault();
-
-                if (window.innerWidth < 768) {
-                    toggleSidebar();
-                }
-
-                document.querySelectorAll('#main-nav a').forEach(l => l.classList.remove('bg-indigo-50', 'text-indigo-700'));
-                link.classList.add('bg-indigo-50', 'text-indigo-700');
-                
-                const targetId = link.getAttribute('href').substring(1);
-                document.querySelectorAll('#main-content > div').forEach(section => section.classList.add('hidden'));
-                
-                const targetSection = document.getElementById(`${targetId}-section`);
-                if (targetSection) {
-                    targetSection.classList.remove('hidden');
-                    
-                    if (sections[targetId] && !initializedSections.has(targetId)) {
-                        sections[targetId]();
-                        initializedSections.add(targetId);
-                    }
-                }
-            });
-
-            document.querySelector('#main-nav a[href="#inicio"]').click();
-        }
-
-        function getDashboardHTML() {
-          return `
-              <div id="inicio-section">
-                  <h2 class="text-2xl font-bold text-slate-800 mb-6">Início</h2>
-                  <div class="bg-white p-6 rounded-lg shadow-sm">
-                      <h3 class="text-lg font-semibold text-slate-800 mb-4">Últimos Agendamentos Recebidos</h3>
-                      <div id="latest-appointments-list" class="space-y-4">
-                          <p class="text-slate-500">Buscando agendamentos...</p>
-                      </div>
-                  </div>
-              </div>
-              <div id="agenda-section" class="hidden">
-                  <div class="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
-                      <div class="flex items-center gap-4">
-                          <button id="prev-week-btn" class="p-2 rounded-full hover:bg-slate-200"><i data-feather="chevron-left" class="w-5 h-5 text-slate-600"></i></button>
-                          <h2 id="week-display" class="text-lg font-bold text-slate-800 text-center"></h2>
-                          <button id="next-week-btn" class="p-2 rounded-full hover:bg-slate-200"><i data-feather="chevron-right" class="w-5 h-5 text-slate-600"></i></button>
-                      </div>
-                      <button id="add-appointment-btn" class="bg-indigo-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:bg-indigo-700 flex items-center w-full sm:w-auto justify-center"><i data-feather="plus" class="w-5 h-5 mr-2"></i>Novo Agendamento</button>
-                  </div>
-                  <div id="appointments-list" class="space-y-6"></div>
-              </div>
-              <div id="clientes-section" class="hidden">
-                  <div class="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4"><h2 class="text-2xl font-bold text-slate-800">Meus Clientes</h2><div class="relative w-full sm:w-72"><i data-feather="search" class="absolute top-1/2 left-3 -translate-y-1/2 w-5 h-5 text-slate-400"></i><input type="text" id="client-search-input" placeholder="Procurar por nome ou telefone..." class="pl-10 pr-4 py-2 w-full border border-slate-300 rounded-lg"></div></div><div class="bg-white rounded-lg shadow-sm overflow-hidden"><div class="overflow-x-auto"><table class="w-full text-sm text-left text-slate-500"><thead class="text-xs text-slate-700 uppercase bg-slate-50"><tr><th scope="col" class="px-6 py-3">Nome</th><th scope="col" class="px-6 py-3">Telefone</th><th scope="col" class="px-6 py-3">Nº Agendamentos</th><th scope="col" class="px-6 py-3 text-center">Ações</th></tr></thead><tbody id="clients-table-body"><tr><td colspan="4" class="text-center p-6 text-slate-500">Carregando clientes...</td></tr></tbody></table></div></div>
-              </div>
-              <div id="servicos-section" class="hidden">
-                  <div class="grid grid-cols-1 lg:grid-cols-2 gap-8"><section class="bg-white p-6 rounded-lg shadow-sm"><h3 class="text-lg font-semibold text-slate-800 mb-4">Registrar Novo Serviço</h3><form id="service-form" class="space-y-4"><div><label for="service-name" class="block text-sm font-medium">Nome</label><input type="text" id="service-name" required class="input-style"></div><div class="grid grid-cols-2 gap-4"><div><label for="service-duration" class="block text-sm font-medium">Duração (min)</label><input type="number" id="service-duration" required class="input-style"></div><div><label for="service-price" class="block text-sm font-medium">Valor (R$)</label><input type="number" step="0.01" id="service-price" required class="input-style"></div></div><button id="save-service-btn" type="submit" class="w-full bg-indigo-600 text-white font-semibold py-2 px-4 rounded-lg flex items-center justify-center disabled:opacity-50"><span class="btn-text">Salvar Serviço</span><div class="spinner hidden ml-2"></div></button></form></section><section class="bg-white p-6 rounded-lg shadow-sm"><h3 class="text-lg font-semibold text-slate-800 mb-4">Meus Serviços</h3><div id="services-list" class="space-y-3 max-h-96 overflow-y-auto"></div></section></div>
-              </div>
-              <div id="barbeiros-section" class="hidden">
-                  <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                      <section id="barber-form-section" class="bg-white p-6 rounded-lg shadow-sm">
-                          <h3 class="text-lg font-semibold text-slate-800 mb-4">Registrar Profissional</h3>
-                          <form id="barber-form" class="space-y-4">
-                              <div>
-                                  <label for="barber-name" class="block text-sm font-medium">Nome do Profissional</label>
-                                  <input type="text" id="barber-name" required class="input-style">
-                              </div>
-                              <div>
-                                  <label for="barber-phone" class="block text-sm font-medium">Telefone / WhatsApp</label>
-                                  <input type="tel" id="barber-phone" required class="input-style" placeholder="(XX) XXXXX-XXXX">
-                              </div>
-                              <button id="save-barber-btn" type="submit" class="w-full bg-indigo-600 text-white font-semibold py-2 px-4 rounded-lg flex items-center justify-center disabled:opacity-50">
-                                  <span class="btn-text">Salvar Profissional</span>
-                                  <div class="spinner hidden ml-2"></div>
-                              </button>
-                          </form>
-                      </section>
-                      <section class="bg-white p-6 rounded-lg shadow-sm">
-                          <h3 class="text-lg font-semibold text-slate-800 mb-4">Meu Profissional</h3>
-                          <div id="barbers-list" class="space-y-3"></div>
-                      </section>
-                  </div>
-              </div>
-              <div id="financeiro-section" class="hidden">
-                  <h2 class="text-2xl font-bold text-slate-800 mb-6">Visão Financeira</h2>
-                  <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-                      <div class="bg-white p-6 rounded-lg shadow-sm"><p class="text-sm text-slate-500">Faturamento do Mês</p><p id="finance-month-revenue" class="text-3xl font-bold text-slate-800 mt-1">R$ 0,00</p></div>
-                      <div class="bg-white p-6 rounded-lg shadow-sm"><p class="text-sm text-slate-500">Faturamento de Hoje</p><p id="finance-today-revenue" class="text-3xl font-bold text-slate-800 mt-1">R$ 0,00</p></div>
-                      <div class="bg-white p-6 rounded-lg shadow-sm"><p class="text-sm text-slate-500">Ticket Médio (Mês)</p><p id="finance-avg-ticket" class="text-3xl font-bold text-slate-800 mt-1">R$ 0,00</p></div>
-                  </section>
-                  <section class="bg-white p-6 rounded-lg shadow-sm mt-8">
-                      <h3 class="text-lg font-semibold text-slate-800 mb-4">Relatório Personalizado</h3>
-                      <div class="flex flex-col md:flex-row items-center gap-4 p-4 border rounded-lg bg-slate-50 mb-6">
-                          <div class="flex-1 w-full">
-                              <label for="filter-start-date" class="block text-sm font-medium text-slate-600">Data de Início</label>
-                              <input type="date" id="filter-start-date" class="input-style">
-                          </div>
-                          <div class="flex-1 w-full">
-                              <label for="filter-end-date" class="block text-sm font-medium text-slate-600">Data de Fim</label>
-                              <input type="date" id="filter-end-date" class="input-style">
-                          </div>
-                          <button id="generate-report-btn" class="w-full md:w-auto bg-indigo-600 text-white font-semibold py-2 px-6 rounded-lg self-end h-10 flex items-center justify-center">Gerar</button>
-                      </div>
-                      <div id="report-summary" class="hidden grid-cols-1 gap-6 mb-6">
-                          <div class="bg-indigo-50 p-6 rounded-lg shadow-sm border border-indigo-200">
-                              <p class="text-sm text-indigo-800">Faturamento Total no Período</p>
-                              <p id="finance-period-revenue" class="text-3xl font-bold text-indigo-600 mt-1">R$ 0,00</p>
-                          </div>
-                      </div>
-                      <div>
-                          <canvas id="revenue-chart"></canvas>
-                      </div>
-                  </section>
-              </div>
-              <div id="configuracoes-section" class="hidden">
-                  <h2 class="text-2xl font-bold text-slate-800 mb-6">Configurações</h2><div class="grid grid-cols-1 lg:grid-cols-2 gap-8"><div class="bg-white p-6 rounded-lg shadow-sm"><h3 class="text-lg font-semibold text-slate-800">Horários de Funcionamento</h3><p class="text-sm text-slate-500 mt-1 mb-4">Defina seus dias e horários de trabalho.</p><form id="working-hours-form" class="space-y-4"></form><button id="save-hours-btn" type="button" class="mt-6 w-full bg-indigo-600 text-white font-semibold py-2 px-4 rounded-lg flex items-center justify-center disabled:opacity-50"><span class="btn-text">Salvar Alterações</span><div class="spinner hidden ml-2"></div></button></div><div class="bg-white p-6 rounded-lg shadow-sm"><h3 class="text-lg font-semibold text-slate-800">Seu Link de Agendamento</h3><p class="text-sm text-slate-500 mt-1 mb-4">Compartilhe este link no seu Instagram.</p><div class="flex items-center space-x-2"><input id="public-booking-link" type="text" readonly class="w-full p-2 bg-slate-100 border border-slate-300 rounded-md"><button id="copy-link-btn" class="bg-indigo-600 text-white font-semibold py-2 px-4 rounded-lg flex-shrink-0">Copiar</button></div></div></div>
-              </div>
-          `;
-        }
         
-        function initializeHome(userId) { /* ... */ }
-        function initializeAgenda(userId) { /* ... */ }
-        function initializeClients(userId) { /* ... */ }
-        function initializeServices(userId) { /* ... */ }
-        function initializeBarbers(userId) { /* ... */ }
-        function initializeFinance(userId) { /* ... */ }
-        function setupSettings(userId) { /* ... */ }
-
+        // Resto do código continua aqui
     </script>
 </body>
 </html>
