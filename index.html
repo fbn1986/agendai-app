@@ -175,15 +175,19 @@
                   email: userCredential.user.email,
                   createdAt: serverTimestamp()
               });
-              // O onAuthStateChanged cuidará do redirecionamento
+              // CORREÇÃO AQUI: Após o registro, fecha o modal e redireciona.
+              closeModal();
+              window.location.href = 'dashboard.html';
           } catch (error) { console.error("Erro no registro:", error); alert(`Erro: ${error.message}`); }
       }
 
       async function handleLogin(e) {
           e.preventDefault();
           try {
-              // Ação de login, se bem-sucedida, o onAuthStateChanged fará o resto.
               await signInWithEmailAndPassword(auth, document.getElementById('login-email').value, document.getElementById('login-password').value);
+              // CORREÇÃO AQUI: Após o login, fecha o modal e redireciona.
+              closeModal();
+              window.location.href = 'dashboard.html';
           } catch (error) { console.error("Erro no login:", error); alert("E-mail ou senha inválidos."); }
       }
 
@@ -220,7 +224,7 @@
                   <button id="register-btn-mobile" class="block w-full text-center bg-indigo-600 text-white px-4 py-2 rounded-lg font-semibold">Comece grátis</button>
                   <button id="login-btn-mobile" class="block w-full text-center text-gray-600 hover:bg-gray-100 py-2 rounded-lg font-semibold">Entrar</button>
               `;
-              authButtonsContainerDesktop.innerHTML = loggedOutHTML;
+              authButtonsContainerDesktop.innerHTML = loggedOutHTMLDesktop;
               authButtonsContainerMobile.innerHTML = loggedOutHTMLMobile;
               
               document.getElementById('login-btn').addEventListener('click', () => openModal(loginFormHTML));
