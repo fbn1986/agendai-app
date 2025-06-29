@@ -33,7 +33,6 @@
             
             <nav class="hidden md:flex items-center space-x-8">
                 <a href="#how-it-works" class="text-gray-600 hover:text-indigo-600">Como Funciona</a>
-                <a href="#features" class="text-gray-600 hover:text-indigo-600">Funcionalidades</a>
                 <a href="#pricing" class="text-gray-600 hover:text-indigo-600">Planos</a>
             </nav>
             <div id="auth-buttons-container-desktop" class="hidden md:flex items-center space-x-4">
@@ -49,10 +48,9 @@
         <div id="mobile-menu" class="hidden md:hidden bg-white border-t border-gray-200">
             <div class="p-4 space-y-3">
                 <div id="auth-buttons-container-mobile">
-                    </div>
+                </div>
                 <hr class="my-2 border-gray-200">
                 <a href="#how-it-works" class="block py-2 text-gray-600 hover:bg-gray-100 px-2 rounded-md">Como Funciona</a>
-                <a href="#features" class="block py-2 text-gray-600 hover:bg-gray-100 px-2 rounded-md">Funcionalidades</a>
                 <a href="#pricing" class="block py-2 text-gray-600 hover:bg-gray-100 px-2 rounded-md">Planos</a>
             </div>
         </div>
@@ -89,12 +87,13 @@
                      <div class="w-full lg:w-1/3 border border-slate-200 rounded-lg p-8 bg-white">
                          <h3 class="font-bold text-2xl mb-2">Teste Gratuito</h3>
                          <p class="text-slate-500 mb-6">14 dias para testar tudo.</p>
-                         <ul class="space-y-4 text-left mb-8">
-                             <li class="flex items-center"><i data-feather="check" class="w-5 h-5 text-indigo-500 mr-3"></i><span class="font-semibold">Todas as funcionalidades Premium:</span></li>
-                             <li class="flex items-center"><i data-feather="check" class="w-5 h-5 text-green-500 mr-3"></i><span>Agenda Online e Link Público</span></li>
-                             <li class="flex items-center"><i data-feather="check" class="w-5 h-5 text-green-500 mr-3"></i><span>Lembretes via WhatsApp (Premium)</span></li>
-                             <li class="flex items-center"><i data-feather="check" class="w-5 h-5 text-green-500 mr-3"></i><span>Painel Financeiro</span></li>
-                             <li class="flex items-center"><i data-feather="check" class="w-5 h-5 text-green-500 mr-3"></i><span>Histórico de Clientes</span></li>
+                         <ul class="space-y-3 text-left mb-8">
+                             <li class="flex items-center"><i data-feather="check" class="w-5 h-5 text-indigo-500 mr-3"></i><span>Todas as funcionalidades do Premium</span></li>
+                             <li class="flex items-center"><i data-feather="arrow-right" class="w-4 h-4 text-gray-400 mr-3 ml-1"></i><span>Agenda Online e Link Público</span></li>
+                             <li class="flex items-center"><i data-feather="arrow-right" class="w-4 h-4 text-gray-400 mr-3 ml-1"></i><span>Painel Financeiro Simplificado</span></li>
+                             <li class="flex items-center"><i data-feather="arrow-right" class="w-4 h-4 text-gray-400 mr-3 ml-1"></i><span>Cadastro de Clientes e Serviços</span></li>
+                             <li class="flex items-center"><i data-feather="arrow-right" class="w-4 h-4 text-gray-400 mr-3 ml-1"></i><span>Notificação de Agendamento para o Barbeiro</span></li>
+                             <li class="flex items-center"><i data-feather="arrow-right" class="w-4 h-4 text-gray-400 mr-3 ml-1"></i><span>Lembrete Automático para o Cliente</span></li>
                          </ul>
                          <button id="pricing-free-btn" class="w-full bg-slate-800 text-white font-bold py-3 rounded-lg cta-button">Começar gratuitamente</button>
                      </div>
@@ -104,8 +103,9 @@
                          <p class="text-slate-500 mb-4">Todas as ferramentas para crescer.</p>
                          <p class="font-bold text-5xl mb-6">R$ 27<span class="text-lg font-medium text-slate-500">/mês</span></p>
                          <ul class="space-y-4 text-left mb-8">
-                             <li class="flex items-center"><i data-feather="check" class="w-5 h-5 text-green-500 mr-3"></i><span class="font-semibold">Tudo do plano gratuito, e mais:</span></li>
-                             <li class="flex items-center"><i data-feather="check" class="w-5 h-5 text-green-500 mr-3"></i><span>Suporte Prioritário</span></li>
+                             <li class="flex items-center"><i data-feather="check" class="w-5 h-5 text-green-500 mr-3"></i><span class="font-semibold">Tudo do plano de teste, e mais:</span></li>
+                             <li class="flex items-center"><i data-feather="check" class="w-5 h-5 text-green-500 mr-3"></i><span>Suporte Prioritário via WhatsApp</span></li>
+                             <li class="flex items-center"><i data-feather="check" class="w-5 h-5 text-green-500 mr-3"></i><span>Novas funcionalidades primeiro</span></li>
                          </ul>
                          <a href="https://buy.stripe.com/test_bJe14p8bLftHfq4grW5EY01" target="_blank" class="block w-full bg-indigo-600 text-white font-bold py-3 rounded-lg cta-button">Assinar o Premium</a>
                      </div>
@@ -146,7 +146,7 @@
       const authContent = document.getElementById('auth-content');
       
       const loginFormHTML = `<h2 class="text-2xl font-bold text-center mb-1 text-gray-900">Bem-vindo de volta!</h2><p class="text-center text-gray-500 mb-6">Acesse sua conta para gerenciar.</p><form id="login-form"><div class="mb-4"><label for="login-email" class="block text-sm font-medium text-gray-700 mb-1">E-mail</label><input type="email" id="login-email" required class="w-full px-4 py-2 border rounded-lg"></div><div class="mb-6"><label for="login-password" class="block text-sm font-medium text-gray-700 mb-1">Senha</label><input type="password" id="login-password" required class="w-full px-4 py-2 border rounded-lg"></div><button type="submit" class="w-full bg-indigo-600 text-white py-3 rounded-lg font-semibold cta-button">Entrar</button></form><p class="text-center text-sm text-gray-600 mt-4">Não tem uma conta? <a href="#" id="show-register" class="font-medium text-indigo-600 hover:underline">Cadastre-se</a></p>`;
-      const registerFormHTML = `<h2 class="text-2xl font-bold text-center mb-1 text-gray-900">Crie sua conta grátis</h2><p class="text-center text-gray-500 mb-6">Comece agora seu teste de 14 dias.</p><form id="register-form"><div class="mb-4"><label for="register-name" class="block text-sm font-medium text-gray-700 mb-1">Nome da Barbearia</label><input type="text" id="register-name" required class="w-full px-4 py-2 border rounded-lg"></div><div class="mb-4"><label for="register-email" class="block text-sm font-medium text-gray-700 mb-1">E-mail</label><input type="email" id="register-email" required class="w-full px-4 py-2 border rounded-lg"></div><div class="mb-6"><label for="register-password" class="block text-sm font-medium text-gray-700 mb-1">Senha</label><input type="password" id="register-password" required class="w-full px-4 py-2 border rounded-lg"></div><button type="submit" class="w-full bg-indigo-600 text-white py-3 rounded-lg font-semibold cta-button">Criar Conta Grátis</button></form><p class="text-center text-sm text-gray-600 mt-4">Já tem uma conta? <a href="#" id="show-login" class="font-medium text-indigo-600 hover:underline">Faça login</a></p>`;
+      const registerFormHTML = `<h2 class="text-2xl font-bold text-center mb-1 text-gray-900">Crie sua conta grátis</h2><p class="text-center text-gray-500 mb-6">Comece agora seu teste de 14 dias.</p><form id="register-form"><div class="mb-4"><label for="register-name" class="block text-sm font-medium text-gray-700 mb-1">Nome da Barbearia</label><input type="text" id="register-name" required class="w-full px-4 py-2 border rounded-lg"></div><div class="mb-4"><label for="register-email" class="block text-sm font-medium text-gray-700 mb-1">E-mail</label><input type="email" id="register-email" required class="w-full px-4 py-2 border rounded-lg"></div><div class="mb-6"><label for="register-password" class="block text-sm font-medium text-gray-700 mb-1">Senha</label><input type="password" id="register-password" required class="w-full px-4 py-2 border rounded-lg"></div><button type="submit" class="w-full bg-indigo-600 text-white py-3 rounded-lg font-semibold cta-button">Criar Conta Grátis</button></form><p class="text-center text-sm text-gray-600 mt-4">Já tem uma conta? <a href="#" id="show-login" class="font-medium text-indigo-600 hover:underline">Entrar</a></p>`;
       
       function openModal(content) {
           authContent.innerHTML = content;
@@ -176,7 +176,6 @@
                   email: userCredential.user.email,
                   createdAt: serverTimestamp()
               });
-              // O onAuthStateChanged cuidará do redirecionamento
           } catch (error) { console.error("Erro no registro:", error); alert(`Erro: ${error.message}`); }
       }
 
@@ -184,7 +183,6 @@
           e.preventDefault();
           try {
               await signInWithEmailAndPassword(auth, document.getElementById('login-email').value, document.getElementById('login-password').value);
-              // O onAuthStateChanged cuidará do redirecionamento
           } catch (error) { console.error("Erro no login:", error); alert("E-mail ou senha inválidos."); }
       }
 
@@ -193,15 +191,12 @@
 
       onAuthStateChanged(auth, (user) => {
           if (user) {
-              // LÓGICA CORRIGIDA: Redireciona para o painel se logado, ao invés de só mudar os botões
               window.location.href = 'dashboard.html';
           } else {
-              // Lógica para usuário deslogado
               const loggedOutHTMLDesktop = `
                   <button id="login-btn" class="hidden sm:block text-gray-600 hover:text-indigo-600">Entrar</button>
                   <button id="register-btn" class="bg-indigo-600 text-white px-5 py-2 rounded-lg font-semibold cta-button">Comece grátis</button>
               `;
-              // LÓGICA CORRIGIDA: Botões na ordem certa e com IDs corretos
               const loggedOutHTMLMobile = `
                   <button id="register-btn-mobile" class="block w-full text-center bg-indigo-600 text-white px-4 py-2 rounded-lg font-semibold">Comece grátis</button>
                   <button id="login-btn-mobile" class="block w-full text-center text-gray-600 hover:bg-gray-100 py-2 rounded-lg font-semibold">Entrar</button>
