@@ -30,29 +30,12 @@
     <header id="header" class="bg-white/80 backdrop-blur-lg fixed top-0 left-0 right-0 z-40 border-b border-gray-200">
         <div class="container mx-auto px-6 py-4 flex justify-between items-center">
             <a href="#" class="text-2xl font-bold text-gray-900 tracking-wider">Agend<span class="text-indigo-600">AI</span></a>
-            
             <nav class="hidden md:flex items-center space-x-8">
                 <a href="#how-it-works" class="text-gray-600 hover:text-indigo-600">Como Funciona</a>
+                <a href="#features" class="text-gray-600 hover:text-indigo-600">Funcionalidades</a>
                 <a href="#pricing" class="text-gray-600 hover:text-indigo-600">Planos</a>
             </nav>
-            <div id="auth-buttons-container-desktop" class="hidden md:flex items-center space-x-4">
-            </div>
-
-            <div class="md:hidden">
-                <button id="mobile-menu-button" class="text-gray-900">
-                    <i data-feather="menu"></i>
-                </button>
-            </div>
-        </div>
-
-        <div id="mobile-menu" class="hidden md:hidden bg-white border-t border-gray-200">
-            <div class="p-4 space-y-3">
-                <div id="auth-buttons-container-mobile" class="space-y-3">
-                </div>
-                <hr class="my-2 border-gray-200">
-                <a href="#how-it-works" class="block py-2 text-gray-600 hover:bg-gray-100 px-2 rounded-md">Como Funciona</a>
-                <a href="#pricing" class="block py-2 text-gray-600 hover:bg-gray-100 px-2 rounded-md">Planos</a>
-            </div>
+            <div id="auth-buttons-container" class="flex items-center space-x-4"></div>
         </div>
     </header>
 
@@ -63,7 +46,7 @@
                 <p class="text-lg md:text-xl text-gray-300 max-w-3xl mx-auto mb-8">Deixe seus clientes agendarem sozinhos e foque no que você faz de melhor: cortes incríveis.</p>
                 <button id="main-cta-hero" class="bg-white text-indigo-600 px-8 py-4 rounded-lg font-bold text-lg shadow-lg hover:bg-gray-100 cta-button">Comece grátis por 14 dias</button>
                 <div class="mt-16 max-w-4xl mx-auto">
-                    <img src="https://www.prit.app/blog/assets/img/agendamento-barbearia.jpg" alt="Mockup do painel da agenda do AgendAI" class="mx-auto rounded-lg shadow-2xl w-full h-auto object-cover">
+                    <img src="https://www.prit.app/blog/assets/img/agendamento-barbearia.jpg" alt="[Imagem de 'Mockup do painel da agenda do AgendAI']" class="mx-auto rounded-lg shadow-2xl w-full h-auto object-cover">
                 </div>
             </div>
         </section>
@@ -86,9 +69,13 @@
                  <div class="flex flex-col lg:flex-row justify-center items-center gap-8">
                      <div class="w-full lg:w-1/3 border border-slate-200 rounded-lg p-8 bg-white">
                          <h3 class="font-bold text-2xl mb-2">Teste Gratuito</h3>
-                         <p class="text-slate-500 mb-6">14 dias para testar tudo, sem compromisso.</p>
+                         <p class="text-slate-500 mb-6">14 dias para testar tudo.</p>
                          <ul class="space-y-4 text-left mb-8">
-                             <li class="flex items-center"><i data-feather="check" class="w-5 h-5 text-indigo-500 mr-3"></i><span>Todas as funcionalidades do Premium</span></li>
+                             <li class="flex items-center"><i data-feather="check" class="w-5 h-5 text-indigo-500 mr-3"></i><span class="font-semibold">Todas as funcionalidades Premium:</span></li>
+                             <li class="flex items-center"><i data-feather="check" class="w-5 h-5 text-green-500 mr-3"></i><span>Agenda Online e Link Público</span></li>
+                             <li class="flex items-center"><i data-feather="check" class="w-5 h-5 text-green-500 mr-3"></i><span>Lembretes via WhatsApp (Premium)</span></li>
+                             <li class="flex items-center"><i data-feather="check" class="w-5 h-5 text-green-500 mr-3"></i><span>Painel Financeiro</span></li>
+                             <li class="flex items-center"><i data-feather="check" class="w-5 h-5 text-green-500 mr-3"></i><span>Histórico de Clientes</span></li>
                          </ul>
                          <button id="pricing-free-btn" class="w-full bg-slate-800 text-white font-bold py-3 rounded-lg cta-button">Começar gratuitamente</button>
                      </div>
@@ -97,13 +84,8 @@
                          <h3 class="font-bold text-2xl mb-2">Premium</h3>
                          <p class="text-slate-500 mb-4">Todas as ferramentas para crescer.</p>
                          <p class="font-bold text-5xl mb-6">R$ 27<span class="text-lg font-medium text-slate-500">/mês</span></p>
-                         <ul class="space-y-3 text-left mb-8">
-                             <li class="flex items-center"><i data-feather="check" class="w-5 h-5 text-green-500 mr-3"></i><span>Agenda Online e Link Público</span></li>
-                             <li class="flex items-center"><i data-feather="check" class="w-5 h-5 text-green-500 mr-3"></i><span>Painel de Gestão Completo</span></li>
-                             <li class="flex items-center"><i data-feather="check" class="w-5 h-5 text-green-500 mr-3"></i><span>Controle Financeiro</span></li>
-                             <li class="flex items-center"><i data-feather="check" class="w-5 h-5 text-green-500 mr-3"></i><span>Cadastro de Clientes e Serviços</span></li>
-                             <li class="flex items-center"><i data-feather="check" class="w-5 h-5 text-green-500 mr-3"></i><span>**Notificações via WhatsApp para Barbeiro**</span></li>
-                             <li class="flex items-center"><i data-feather="check" class="w-5 h-5 text-green-500 mr-3"></i><span>**Lembretes via WhatsApp para Clientes**</span></li>
+                         <ul class="space-y-4 text-left mb-8">
+                             <li class="flex items-center"><i data-feather="check" class="w-5 h-5 text-green-500 mr-3"></i><span class="font-semibold">Tudo do plano gratuito, e mais:</span></li>
                              <li class="flex items-center"><i data-feather="check" class="w-5 h-5 text-green-500 mr-3"></i><span>Suporte Prioritário</span></li>
                          </ul>
                          <a href="https://buy.stripe.com/test_bJe14p8bLftHfq4grW5EY01" target="_blank" class="block w-full bg-indigo-600 text-white font-bold py-3 rounded-lg cta-button">Assinar o Premium</a>
@@ -175,9 +157,7 @@
                   email: userCredential.user.email,
                   createdAt: serverTimestamp()
               });
-              // CORREÇÃO AQUI: Após o registro, fecha o modal e redireciona.
-              closeModal();
-              window.location.href = 'dashboard.html';
+              // O redirecionamento agora é feito pelo onAuthStateChanged
           } catch (error) { console.error("Erro no registro:", error); alert(`Erro: ${error.message}`); }
       }
 
@@ -185,67 +165,36 @@
           e.preventDefault();
           try {
               await signInWithEmailAndPassword(auth, document.getElementById('login-email').value, document.getElementById('login-password').value);
-              // CORREÇÃO AQUI: Após o login, fecha o modal e redireciona.
-              closeModal();
-              window.location.href = 'dashboard.html';
+              // O redirecionamento agora é feito pelo onAuthStateChanged
           } catch (error) { console.error("Erro no login:", error); alert("E-mail ou senha inválidos."); }
       }
 
-      const authButtonsContainerDesktop = document.getElementById('auth-buttons-container-desktop');
-      const authButtonsContainerMobile = document.getElementById('auth-buttons-container-mobile');
-
+      const authButtonsContainer = document.getElementById('auth-buttons-container');
+      
+      // Lógica de autenticação corrigida
       onAuthStateChanged(auth, (user) => {
           if (user) {
-              // Lógica para usuário logado: Mostra botões "Meu Painel" e "Sair".
-              const loggedInHTML = `
+              // Se o usuário está logado, mostra o botão para o painel e o de sair
+              authButtonsContainer.innerHTML = `
                   <a href="dashboard.html" class="bg-indigo-600 text-white px-5 py-2 rounded-lg font-semibold shadow-md hover:bg-indigo-700 cta-button">Meu Painel</a>
                   <button id="logout-btn" class="text-gray-600 hover:text-indigo-600 font-semibold">Sair</button>
               `;
-              const loggedInHTMLMobile = `
-                  <a href="dashboard.html" class="block text-center bg-indigo-600 text-white px-4 py-2 rounded-lg font-semibold">Meu Painel</a>
-                  <button id="logout-btn-mobile" class="block w-full text-center text-gray-600 hover:bg-gray-100 py-2 rounded-lg font-semibold">Sair</button>
-              `;
-              authButtonsContainerDesktop.innerHTML = loggedInHTML;
-              authButtonsContainerMobile.innerHTML = loggedInHTMLMobile;
-              
               document.getElementById('logout-btn').addEventListener('click', () => signOut(auth));
-              document.getElementById('logout-btn-mobile').addEventListener('click', () => {
-                  mobileMenu.classList.add('hidden');
-                  signOut(auth);
-              });
-
           } else {
-              // Lógica para usuário deslogado: Mostra botões "Entrar" e "Comece Grátis".
-              const loggedOutHTML = `
+              // Se não está logado, mostra os botões de entrar e registrar
+              authButtonsContainer.innerHTML = `
                   <button id="login-btn" class="hidden sm:block text-gray-600 hover:text-indigo-600">Entrar</button>
                   <button id="register-btn" class="bg-indigo-600 text-white px-5 py-2 rounded-lg font-semibold cta-button">Comece grátis</button>
               `;
-              const loggedOutHTMLMobile = `
-                  <button id="register-btn-mobile" class="block w-full text-center bg-indigo-600 text-white px-4 py-2 rounded-lg font-semibold">Comece grátis</button>
-                  <button id="login-btn-mobile" class="block w-full text-center text-gray-600 hover:bg-gray-100 py-2 rounded-lg font-semibold">Entrar</button>
-              `;
-              authButtonsContainerDesktop.innerHTML = loggedOutHTMLDesktop;
-              authButtonsContainerMobile.innerHTML = loggedOutHTMLMobile;
-              
               document.getElementById('login-btn').addEventListener('click', () => openModal(loginFormHTML));
               document.getElementById('register-btn').addEventListener('click', () => openModal(registerFormHTML));
-              document.getElementById('login-btn-mobile').addEventListener('click', () => { mobileMenu.classList.add('hidden'); openModal(loginFormHTML); });
-              document.getElementById('register-btn-mobile').addEventListener('click', () => { mobileMenu.classList.add('hidden'); openModal(registerFormHTML); });
           }
           feather.replace();
       });
 
-      // Lógica para os CTAs principais que sempre abrem o modal de registro
       document.getElementById('main-cta-hero').addEventListener('click', () => openModal(registerFormHTML));
       document.getElementById('pricing-free-btn').addEventListener('click', () => openModal(registerFormHTML));
       document.getElementById('main-cta-final').addEventListener('click', () => openModal(registerFormHTML));
-      
-      // Lógica do menu mobile
-      const mobileMenuButton = document.getElementById('mobile-menu-button');
-      const mobileMenu = document.getElementById('mobile-menu');
-      mobileMenuButton.addEventListener('click', () => {
-          mobileMenu.classList.toggle('hidden');
-      });
 
       feather.replace();
     </script>
