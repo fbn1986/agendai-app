@@ -121,7 +121,7 @@
                     return; 
                 }
                 const userData = userDocSnap.data();
-                const createdAt = new Date(); createdAt.setDate(createdAt.getDate() - 30);
+                const createdAt = userData.createdAt?.toDate();
                 if (!createdAt) { 
                     showAccessDenied("Erro: Data de criação da conta não encontrada."); 
                     loadingOverlay.classList.add('hidden');
