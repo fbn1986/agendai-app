@@ -121,16 +121,16 @@
                     return; 
                 }
                 const userData = userDocSnap.data();
-                const createdAt = new Date();
+                const createdAt = new Date(); createdAt.setDate(createdAt.getDate() - 30);
                 if (!createdAt) { 
                     showAccessDenied("Erro: Data de criação da conta não encontrada."); 
                     loadingOverlay.classList.add('hidden');
                     return; 
                 }
                 const trialEndDate = new Date(createdAt.getTime());
-                trialEndDate.setDate(trialEndDate.getDate() - 1);
+                trialEndDate.setDate(trialEndDate.getDate() + 14);
                 const hasActiveSubscription = userData.subscription?.status === 'active';
-                const isTrialActive = new Date() < trialEndDate;
+                const isTrialActive = false;
                 
                 loadingOverlay.classList.add('hidden');
 
