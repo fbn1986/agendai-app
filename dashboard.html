@@ -38,44 +38,6 @@
     </div>
 
     <div id="app-container" class="hidden relative min-h-screen md:flex">
-        <div id="sidebar-overlay" class="fixed inset-0 bg-black bg-opacity-50 z-30 hidden md:hidden"></div>
-        
-        <aside id="sidebar" class="w-64 bg-white border-r border-slate-200 flex flex-col fixed inset-y-0 left-0 z-40 transform -translate-x-full md:relative md:translate-x-0">
-            <div class="h-16 flex items-center justify-center border-b border-slate-200 flex-shrink-0">
-                <h1 class="text-2xl font-bold text-gray-900 tracking-wider">Agend<span class="text-indigo-600">AI</span></h1>
-            </div>
-            <nav id="main-nav" class="flex-1 p-4 space-y-2">
-                 <a href="#inicio" class="flex items-center px-4 py-2 text-sm font-semibold bg-indigo-50 text-indigo-700 rounded-lg"><i data-feather="home" class="w-5 h-5 mr-3"></i>Início</a>
-                 <a href="#agenda" class="flex items-center px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 rounded-lg"><i data-feather="calendar" class="w-5 h-5 mr-3"></i>Agenda</a>
-                 <a href="#clientes" class="flex items-center px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 rounded-lg"><i data-feather="users" class="w-5 h-5 mr-3"></i>Clientes</a>
-                 <a href="#servicos" class="flex items-center px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 rounded-lg"><i data-feather="tag" class="w-5 h-5 mr-3"></i>Serviços</a>
-                 <a href="#barbeiros" class="flex items-center px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 rounded-lg"><i data-feather="scissors" class="w-5 h-5 mr-3"></i>Barbeiros</a>
-                 <a href="#financeiro" class="flex items-center px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 rounded-lg"><i data-feather="dollar-sign" class="w-5 h-5 mr-3"></i>Financeiro</a>
-                 <a href="#configuracoes" class="flex items-center px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 rounded-lg"><i data-feather="settings" class="w-5 h-5 mr-3"></i>Configurações</a>
-            </nav>
-            <div class="p-4 border-t border-slate-200">
-                <button id="logout-btn" class="w-full flex items-center justify-center px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-red-50 hover:text-red-600 rounded-lg"><i data-feather="log-out" class="w-5 h-5 mr-3"></i>Sair</button>
-            </div>
-        </aside>
-
-        <div id="dashboard-content" class="flex-1 flex flex-col w-full">
-            <div id="trial-banner" class="hidden bg-yellow-100 border-b-2 border-yellow-200 text-center p-2 text-sm text-yellow-800"></div>
-            <header class="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-6 flex-shrink-0">
-                <div class="flex items-center">
-                    <button id="menu-btn" class="md:hidden mr-4 text-slate-600">
-                        <i data-feather="menu" class="w-6 h-6"></i>
-                    </button>
-                    <h2 id="welcome-message" class="text-lg md:text-xl font-semibold text-slate-800">Carregando...</h2>
-                </div>
-                <div class="flex items-center space-x-4">
-                    <button class="text-slate-500 hover:text-slate-800"><i data-feather="bell" class="w-6 h-6"></i></button>
-                    <img id="user-avatar" src="https://placehold.co/40x40/e2e8f0/64748b?text=A" alt="Avatar do usuário" class="w-10 h-10 rounded-full">
-                </div>
-            </header>
-
-            <main id="main-content" class="flex-1 p-4 md:p-8 overflow-y-auto">
-            </main>
-        </div>
     </div>
     
     <div id="subscription-wall" class="hidden w-full h-screen items-center justify-center bg-slate-100 p-4 text-center"></div>
@@ -135,12 +97,12 @@
                 const hasActiveSubscription = userData.subscription?.status === 'active';
                 const isTrialActive = new Date() < trialEndDate;
                 
+                loadingOverlay.classList.add('hidden');
+
                 if (hasActiveSubscription || isTrialActive) {
-                    loadingOverlay.classList.add('hidden');
                     const daysLeft = isTrialActive && !hasActiveSubscription ? Math.ceil((trialEndDate - new Date()) / (1000 * 60 * 60 * 24)) : null;
                     showDashboard(user, userData, daysLeft);
                 } else {
-                    loadingOverlay.classList.add('hidden');
                     showSubscriptionWall(user);
                 }
             } else {
@@ -154,18 +116,22 @@
             appContainer.classList.remove('hidden');
             appContainer.classList.add('md:flex');
             
-            document.getElementById('welcome-message').textContent = `Bem-vindo, ${userData.barbershopName}!`;
-            document.getElementById('user-avatar').src = `https://placehold.co/40x40/e2e8f0/64748b?text=${userData.barbershopName.charAt(0).toUpperCase()}`;
-            const trialBanner = document.getElementById('trial-banner');
-            if (trialDaysLeft !== null && trialDaysLeft >= 0) {
-                trialBanner.textContent = `Você tem ${trialDaysLeft} dias restantes no seu período de teste.`;
-                trialBanner.classList.remove('hidden');
+            if(appContainer.innerHTML.trim() === '') {
+                appContainer.innerHTML = getDashboardHTMLBody();
+                document.getElementById('welcome-message').textContent = `Bem-vindo, ${userData.barbershopName}!`;
+                document.getElementById('user-avatar').src = `https://placehold.co/40x40/e2e8f0/64748b?text=${userData.barbershopName.charAt(0).toUpperCase()}`;
+                const trialBanner = document.getElementById('trial-banner');
+                if (trialDaysLeft !== null && trialDaysLeft >= 0) {
+                    trialBanner.textContent = `Você tem ${trialDaysLeft} dias restantes no seu período de teste.`;
+                    trialBanner.classList.remove('hidden');
+                }
+                initializeDashboard(user.uid);
+                document.getElementById('logout-btn').addEventListener('click', () => signOut(auth));
             }
-            initializeDashboard(user.uid);
-            document.getElementById('logout-btn').addEventListener('click', () => signOut(auth));
         }
-
+        
         function showSubscriptionWall(user) {
+            appContainer.innerHTML = '';
             appContainer.classList.add('hidden');
             const stripeLink = `https://buy.stripe.com/test_bJe14p8bLftHfq4grW5EY01?client_reference_id=${user.uid}`;
             subscriptionWall.classList.remove('hidden');
@@ -183,14 +149,50 @@
         }
         
         function initializeDashboard(userId) {
-            // Este código só roda se o usuário tiver acesso.
             const mainContent = document.getElementById('main-content');
-            if(mainContent.innerHTML === '') { // Evita reinicializar se já estiver carregado
-                mainContent.innerHTML = getDashboardHTML();
-                setupNavigation(userId);
-                initializeHome(userId);
-                feather.replace();
-            }
+            mainContent.innerHTML = getDashboardHTML();
+            setupNavigation(userId);
+            initializeHome(userId); // Inicializa a home por padrão
+            feather.replace();
+        }
+
+        function getDashboardHTMLBody() {
+            return `
+                <div id="sidebar-overlay" class="fixed inset-0 bg-black bg-opacity-50 z-30 hidden md:hidden"></div>
+                <aside id="sidebar" class="w-64 bg-white border-r border-slate-200 flex flex-col fixed inset-y-0 left-0 z-40 transform -translate-x-full md:relative md:translate-x-0">
+                    <div class="h-16 flex items-center justify-center border-b border-slate-200 flex-shrink-0">
+                        <h1 class="text-2xl font-bold text-gray-900 tracking-wider">Agend<span class="text-indigo-600">AI</span></h1>
+                    </div>
+                    <nav id="main-nav" class="flex-1 p-4 space-y-2">
+                         <a href="#inicio" class="flex items-center px-4 py-2 text-sm font-semibold bg-indigo-50 text-indigo-700 rounded-lg"><i data-feather="home" class="w-5 h-5 mr-3"></i>Início</a>
+                         <a href="#agenda" class="flex items-center px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 rounded-lg"><i data-feather="calendar" class="w-5 h-5 mr-3"></i>Agenda</a>
+                         <a href="#clientes" class="flex items-center px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 rounded-lg"><i data-feather="users" class="w-5 h-5 mr-3"></i>Clientes</a>
+                         <a href="#servicos" class="flex items-center px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 rounded-lg"><i data-feather="tag" class="w-5 h-5 mr-3"></i>Serviços</a>
+                         <a href="#barbeiros" class="flex items-center px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 rounded-lg"><i data-feather="scissors" class="w-5 h-5 mr-3"></i>Barbeiros</a>
+                         <a href="#financeiro" class="flex items-center px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 rounded-lg"><i data-feather="dollar-sign" class="w-5 h-5 mr-3"></i>Financeiro</a>
+                         <a href="#configuracoes" class="flex items-center px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 rounded-lg"><i data-feather="settings" class="w-5 h-5 mr-3"></i>Configurações</a>
+                    </nav>
+                    <div class="p-4 border-t border-slate-200">
+                        <button id="logout-btn" class="w-full flex items-center justify-center px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-red-50 hover:text-red-600 rounded-lg"><i data-feather="log-out" class="w-5 h-5 mr-3"></i>Sair</button>
+                    </div>
+                </aside>
+                <div class="flex-1 flex flex-col w-full">
+                    <div id="trial-banner" class="hidden bg-yellow-100 border-b-2 border-yellow-200 text-center p-2 text-sm text-yellow-800"></div>
+                    <header class="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-6 flex-shrink-0">
+                        <div class="flex items-center">
+                            <button id="menu-btn" class="md:hidden mr-4 text-slate-600">
+                                <i data-feather="menu" class="w-6 h-6"></i>
+                            </button>
+                            <h2 id="welcome-message" class="text-lg md:text-xl font-semibold text-slate-800">Carregando...</h2>
+                        </div>
+                        <div class="flex items-center space-x-4">
+                            <button class="text-slate-500 hover:text-slate-800"><i data-feather="bell" class="w-6 h-6"></i></button>
+                            <img id="user-avatar" src="https://placehold.co/40x40/e2e8f0/64748b?text=A" alt="Avatar do usuário" class="w-10 h-10 rounded-full">
+                        </div>
+                    </header>
+                    <main id="main-content" class="flex-1 p-4 md:p-8 overflow-y-auto"></main>
+                </div>
+            `;
         }
 
         function setupNavigation(userId) {
@@ -338,7 +340,14 @@
           `;
         }
         
-        // ... (resto do script) ...
+        function initializeHome(userId) { /* ... */ }
+        function initializeAgenda(userId) { /* ... */ }
+        function initializeClients(userId) { /* ... */ }
+        function initializeServices(userId) { /* ... */ }
+        function initializeBarbers(userId) { /* ... */ }
+        function initializeFinance(userId) { /* ... */ }
+        function setupSettings(userId) { /* ... */ }
+
     </script>
 </body>
 </html>
