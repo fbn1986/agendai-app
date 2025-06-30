@@ -30,11 +30,7 @@
     <header id="header" class="bg-white/80 backdrop-blur-lg fixed top-0 left-0 right-0 z-40 border-b border-gray-200">
         <div class="container mx-auto px-6 py-4 flex justify-between items-center">
             <a href="#" class="text-2xl font-bold text-gray-900 tracking-wider">Agend<span class="text-indigo-600">AI</span></a>
-            <nav class="hidden md:flex items-center space-x-8">
-                <a href="#how-it-works" class="text-gray-600 hover:text-indigo-600">Como Funciona</a>
-                <a href="#features" class="text-gray-600 hover:text-indigo-600">Funcionalidades</a>
-                <a href="#pricing" class="text-gray-600 hover:text-indigo-600">Planos</a>
-            </nav>
+            
             <div id="auth-buttons-container" class="flex items-center space-x-4"></div>
         </div>
     </header>
@@ -186,7 +182,7 @@
               `;
               document.getElementById('logout-btn').addEventListener('click', () => signOut(auth));
           } else {
-              // authButtonsContainer.innerHTML = `
+              authButtonsContainer.innerHTML = `
                   <button id="login-btn" class="font-semibold text-gray-600 hover:text-indigo-600 text-sm">Entrar</button>
                   <button id="register-btn" class="bg-indigo-600 text-white px-4 py-2 rounded-lg font-semibold text-sm cta-button">Comece grátis</button>
               `;
