@@ -138,7 +138,8 @@
                     const daysLeft = isTrialActive && !hasActiveSubscription ? Math.ceil((trialEndDate - new Date()) / (1000 * 60 * 60 * 24)) : null;
                     showDashboard(user, userData, daysLeft);
                 } else {
-                    showSubscriptionWall();
+                    // MODIFICAÇÃO 1: Passar o user.uid para a função
+                    showSubscriptionWall(user.uid);
                 }
             } else {
                 window.location.href = 'index.html';
@@ -159,9 +160,11 @@
             document.getElementById('logout-btn').addEventListener('click', () => signOut(auth));
         }
 
-        function showSubscriptionWall() {
+        // MODIFICAÇÃO 2: Aceitar o userId e usar no link do Stripe
+        function showSubscriptionWall(userId) {
             subscriptionWall.classList.remove('hidden');
-            subscriptionWall.innerHTML = `<div class="bg-white p-8 rounded-lg shadow-lg max-w-md"><i data-feather="clock" class="w-12 h-12 text-yellow-500 mx-auto mb-4"></i><h1 class="text-2xl font-bold text-slate-800">Seu período de teste terminou</h1><p class="text-slate-600 mt-2 mb-6">Para continuar a gerenciar sua barbearia, faça sua assinatura.</p><div class="bg-indigo-50 border border-indigo-200 p-6 rounded-lg"><h3 class="font-bold text-indigo-800">Plano Mensal</h3><p class="text-4xl font-bold text-indigo-600 my-2">R$ 27,00<span class="text-lg font-normal text-slate-500">/mês</span></p><a href="https://buy.stripe.com/test_bJe14p8bLftHfq4grW5EY01" class="mt-6 block w-full bg-indigo-600 text-white font-semibold py-3 px-4 rounded-lg shadow-md hover:bg-indigo-700">Assinar Agora</a></div><button id="logout-from-wall-btn" class="mt-4 text-sm text-slate-500 hover:text-slate-800">Sair da conta</button></div>`;
+            const stripeLink = `https://buy.stripe.com/test_bJe14p8bLftHfq4grW5EY01?client_reference_id=${userId}`;
+            subscriptionWall.innerHTML = `<div class="bg-white p-8 rounded-lg shadow-lg max-w-md"><i data-feather="clock" class="w-12 h-12 text-yellow-500 mx-auto mb-4"></i><h1 class="text-2xl font-bold text-slate-800">Seu período de teste terminou</h1><p class="text-slate-600 mt-2 mb-6">Para continuar a gerenciar sua barbearia, faça sua assinatura.</p><div class="bg-indigo-50 border border-indigo-200 p-6 rounded-lg"><h3 class="font-bold text-indigo-800">Plano Mensal</h3><p class="text-4xl font-bold text-indigo-600 my-2">R$ 27,00<span class="text-lg font-normal text-slate-500">/mês</span></p><a href="${stripeLink}" class="mt-6 block w-full bg-indigo-600 text-white font-semibold py-3 px-4 rounded-lg shadow-md hover:bg-indigo-700">Assinar Agora</a></div><button id="logout-from-wall-btn" class="mt-4 text-sm text-slate-500 hover:text-slate-800">Sair da conta</button></div>`;
             document.getElementById('logout-from-wall-btn').addEventListener('click', () => signOut(auth));
             feather.replace();
         }
