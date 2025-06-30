@@ -205,7 +205,7 @@
             const sidebar = document.getElementById('sidebar');
             const sidebarOverlay = document.getElementById('sidebar-overlay');
             const menuBtn = document.getElementById('menu-btn');
-            const initializedSections = new Set();
+            // const initializedSections = new Set(); // Lógica de otimização removida para robustez
             
             const sections = {
                 inicio: () => initializeHome(userId),
@@ -245,9 +245,10 @@
                 if (targetSection) {
                     targetSection.classList.remove('hidden');
                     
-                    if (sections[targetId] && !initializedSections.has(targetId)) {
+                    // --- CÓDIGO CORRIGIDO AQUI ---
+                    // Lógica de otimização foi removida para garantir que a função de configuração de cada aba sempre rode.
+                    if (sections[targetId]) {
                         sections[targetId]();
-                        initializedSections.add(targetId);
                     }
                 }
             });
@@ -511,8 +512,8 @@
             loadHours();
             saveBtn.addEventListener('click', saveHours);
             
-            // document.getElementById('manage-subscription-btn').addEventListener('click', redirectToCustomerPortal);
-            feather.replace(); // Garante que o novo ícone seja renderizado
+            document.getElementById('manage-subscription-btn').addEventListener('click', redirectToCustomerPortal);
+            feather.replace();
         }
     </script>
 </body>
