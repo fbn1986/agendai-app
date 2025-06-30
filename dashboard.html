@@ -1,15 +1,14 @@
 <!DOCTYPE html>
-
 <html lang="pt-BR">
 <head>
-<meta charset="utf-8"/>
-<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>Painel de Controle - AgendAI</title>
-<script src="https://cdn.tailwindcss.com"></script>
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
-<script src="https://unpkg.com/feather-icons"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel de Controle - AgendAI</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/feather-icons"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
         body { font-family: 'Poppins', sans-serif; background-color: #f1f5f9; }
         ::-webkit-scrollbar { width: 8px; }
         ::-webkit-scrollbar-track { background: #f1f5f9; }
@@ -32,51 +31,58 @@
     </style>
 </head>
 <body class="bg-slate-100">
-<div class="w-full h-screen flex flex-col items-center justify-center" id="loading-overlay">
-<div class="spinner-large"></div>
-<p class="mt-4 text-slate-600">Verificando autenticação...</p>
-</div>
-<div class="hidden relative min-h-screen md:flex" id="app-container">
-<div class="fixed inset-0 bg-black bg-opacity-50 z-30 hidden md:hidden" id="sidebar-overlay"></div>
-<aside class="w-64 bg-white border-r border-slate-200 flex flex-col fixed inset-y-0 left-0 z-40 transform -translate-x-full md:relative md:translate-x-0" id="sidebar">
-<div class="h-16 flex items-center justify-center border-b border-slate-200 flex-shrink-0">
-<h1 class="text-2xl font-bold text-gray-900 tracking-wider">Agend<span class="text-indigo-600">AI</span></h1>
-</div>
-<nav class="flex-1 p-4 space-y-2" id="main-nav">
-<a class="flex items-center px-4 py-2 text-sm font-semibold bg-indigo-50 text-indigo-700 rounded-lg" href="#inicio"><i class="w-5 h-5 mr-3" data-feather="home"></i>Início</a>
-<a class="flex items-center px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 rounded-lg" href="#agenda"><i class="w-5 h-5 mr-3" data-feather="calendar"></i>Agenda</a>
-<a class="flex items-center px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 rounded-lg" href="#clientes"><i class="w-5 h-5 mr-3" data-feather="users"></i>Clientes</a>
-<a class="flex items-center px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 rounded-lg" href="#servicos"><i class="w-5 h-5 mr-3" data-feather="tag"></i>Serviços</a>
-<a class="flex items-center px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 rounded-lg" href="#barbeiros"><i class="w-5 h-5 mr-3" data-feather="scissors"></i>Barbeiros</a>
-<a class="flex items-center px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 rounded-lg" href="#financeiro"><i class="w-5 h-5 mr-3" data-feather="dollar-sign"></i>Financeiro</a>
-<a class="flex items-center px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 rounded-lg" href="#configuracoes"><i class="w-5 h-5 mr-3" data-feather="settings"></i>Configurações</a>
-</nav>
-<div class="p-4 border-t border-slate-200">
-<button class="w-full flex items-center justify-center px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-red-50 hover:text-red-600 rounded-lg" id="logout-btn"><i class="w-5 h-5 mr-3" data-feather="log-out"></i>Sair</button>
-</div>
-</aside>
-<div class="flex-1 flex flex-col w-full">
-<div class="hidden bg-yellow-100 border-b-2 border-yellow-200 text-center p-2 text-sm text-yellow-800" id="trial-banner"></div>
-<header class="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-6 flex-shrink-0">
-<div class="flex items-center">
-<button class="md:hidden mr-4 text-slate-600" id="menu-btn">
-<i class="w-6 h-6" data-feather="menu"></i>
-</button>
-<h2 class="text-lg md:text-xl font-semibold text-slate-800" id="welcome-message">Carregando...</h2>
-</div>
-<div class="flex items-center space-x-4">
-<button class="text-slate-500 hover:text-slate-800"><i class="w-6 h-6" data-feather="bell"></i></button>
-<img alt="Avatar do usuário" class="w-10 h-10 rounded-full" id="user-avatar" src="https://placehold.co/40x40/e2e8f0/64748b?text=A"/>
-</div>
-</header>
-<main class="flex-1 p-4 md:p-8 overflow-y-auto" id="main-content">
-</main>
-</div>
-</div>
-<div class="hidden w-full h-screen flex-col items-center justify-center bg-slate-100 p-4 text-center" id="subscription-wall"></div>
-<div class="hidden w-full h-screen flex-col items-center justify-center p-4" id="access-denied-message"></div>
-<div class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 items-center justify-center p-4" id="appointment-modal"></div>
-<script type="module">
+
+    <div id="loading-overlay" class="w-full h-screen flex flex-col items-center justify-center">
+        <div class="spinner-large"></div>
+        <p class="mt-4 text-slate-600">Verificando autenticação...</p>
+    </div>
+
+    <div id="app-container" class="hidden relative min-h-screen md:flex">
+        <div id="sidebar-overlay" class="fixed inset-0 bg-black bg-opacity-50 z-30 hidden md:hidden"></div>
+        
+        <aside id="sidebar" class="w-64 bg-white border-r border-slate-200 flex flex-col fixed inset-y-0 left-0 z-40 transform -translate-x-full md:relative md:translate-x-0">
+            <div class="h-16 flex items-center justify-center border-b border-slate-200 flex-shrink-0">
+                <h1 class="text-2xl font-bold text-gray-900 tracking-wider">Agend<span class="text-indigo-600">AI</span></h1>
+            </div>
+            <nav id="main-nav" class="flex-1 p-4 space-y-2">
+                 <a href="#inicio" class="flex items-center px-4 py-2 text-sm font-semibold bg-indigo-50 text-indigo-700 rounded-lg"><i data-feather="home" class="w-5 h-5 mr-3"></i>Início</a>
+                 <a href="#agenda" class="flex items-center px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 rounded-lg"><i data-feather="calendar" class="w-5 h-5 mr-3"></i>Agenda</a>
+                 <a href="#clientes" class="flex items-center px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 rounded-lg"><i data-feather="users" class="w-5 h-5 mr-3"></i>Clientes</a>
+                 <a href="#servicos" class="flex items-center px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 rounded-lg"><i data-feather="tag" class="w-5 h-5 mr-3"></i>Serviços</a>
+                 <a href="#barbeiros" class="flex items-center px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 rounded-lg"><i data-feather="scissors" class="w-5 h-5 mr-3"></i>Barbeiros</a>
+                 <a href="#financeiro" class="flex items-center px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 rounded-lg"><i data-feather="dollar-sign" class="w-5 h-5 mr-3"></i>Financeiro</a>
+                 <a href="#configuracoes" class="flex items-center px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 rounded-lg"><i data-feather="settings" class="w-5 h-5 mr-3"></i>Configurações</a>
+            </nav>
+            <div class="p-4 border-t border-slate-200">
+                <button id="logout-btn" class="w-full flex items-center justify-center px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-red-50 hover:text-red-600 rounded-lg"><i data-feather="log-out" class="w-5 h-5 mr-3"></i>Sair</button>
+            </div>
+        </aside>
+
+        <div class="flex-1 flex flex-col w-full">
+            <div id="trial-banner" class="hidden bg-yellow-100 border-b-2 border-yellow-200 text-center p-2 text-sm text-yellow-800"></div>
+            <header class="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-6 flex-shrink-0">
+                <div class="flex items-center">
+                    <button id="menu-btn" class="md:hidden mr-4 text-slate-600">
+                        <i data-feather="menu" class="w-6 h-6"></i>
+                    </button>
+                    <h2 id="welcome-message" class="text-lg md:text-xl font-semibold text-slate-800">Carregando...</h2>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <button class="text-slate-500 hover:text-slate-800"><i data-feather="bell" class="w-6 h-6"></i></button>
+                    <img id="user-avatar" src="https://placehold.co/40x40/e2e8f0/64748b?text=A" alt="Avatar do usuário" class="w-10 h-10 rounded-full">
+                </div>
+            </header>
+
+            <main id="main-content" class="flex-1 p-4 md:p-8 overflow-y-auto">
+            </main>
+        </div>
+    </div>
+    
+    <div id="subscription-wall" class="hidden w-full h-screen flex-col items-center justify-center bg-slate-100 p-4 text-center"></div>
+    <div id="access-denied-message" class="hidden w-full h-screen flex-col items-center justify-center p-4"></div>
+    <div id="appointment-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 items-center justify-center p-4"></div>
+
+    <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
         import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
         import { getFirestore, doc, getDoc, setDoc, onSnapshot, query, collection, addDoc, getDocs, Timestamp, orderBy, where, updateDoc, deleteDoc, increment, limit } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
