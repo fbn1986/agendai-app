@@ -29,26 +29,25 @@
 <header class="bg-white/80 backdrop-blur-lg fixed top-0 left-0 right-0 z-40 border-b border-gray-200" id="header">
 <div class="container mx-auto px-6 py-4 flex justify-between items-center">
 <a class="text-2xl font-bold text-gray-900 tracking-wider" href="#">Agend<span class="text-indigo-600">AI</span></a>
-<nav class="hidden md:flex items-center space-x-8">
-<a class="text-gray-600 hover:text-indigo-600" href="#how-it-works">Como Funciona</a>
-<a class="text-gray-600 hover:text-indigo-600" href="#features">Funcionalidades</a>
-<a class="text-gray-600 hover:text-indigo-600" href="#pricing">Planos</a>
-</nav>
-<div class="flex items-center space-x-4" id="auth-buttons-container"></div>
+
+<div class="flex items-center space-x-4" id="auth-buttons-container">
+    &lt;button id="login-btn" class="text-gray-600 hover:text-indigo-600 font-semibold"&gt;Entrar&lt;/button&gt;
+    &lt;button id="register-btn" class="bg-indigo-600 text-white px-5 py-2 rounded-lg font-semibold cta-button"&gt;Comece grátis&lt;/button&gt;
+</div>
 </div>
 </header>
 <main>
-<section class="hero-section text-white pt-32 pb-20 lg:pt-40 lg:pb-32 w-full lg:w-1/3">
+<section class="hero-section text-white pt-32 pb-20">
 <div class="container mx-auto px-6 text-center">
 <h1 class="text-4xl md:text-6xl font-bold leading-tight mb-4">Sua Barbearia no Piloto Automático</h1>
 <p class="text-lg md:text-xl text-gray-300 max-w-3xl mx-auto mb-8">Deixe seus clientes agendarem sozinhos e foque no que você faz de melhor: cortes incríveis.</p>
-<button class="bg-white text-indigo-600 px-8 py-4 rounded-lg font-bold text-lg shadow-lg hover:bg-gray-100 cta-button lg:w-auto" id="main-cta-hero">Comece grátis por 14 dias</button>
-<div class="mt-16 max-w-4xl mx-auto lg:max-w-3xl">
+<button class="bg-white text-indigo-600 px-8 py-4 rounded-lg font-bold text-lg shadow-lg hover:bg-gray-100 cta-button" id="main-cta-hero">Comece grátis por 14 dias</button>
+<div class="mt-16 max-w-4xl mx-auto">
 <img alt="[Imagem de 'Mockup do painel da agenda do AgendAI']" class="mx-auto rounded-lg shadow-2xl w-full h-auto object-cover" src="https://www.prit.app/blog/assets/img/agendamento-barbearia.jpg"/>
 </div>
 </div>
 </section>
-<section class="py-20 bg-white w-full lg:w-1/3" id="how-it-works">
+<section class="py-20 bg-white" id="how-it-works">
 <div class="container mx-auto px-6 text-center">
 <h2 class="text-3xl md:text-4xl font-bold text-gray-900 mb-4">Como funciona em 3 passos simples</h2>
 <div class="grid grid-cols-1 md:grid-cols-3 gap-12 mt-12">
@@ -58,7 +57,7 @@
 </div>
 </div>
 </section>
-<section class="py-20 w-full lg:w-1/3" id="pricing">
+<section class="py-20" id="pricing">
 <div class="container mx-auto px-6 text-center">
 <h2 class="text-3xl md:text-4xl font-bold text-gray-900 mb-4">Escolha o plano ideal para você</h2>
 <p class="text-gray-600 max-w-2xl mx-auto mb-12">Comece de graça e evolua quando estiver pronto. Simples e transparente.</p>
@@ -89,7 +88,7 @@
 </div>
 </div>
 </section>
-<section class="bg-gray-900 text-white w-full lg:w-1/3">
+<section class="bg-gray-900 text-white">
 <div class="container mx-auto px-6 py-20 text-center">
 <h2 class="text-3xl md:text-4xl font-bold mb-4">Pronto para organizar sua agenda?</h2>
 <button class="bg-indigo-600 text-white px-8 py-4 rounded-lg font-bold text-lg shadow-lg hover:bg-indigo-700 cta-button" id="main-cta-final">Criar minha agenda grátis</button>
