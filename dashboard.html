@@ -86,6 +86,7 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
         import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
         import { getFirestore, doc, getDoc, setDoc, onSnapshot, query, collection, addDoc, getDocs, Timestamp, orderBy, where, updateDoc, deleteDoc, increment, limit } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
+        // import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-functions.js";
 
         const firebaseConfig = {
           apiKey: "AIzaSyAkIUtakV64F2SYjvJylTGlw8-vTfXc3Fk",
@@ -99,6 +100,7 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
+        // const functions = getFunctions(app, 'southamerica-east1');
 
         const loadingOverlay = document.getElementById('loading-overlay');
         const appContainer = document.getElementById('app-container');
@@ -110,6 +112,26 @@
         let allClients = [];
         let currentWeekOffset = 0;
         let workingHoursCache = null; 
+
+        // async function redirectToCustomerPortal() {
+            const manageButton = document.getElementById('manage-subscription-btn');
+            manageButton.disabled = true;
+            manageButton.textContent = 'Aguarde...';
+
+            const createPortalLink = httpsCallable(functions, 'createStripePortalLink');
+            try {
+                // Passa a URL atual para que o Stripe saiba para onde retornar o usuário
+                const { data } = await createPortalLink({ returnUrl: window.location.href });
+                // Redireciona o usuário para o portal do Stripe
+                window.location.href = data.url;
+            } catch (error) {
+                console.error("Erro ao redirecionar para o portal de pagamentos:", error);
+                alert("Não foi possível acessar o portal de pagamentos. Tente novamente mais tarde.");
+                manageButton.disabled = false;
+                manageButton.innerHTML = `<i data-feather="credit-card" class="w-5 h-5 mr-2"></i> Gerenciar Assinatura`;
+                feather.replace();
+            }
+        }
 
         onAuthStateChanged(auth, async (user) => {
             if (user) {
@@ -138,7 +160,6 @@
                     const daysLeft = isTrialActive && !hasActiveSubscription ? Math.ceil((trialEndDate - new Date()) / (1000 * 60 * 60 * 24)) : null;
                     showDashboard(user, userData, daysLeft);
                 } else {
-                    // MODIFICAÇÃO 1: Passar o user.uid para a função
                     showSubscriptionWall(user.uid);
                 }
             } else {
@@ -160,7 +181,6 @@
             document.getElementById('logout-btn').addEventListener('click', () => signOut(auth));
         }
 
-        // MODIFICAÇÃO 2: Aceitar o userId e usar no link do Stripe
         function showSubscriptionWall(userId) {
             subscriptionWall.classList.remove('hidden');
             const stripeLink = `https://buy.stripe.com/test_bJe14p8bLftHfq4grW5EY01?client_reference_id=${userId}`;
@@ -322,7 +342,31 @@
                   </section>
               </div>
               <div id="configuracoes-section" class="hidden">
-                  <h2 class="text-2xl font-bold text-slate-800 mb-6">Configurações</h2><div class="grid grid-cols-1 lg:grid-cols-2 gap-8"><div class="bg-white p-6 rounded-lg shadow-sm"><h3 class="text-lg font-semibold text-slate-800">Horários de Funcionamento</h3><p class="text-sm text-slate-500 mt-1 mb-4">Defina seus dias e horários de trabalho.</p><form id="working-hours-form" class="space-y-4"></form><button id="save-hours-btn" type="button" class="mt-6 w-full bg-indigo-600 text-white font-semibold py-2 px-4 rounded-lg flex items-center justify-center disabled:opacity-50"><span class="btn-text">Salvar Alterações</span><div class="spinner hidden ml-2"></div></button></div><div class="bg-white p-6 rounded-lg shadow-sm"><h3 class="text-lg font-semibold text-slate-800">Seu Link de Agendamento</h3><p class="text-sm text-slate-500 mt-1 mb-4">Compartilhe este link no seu Instagram.</p><div class="flex items-center space-x-2"><input id="public-booking-link" type="text" readonly class="w-full p-2 bg-slate-100 border border-slate-300 rounded-md"><button id="copy-link-btn" class="bg-indigo-600 text-white font-semibold py-2 px-4 rounded-lg flex-shrink-0">Copiar</button></div></div></div>
+                  <h2 class="text-2xl font-bold text-slate-800 mb-6">Configurações</h2>
+                  <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                      <div class="bg-white p-6 rounded-lg shadow-sm">
+                          <h3 class="text-lg font-semibold text-slate-800">Horários de Funcionamento</h3>
+                          <p class="text-sm text-slate-500 mt-1 mb-4">Defina seus dias e horários de trabalho.</p>
+                          <form id="working-hours-form" class="space-y-4"></form>
+                          <button id="save-hours-btn" type="button" class="mt-6 w-full bg-indigo-600 text-white font-semibold py-2 px-4 rounded-lg flex items-center justify-center disabled:opacity-50"><span class="btn-text">Salvar Alterações</span><div class="spinner hidden ml-2"></div></button>
+                      </div>
+                      <div class="bg-white p-6 rounded-lg shadow-sm">
+                          <h3 class="text-lg font-semibold text-slate-800">Seu Link de Agendamento</h3>
+                          <p class="text-sm text-slate-500 mt-1 mb-4">Compartilhe este link no seu Instagram.</p>
+                          <div class="flex items-center space-x-2">
+                              <input id="public-booking-link" type="text" readonly class="w-full p-2 bg-slate-100 border border-slate-300 rounded-md">
+                              <button id="copy-link-btn" class="bg-indigo-600 text-white font-semibold py-2 px-4 rounded-lg flex-shrink-0">Copiar</button>
+                          </div>
+                      </div>
+                      <div class="bg-white p-6 rounded-lg shadow-sm">
+                          <h3 class="text-lg font-semibold text-slate-800">Sua Assinatura</h3>
+                          <p class="text-sm text-slate-500 mt-1 mb-4">Acesse seu portal de pagamentos para alterar o cartão, ver faturas ou cancelar sua assinatura.</p>
+                          <button id="manage-subscription-btn" class="mt-6 w-full bg-slate-800 text-white font-semibold py-2 px-4 rounded-lg flex items-center justify-center cta-button">
+                              <i data-feather="credit-card" class="w-5 h-5 mr-2"></i>
+                              Gerenciar Assinatura
+                          </button>
+                      </div>
+                  </div>
               </div>
           `;
         }
