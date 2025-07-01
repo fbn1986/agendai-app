@@ -166,18 +166,25 @@
         });
 
         function showDashboard(user, userData, trialDaysLeft) {
-            appContainer.classList.remove('hidden');
-            appContainer.classList.add('flex');
-            document.getElementById('welcome-message').textContent = `Bem-vindo, ${userData.barbershopName}!`;
-            document.getElementById('user-avatar').src = `https://placehold.co/40x40/e2e8f0/64748b?text=${userData.barbershopName.charAt(0).toUpperCase()}`;
-            const trialBanner = document.getElementById('trial-banner');
-            if (trialDaysLeft !== null && trialDaysLeft >= 0) {
-                trialBanner.textContent = `Você tem ${trialDaysLeft} dias restantes no seu período de teste.`;
-                trialBanner.classList.remove('hidden');
-            }
-            initializeDashboard(user.uid);
-            document.getElementById('logout-btn').addEventListener('click', () => signOut(auth));
-        }
+    appContainer.classList.remove('hidden');
+    appContainer.classList.add('flex');
+    document.getElementById('welcome-message').textContent = `Bem-vindo, ${userData.barbershopName}!`;
+    document.getElementById('user-avatar').src = `https://placehold.co/40x40/e2e8f0/64748b?text=${userData.barbershopName.charAt(0).toUpperCase()}`;
+    const trialBanner = document.getElementById('trial-banner');
+
+    // Verifica se o usuário está em teste E ainda não tem uma assinatura ativa
+    if (trialDaysLeft !== null && trialDaysLeft >= 0 && userData.subscription?.status !== 'active') {
+        // Constrói o link de pagamento do Stripe com o ID do usuário
+        const stripeLink = `https://buy.stripe.com/test_bJe14p8bLftHfq4grW5EY01?client_reference_id=${user.uid}`;
+        
+        // Adiciona o texto e o link para assinar
+        trialBanner.innerHTML = `Você tem ${trialDaysLeft} dias restantes no seu período de teste. <a href="${stripeLink}" class="font-bold underline hover:text-yellow-900">Assine agora para não perder o acesso.</a>`;
+        trialBanner.classList.remove('hidden');
+    }
+    
+    initializeDashboard(user.uid);
+    document.getElementById('logout-btn').addEventListener('click', () => signOut(auth));
+}
 
         function showSubscriptionWall(userId) {
             subscriptionWall.classList.remove('hidden');
