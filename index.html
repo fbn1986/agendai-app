@@ -90,12 +90,13 @@
                                 <li class="flex items-center"><i data-feather="check" class="w-5 h-5 text-green-500 mr-2 flex-shrink-0"></i><span>Horários de Funcionamento Personalizáveis</span></li>
                                 <li class="flex items-center"><i data-feather="check" class="w-5 h-5 text-green-500 mr-2 flex-shrink-0"></i><span><b>Lembretes Automáticos via WhatsApp</b></span></li>
                                 <li class="flex items-center"><i data-feather="check" class="w-5 h-5 text-green-500 mr-2 flex-shrink-0"></i><span><b>Notificações Instantâneas de Agendamento</b></span></li>
+                                <li class="flex items-center"><i data-feather="check" class="w-5 h-5 text-green-500 mr-2 flex-shrink-0"></i><span>Lembrete de Retorno para Clientes Inativos</span></li>
                                 <li class="flex items-center"><i data-feather="check" class="w-5 h-5 text-green-500 mr-2 flex-shrink-0"></i><span>Painel Financeiro com Relatórios</span></li>
                                 <li class="flex items-center"><i data-feather="check" class="w-5 h-5 text-green-500 mr-2 flex-shrink-0"></i><span>Cadastro e Histórico de Clientes (CRM)</span></li>
                                 <li class="flex items-center"><i data-feather="check" class="w-5 h-5 text-green-500 mr-2 flex-shrink-0"></i><span>Painel de Controle Exclusivo para o Profissional</span></li>
                             </ul>
                         </div>
-                        <a href="https://buy.stripe.com/test_bJe14p8bLftHfq4grW5EY01" target="_blank" class="block w-full bg-indigo-600 text-white font-bold py-3 rounded-lg cta-button mt-auto">Assinar o Premium</a>
+                        <a href="https://buy.stripe.com/SEU_LINK_DE_PAGAMENTO_LIVE" target="_blank" class="block w-full bg-indigo-600 text-white font-bold py-3 rounded-lg cta-button mt-auto">Assinar o Premium</a>
                      </div>
                   </div>
             </div>
@@ -259,7 +260,7 @@
       const authButtonsContainer = document.getElementById('auth-buttons-container');
       
       onAuthStateChanged(auth, (user) => {
-          if (!authButtonsContainer) return; // Adiciona uma verificação de segurança
+          if (!authButtonsContainer) return;
 
           if (user) {
               authButtonsContainer.innerHTML = `
