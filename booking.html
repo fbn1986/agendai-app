@@ -358,9 +358,10 @@
                 const clientRef = doc(db, 'users', BARBERSHOP_OWNER_ID, 'clients', clientId);
                 // // Adiciona a atualização do último agendamento no perfil do cliente
                 await updateDoc(clientRef, { 
-                    appointmentCount: increment(1),
-                    lastAppointmentDate: appointmentTimestamp
-                });
+    appointmentCount: increment(1),
+    lastAppointmentDate: appointmentTimestamp,
+    winbackMessageSent: false // Reseta o status do lembrete de retorno
+});
 
                 const confirmationSummaryDiv = document.getElementById('confirmation-summary');
                 confirmationSummaryDiv.innerHTML = document.getElementById('summary').innerHTML;
