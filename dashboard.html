@@ -131,42 +131,45 @@
             }
         }
 
-        // onAuthStateChanged(auth, async (user) => {
-            if (user) {
-                const userDocRef = doc(db, "users", user.uid);
-                const userDocSnap = await getDoc(userDocRef);
-                if (!userDocSnap.exists()) { 
-                    showAccessDenied("Erro: Perfil não encontrado."); 
-                    loadingOverlay.classList.add('hidden');
-                    return; 
-                }
-                const userData = userDocSnap.data();
-                const createdAt = userData.createdAt?.toDate();
-                if (!createdAt) { 
-                    showAccessDenied("Erro: Data de criação da conta não encontrada."); 
-                    loadingOverlay.classList.add('hidden');
-                    return; 
-                }
-                const trialEndDate = new Date(createdAt.getTime());
-                trialEndDate.setDate(trialEndDate.getDate() + 14);
-                
-                const hasActiveSubscription = userData.subscription?.status === 'active';
-                const isTrialActive = new Date() < trialEndDate;
-                const isLifetimeUser = userData.isLifetime === true; // Verifica a "chave mestra"
-                
-                loadingOverlay.classList.add('hidden');
+        onAuthStateChanged(auth, async (user) => {
+    if (user) {
+        const userDocRef = doc(db, "users", user.uid);
+        const userDocSnap = await getDoc(userDocRef);
+        if (!userDocSnap.exists()) { 
+            showAccessDenied("Erro: Perfil não encontrado."); 
+            loadingOverlay.classList.add('hidden');
+            return; 
+        }
+        const userData = userDocSnap.data();
+        const createdAt = userData.createdAt?.toDate();
+        if (!createdAt) { 
+            showAccessDenied("Erro: Data de criação da conta não encontrada."); 
+            loadingOverlay.classList.add('hidden');
+            return; 
+        }
+        const trialEndDate = new Date(createdAt.getTime());
+        trialEndDate.setDate(trialEndDate.getDate() + 14);
+        
+        // Lógica de acesso atualizada
+        const hasActiveSubscription = userData.subscription?.status === 'active';
+        const isTrialActive = new Date() < trialEndDate;
+        const isLifetimeUser = userData.isLifetime === true; // Verifica a "chave mestra"
 
-                // A nova condição "isLifetimeUser" libera o acesso
-                if (hasActiveSubscription || isTrialActive || isLifetimeUser) {
-                    const daysLeft = isTrialActive && !hasActiveSubscription && !isLifetimeUser ? Math.ceil((trialEndDate - new Date()) / (1000 * 60 * 60 * 24)) : null;
-                    showDashboard(user, userData, daysLeft);
-                } else {
-                    showSubscriptionWall(user.uid);
-                }
-            } else {
-                window.location.href = 'index.html';
-            }
-        });
+        loadingOverlay.classList.add('hidden');
+
+        // A nova condição "isLifetimeUser" é adicionada para liberar o acesso
+        if (hasActiveSubscription || isTrialActive || isLifetimeUser) {
+            const daysLeft = isTrialActive && !hasActiveSubscription && !isLifetimeUser 
+                ? Math.ceil((trialEndDate - new Date()) / (1000 * 60 * 60 * 24)) 
+                : null;
+            showDashboard(user, userData, daysLeft);
+        } else {
+            showSubscriptionWall(user.uid);
+        }
+    } else {
+        window.location.href = 'index.html';
+    }
+});
 
         function showDashboard(user, userData, trialDaysLeft) {
             appContainer.classList.remove('hidden');
