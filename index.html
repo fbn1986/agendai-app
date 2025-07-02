@@ -222,10 +222,24 @@
               alert('Conta criada com sucesso! Enviamos um link de verificação para o seu e-mail. Por favor, verifique-o para poder fazer o login.');
               closeModal(); // Fecha o modal após o sucesso
 
-          } catch (error) {
-              console.error("Erro no registro:", error);
-              alert(`Erro: ${error.message}`);
-          }
+} catch (error) {
+    console.error("Erro no registro:", error.code); // Mostra o código do erro no console
+    
+    // Converte o código do erro em uma mensagem amigável
+    let friendlyMessage = "Ocorreu um erro ao tentar registrar.";
+    switch (error.code) {
+        case 'auth/weak-password':
+            friendlyMessage = "Sua senha é muito fraca. Por favor, use pelo menos 6 caracteres.";
+            break;
+        case 'auth/email-already-in-use':
+            friendlyMessage = "Este endereço de e-mail já está em uso por outra conta.";
+            break;
+        case 'auth/invalid-email':
+            friendlyMessage = "O formato do e-mail fornecido não é válido.";
+            break;
+    }
+    alert(friendlyMessage); // Mostra a mensagem amigável para o usuário
+}
       }
 
       async function handleLogin(e) {
