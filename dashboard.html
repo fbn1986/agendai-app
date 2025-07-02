@@ -4,43 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Painel de Controle - AgendAI</title>
-    <script src="https://cdn.tailwindcss.com"><script type="text/javascript">
-        document.getElementById('color-picker').addEventListener('input', (event) => {
-            const selectedColor = event.target.value;
-            document.documentElement.style.setProperty('--primary-color', selectedColor);
-
-            // Change background and text colors dynamically
-            document.body.style.setProperty('background-color', selectedColor);
-            document.querySelectorAll('.bg-indigo-600').forEach((el) => {
-                el.style.backgroundColor = selectedColor;
-            });
-        });
-    </script>
+    <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <script src="https://unpkg.com/feather-icons"><script type="text/javascript">
-        document.getElementById('color-picker').addEventListener('input', (event) => {
-            const selectedColor = event.target.value;
-            document.documentElement.style.setProperty('--primary-color', selectedColor);
-
-            // Change background and text colors dynamically
-            document.body.style.setProperty('background-color', selectedColor);
-            document.querySelectorAll('.bg-indigo-600').forEach((el) => {
-                el.style.backgroundColor = selectedColor;
-            });
-        });
-    </script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"><script type="text/javascript">
-        document.getElementById('color-picker').addEventListener('input', (event) => {
-            const selectedColor = event.target.value;
-            document.documentElement.style.setProperty('--primary-color', selectedColor);
-
-            // Change background and text colors dynamically
-            document.body.style.setProperty('background-color', selectedColor);
-            document.querySelectorAll('.bg-indigo-600').forEach((el) => {
-                el.style.backgroundColor = selectedColor;
-            });
-        });
-    </script>
+    <script src="https://unpkg.com/feather-icons"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body { font-family: 'Poppins', sans-serif; background-color: #f1f5f9; }
         ::-webkit-scrollbar { width: 8px; }
@@ -315,12 +282,6 @@
               <div id="inicio-section">
                   <h2 class="text-2xl font-bold text-slate-800 mb-6">Início</h2>
                   <div class="bg-white p-6 rounded-lg shadow-sm">
-        <h3 class="text-lg font-semibold text-slate-800">Cor do Sistema</h3>
-        <div class="mt-4">
-            <label for="color-picker" class="block text-sm font-medium text-slate-700">Escolha a cor principal</label>
-            <input type="color" id="color-picker" class="input-style mt-1" value="#4f46e5">
-        </div>
-    </div>
                       <h3 class="text-lg font-semibold text-slate-800 mb-4">Últimos Agendamentos Recebidos</h3>
                       <div id="latest-appointments-list" class="space-y-4">
                           <p class="text-slate-500">Buscando agendamentos...</p>
@@ -372,27 +333,9 @@
               <div id="financeiro-section" class="hidden">
                   <h2 class="text-2xl font-bold text-slate-800 mb-6">Visão Financeira</h2>
                   <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-                      <div class="bg-white p-6 rounded-lg shadow-sm">
-        <h3 class="text-lg font-semibold text-slate-800">Cor do Sistema</h3>
-        <div class="mt-4">
-            <label for="color-picker" class="block text-sm font-medium text-slate-700">Escolha a cor principal</label>
-            <input type="color" id="color-picker" class="input-style mt-1" value="#4f46e5">
-        </div>
-    </div><p class="text-sm text-slate-500">Faturamento do Mês</p><p id="finance-month-revenue" class="text-3xl font-bold text-slate-800 mt-1">R$ 0,00</p></div>
-                      <div class="bg-white p-6 rounded-lg shadow-sm">
-        <h3 class="text-lg font-semibold text-slate-800">Cor do Sistema</h3>
-        <div class="mt-4">
-            <label for="color-picker" class="block text-sm font-medium text-slate-700">Escolha a cor principal</label>
-            <input type="color" id="color-picker" class="input-style mt-1" value="#4f46e5">
-        </div>
-    </div><p class="text-sm text-slate-500">Faturamento de Hoje</p><p id="finance-today-revenue" class="text-3xl font-bold text-slate-800 mt-1">R$ 0,00</p></div>
-                      <div class="bg-white p-6 rounded-lg shadow-sm">
-        <h3 class="text-lg font-semibold text-slate-800">Cor do Sistema</h3>
-        <div class="mt-4">
-            <label for="color-picker" class="block text-sm font-medium text-slate-700">Escolha a cor principal</label>
-            <input type="color" id="color-picker" class="input-style mt-1" value="#4f46e5">
-        </div>
-    </div><p class="text-sm text-slate-500">Ticket Médio (Mês)</p><p id="finance-avg-ticket" class="text-3xl font-bold text-slate-800 mt-1">R$ 0,00</p></div>
+                      <div class="bg-white p-6 rounded-lg shadow-sm"><p class="text-sm text-slate-500">Faturamento do Mês</p><p id="finance-month-revenue" class="text-3xl font-bold text-slate-800 mt-1">R$ 0,00</p></div>
+                      <div class="bg-white p-6 rounded-lg shadow-sm"><p class="text-sm text-slate-500">Faturamento de Hoje</p><p id="finance-today-revenue" class="text-3xl font-bold text-slate-800 mt-1">R$ 0,00</p></div>
+                      <div class="bg-white p-6 rounded-lg shadow-sm"><p class="text-sm text-slate-500">Ticket Médio (Mês)</p><p id="finance-avg-ticket" class="text-3xl font-bold text-slate-800 mt-1">R$ 0,00</p></div>
                   </section>
                   <section class="bg-white p-6 rounded-lg shadow-sm mt-8">
                       <h3 class="text-lg font-semibold text-slate-800 mb-4">Relatório Personalizado</h3>
@@ -576,12 +519,6 @@
                     <div id="company-view" class="hidden">
                         <button class="back-to-settings mb-6 font-semibold text-indigo-600 flex items-center"><i data-feather="chevron-left" class="w-5 h-5"></i> Voltar</button>
                         <div class="bg-white p-6 rounded-lg shadow-sm">
-        <h3 class="text-lg font-semibold text-slate-800">Cor do Sistema</h3>
-        <div class="mt-4">
-            <label for="color-picker" class="block text-sm font-medium text-slate-700">Escolha a cor principal</label>
-            <input type="color" id="color-picker" class="input-style mt-1" value="#4f46e5">
-        </div>
-    </div>
                             <h3 class="text-lg font-semibold text-slate-800">Nome da Empresa</h3>
                             <div class="mt-4">
                                 <label for="barbershop-name-input" class="block text-sm font-medium text-slate-700">Nome da Empresa</label>
@@ -594,12 +531,6 @@
                     <div id="hours-view" class="hidden">
                         <button class="back-to-settings mb-6 font-semibold text-indigo-600 flex items-center"><i data-feather="chevron-left" class="w-5 h-5"></i> Voltar</button>
                         <div class="bg-white p-6 rounded-lg shadow-sm">
-        <h3 class="text-lg font-semibold text-slate-800">Cor do Sistema</h3>
-        <div class="mt-4">
-            <label for="color-picker" class="block text-sm font-medium text-slate-700">Escolha a cor principal</label>
-            <input type="color" id="color-picker" class="input-style mt-1" value="#4f46e5">
-        </div>
-    </div>
                             <h3 class="text-lg font-semibold text-slate-800">Horários de Funcionamento</h3>
                             <p class="text-sm text-slate-500 mt-1 mb-4">Defina seus dias e horários de trabalho.</p>
                             <form id="working-hours-form" class="space-y-4"></form>
@@ -610,12 +541,6 @@
                     <div id="link-view" class="hidden">
                         <button class="back-to-settings mb-6 font-semibold text-indigo-600 flex items-center"><i data-feather="chevron-left" class="w-5 h-5"></i> Voltar</button>
                         <div class="bg-white p-6 rounded-lg shadow-sm">
-        <h3 class="text-lg font-semibold text-slate-800">Cor do Sistema</h3>
-        <div class="mt-4">
-            <label for="color-picker" class="block text-sm font-medium text-slate-700">Escolha a cor principal</label>
-            <input type="color" id="color-picker" class="input-style mt-1" value="#4f46e5">
-        </div>
-    </div>
                             <h3 class="text-lg font-semibold text-slate-800">Seu Link de Agendamento</h3>
                             <p class="text-sm text-slate-500 mt-1 mb-4">Compartilhe este link no seu Instagram.</p>
                             <div class="flex items-center space-x-2">
@@ -628,12 +553,6 @@
                     <div id="subscription-view" class="hidden">
                         <button class="back-to-settings mb-6 font-semibold text-indigo-600 flex items-center"><i data-feather="chevron-left" class="w-5 h-5"></i> Voltar</button>
                         <div class="bg-white p-6 rounded-lg shadow-sm">
-        <h3 class="text-lg font-semibold text-slate-800">Cor do Sistema</h3>
-        <div class="mt-4">
-            <label for="color-picker" class="block text-sm font-medium text-slate-700">Escolha a cor principal</label>
-            <input type="color" id="color-picker" class="input-style mt-1" value="#4f46e5">
-        </div>
-    </div>
                             <h3 class="text-lg font-semibold text-slate-800">Sua Assinatura</h3>
                             <p class="text-sm text-slate-500 mt-1 mb-4">Acesse seu portal para gerenciar pagamentos.</p>
                             <button id="manage-subscription-btn" class="mt-4 w-full bg-slate-800 text-white font-semibold py-2 px-4 rounded-lg flex items-center justify-center">
@@ -770,17 +689,6 @@
             navigateTo('settings-menu-view', originalTitle);
             feather.replace();
         }
-    <script type="text/javascript">
-        document.getElementById('color-picker').addEventListener('input', (event) => {
-            const selectedColor = event.target.value;
-            document.documentElement.style.setProperty('--primary-color', selectedColor);
-
-            // Change background and text colors dynamically
-            document.body.style.setProperty('background-color', selectedColor);
-            document.querySelectorAll('.bg-indigo-600').forEach((el) => {
-                el.style.backgroundColor = selectedColor;
-            });
-        });
     </script>
 </body>
 </html>
