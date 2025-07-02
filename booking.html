@@ -8,15 +8,14 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/feather-icons"></script>
     <style>
+        :root {
+            --cor-primaria: #4f46e5;
+            --cor-primaria-fundo: #eef2ff;
+        }
         body {
             font-family: 'Poppins', sans-serif;
-            background-color: #f8fafc;
-        }
-        .step-card {
-            transition: all 0.3s ease;
-        }
-        .time-slot {
-            transition: all 0.2s ease;
+            background-color: var(--cor-primaria-fundo, #f8fafc);
+            transition: background-color 0.3s ease;
         }
         .time-slot:disabled {
             background-color: #f1f5f9;
@@ -24,34 +23,35 @@
             cursor: not-allowed;
             border-color: #e2e8f0;
         }
+        .time-slot.selected {
+            background-color: var(--cor-primaria, #4f46e5);
+            color: white;
+            border-color: var(--cor-primaria, #4f46e5);
+        }
+        .hover\:border-primario:hover { border-color: var(--cor-primaria, #4f46e5); }
+        .hover\:bg-primario-fundo:hover { background-color: var(--cor-primaria-fundo, #eef2ff); }
     </style>
 </head>
 <body class="flex justify-center items-start min-h-screen p-4 sm:p-6 md:p-8">
 
     <div id="main-container" class="w-full max-w-2xl mx-auto hidden">
         <header class="text-center mb-8">
-            <img src="https://i.postimg.cc/nrzVXpLP/Untitled-design.png" alt="Logo da Barbearia" class="w-24 h-24 rounded-full mx-auto mb-4 object-cover">
-            <h1 id="barbershop-name" class="text-2xl sm:text-3xl font-bold text-slate-800">Nome da Barbearia</h1>
+            <img id="barbershop-logo" src="https://i.postimg.cc/nrzVXpLP/Untitled-design.png" alt="Logo da Empresa" class="w-24 h-24 rounded-full mx-auto mb-4 object-cover">
+            <h1 id="barbershop-name" class="text-2xl sm:text-3xl font-bold text-slate-800">Carregando...</h1>
             <p class="text-slate-500 mt-1">Faça seu agendamento online</p>
         </header>
 
         <main class="bg-white p-4 sm:p-6 md:p-8 rounded-lg shadow-md space-y-8">
             
             <div id="step-1-service">
-                <h2 class="font-semibold text-lg text-slate-700 mb-4">1. Escolha um serviço</h2>
-                <div id="services-options" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <p class="text-slate-500 col-span-full">Carregando serviços...</p>
-                </div>
-            </div>
-
-            <div id="step-2-barber" class="hidden">
-                <h2 class="font-semibold text-lg text-slate-700 mb-4">2. Escolha um profissional</h2>
-                <div id="barbers-options" class="grid grid-cols-1 sm:grid-cols-2 gap-4"></div>
-                 <button id="back-to-step-1" class="mt-4 text-sm text-slate-500 hover:text-slate-800">&larr; Voltar para serviços</button>
+                <h2 class="font-semibold text-lg text-slate-700 mb-4">1. Escolha o serviço</h2>
+                <select id="service-select" class="w-full p-3 border border-slate-300 rounded-md bg-white">
+                    <option value="">Carregando serviços...</option>
+                </select>
             </div>
             
-            <div id="step-3-datetime" class="hidden">
-                <h2 class="font-semibold text-lg text-slate-700 mb-4">3. Escolha a data e o horário</h2>
+            <div id="step-2-datetime" class="hidden">
+                <h2 class="font-semibold text-lg text-slate-700 mb-4">2. Escolha a data e o horário</h2>
                 <div>
                     <label for="booking-date" class="block text-sm font-medium text-slate-600 mb-2">Selecione o dia:</label>
                     <input type="date" id="booking-date" class="w-full p-2 border border-slate-300 rounded-md">
@@ -59,49 +59,45 @@
                 <div id="time-slots-container" class="mt-4">
                     <p class="text-slate-500 text-sm">Selecione uma data para ver os horários disponíveis.</p>
                 </div>
-                <button id="back-to-step-2" class="mt-4 text-sm text-slate-500 hover:text-slate-800">&larr; Voltar para profissionais</button>
+                <button id="back-to-step-1" class="mt-4 text-sm text-slate-500 hover:text-slate-800">&larr; Voltar para serviços</button>
             </div>
 
-             <div id="step-4-userinfo" class="hidden">
-                 <h2 class="font-semibold text-lg text-slate-700 mb-4">4. Suas informações</h2>
-                 <div id="summary" class="bg-slate-50 p-4 rounded-lg mb-4 text-sm space-y-1"></div>
-                 <form id="client-info-form">
-                     <div class="space-y-4">
-                         <div>
-                             <label for="public-client-name" class="block text-sm font-medium text-slate-600">Seu nome</label>
-                             <input type="text" id="public-client-name" placeholder="Digite seu nome completo" required class="mt-1 block w-full p-2 border border-slate-300 rounded-md">
-                         </div>
-                          <div>
-                             <label for="public-client-phone" class="block text-sm font-medium text-slate-600">Seu WhatsApp</label>
-                             <input type="tel" id="public-client-phone" placeholder="(XX) XXXXX-XXXX" required class="mt-1 block w-full p-2 border border-slate-300 rounded-md">
-                         </div>
-                     </div>
-                     <div class="mt-6 flex flex-col items-center">
-                         <button id="confirm-booking-btn" type="submit" class="w-full bg-green-600 text-white font-semibold py-3 px-4 rounded-lg shadow-md hover:bg-green-700 disabled:opacity-50">Confirmar Agendamento</button>
-                         <button id="back-to-step-3" type="button" class="mt-4 text-sm text-slate-500 hover:text-slate-800">&larr; Voltar para data/hora</button>
-                     </div>
-                 </form>
-             </div>
+            <div id="step-3-userinfo" class="hidden">
+                <h2 class="font-semibold text-lg text-slate-700 mb-4">3. Suas informações</h2>
+                <div id="summary" class="bg-slate-50 p-4 rounded-lg mb-4 text-sm space-y-1"></div>
+                <form id="client-info-form">
+                    <div class="space-y-4">
+                        <div>
+                            <label for="public-client-name" class="block text-sm font-medium text-slate-600">Seu nome</label>
+                            <input type="text" id="public-client-name" placeholder="Digite seu nome completo" required class="mt-1 block w-full p-2 border border-slate-300 rounded-md">
+                        </div>
+                        <div>
+                            <label for="public-client-phone" class="block text-sm font-medium text-slate-600">Seu WhatsApp</label>
+                            <input type="tel" id="public-client-phone" placeholder="(XX) XXXXX-XXXX" required class="mt-1 block w-full p-2 border border-slate-300 rounded-md">
+                        </div>
+                    </div>
+                    <div class="mt-6 flex flex-col items-center">
+                        <button id="confirm-booking-btn" type="submit" class="w-full bg-green-600 text-white font-semibold py-3 px-4 rounded-lg shadow-md hover:bg-green-700 disabled:opacity-50">Confirmar Agendamento</button>
+                        <button id="back-to-step-2" type="button" class="mt-4 text-sm text-slate-500 hover:text-slate-800">&larr; Voltar para data/hora</button>
+                    </div>
+                </form>
+            </div>
 
-            <div id="step-5-confirmation" class="hidden text-center">
-                <div id="confirmation-icon" class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <div id="step-4-confirmation" class="hidden text-center">
+                <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
                     <i data-feather="check" class="w-10 h-10 text-green-600"></i>
                 </div>
-                <h2 id="confirmation-title" class="font-bold text-xl text-slate-800">Agendamento Confirmado!</h2>
-                <p id="confirmation-message" class="text-slate-600 mt-2">Seu horário foi reservado com sucesso.</p>
+                <h2 class="font-bold text-xl text-slate-800">Agendamento Confirmado!</h2>
+                <p class="text-slate-600 mt-2">Seu horário foi reservado com sucesso.</p>
                 <div id="confirmation-summary" class="bg-slate-50 p-4 rounded-lg mt-6 text-sm text-left space-y-1"></div>
-                <div id="confirmation-actions" class="mt-6 space-y-3">
-                 </div>
             </div>
         </main>
     </div>
     
     <div id="error-container" class="hidden text-center p-4">
         <h1 class="text-2xl font-bold text-red-600">Link de Agendamento Inválido</h1>
-        <p class="text-slate-600 mt-2">Não foi possível encontrar a barbearia. Por favor, verifique o link ou entre em contato com o estabelecimento.</p>
-    </div>
-
-    <script type="module">
+        <p class="text-slate-600 mt-2">Não foi possível encontrar o estabelecimento. Por favor, verifique o link ou entre em contato.</p>
+    </div><script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
         import { getFirestore, doc, getDoc, addDoc, collection, query, where, Timestamp, getDocs, increment, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
         
@@ -118,210 +114,193 @@
         const db = getFirestore(app);
         
         const urlParams = new URLSearchParams(window.location.search);
-        const BARBERSHOP_OWNER_ID = urlParams.get('user');
-        const state = { selectedService: null, selectedBarber: null, selectedDate: null, selectedTime: null };
-        const steps = { service: document.getElementById('step-1-service'), barber: document.getElementById('step-2-barber'), datetime: document.getElementById('step-3-datetime'), userinfo: document.getElementById('step-4-userinfo'), confirmation: document.getElementById('step-5-confirmation') };
+        const OWNER_ID = urlParams.get('user');
+        
+        const state = { 
+            selectedService: null, 
+            selectedDate: null, 
+            selectedTime: null,
+            services: []
+        };
+        
+        const steps = { 
+            service: document.getElementById('step-1-service'), 
+            datetime: document.getElementById('step-2-datetime'), 
+            userinfo: document.getElementById('step-3-userinfo'), 
+            confirmation: document.getElementById('step-4-confirmation') 
+        };
+
+        const applyTheme = (themeData) => {
+            const themes = {
+                indigo: { 'cor-primaria': '#4f46e5', 'cor-primaria-fundo': '#eef2ff' },
+                rose:   { 'cor-primaria': '#e11d48', 'cor-primaria-fundo': '#fff1f2' },
+                emerald:{ 'cor-primaria': '#059669', 'cor-primaria-fundo': '#ecfdf5' },
+                slate:  { 'cor-primaria': '#475569', 'cor-primaria-fundo': '#f1f5f9' }
+            };
+            const theme = themes[themeData] || themes.indigo;
+            for (const [key, value] of Object.entries(theme)) {
+                document.documentElement.style.setProperty(`--${key}`, value);
+            }
+        };
 
         function showStep(stepName) { 
             Object.values(steps).forEach(step => step.classList.add('hidden')); 
             if (steps[stepName]) { steps[stepName].classList.remove('hidden'); } 
         }
 
-        async function loadBarbershopInfo() { 
-            if (!BARBERSHOP_OWNER_ID) { 
+        async function loadInitialData() { 
+            if (!OWNER_ID) { 
                 document.getElementById('error-container').classList.remove('hidden'); 
                 return; 
             } 
-            try { 
-                const docRef = doc(db, "users", BARBERSHOP_OWNER_ID); 
-                const docSnap = await getDoc(docRef); 
-                if (docSnap.exists()) { 
-                    document.getElementById('barbershop-name').textContent = docSnap.data().barbershopName || "Barbearia"; 
+            try {
+                const userRef = doc(db, "users", OWNER_ID);
+                const settingsRef = doc(db, "users", OWNER_ID, "settings", "app");
+                const [userSnap, settingsSnap] = await Promise.all([getDoc(userRef), getDoc(settingsRef)]);
+                
+                if (userSnap.exists()) { 
+                    const userData = userSnap.data();
+                    document.getElementById('barbershop-name').textContent = userData.barbershopName || "Meu Negócio";
+                    if (userData.logoUrl) {
+                        document.getElementById('barbershop-logo').src = userData.logoUrl;
+                    }
+                    if (settingsSnap.exists()) {
+                        applyTheme(settingsSnap.data().theme);
+                    }
                     document.getElementById('main-container').classList.remove('hidden'); 
-                    loadServices(); 
-                    loadBarbers(); 
+                    await loadServices();
+                    setupEventListeners();
                 } else { 
-                    document.getElementById('main-container').classList.add('hidden'); 
                     document.getElementById('error-container').classList.remove('hidden'); 
                 } 
             } catch (error) { 
-                console.error("Erro ao carregar informações da barbearia:", error); 
-                document.getElementById('main-container').classList.add('hidden'); 
+                console.error("Erro ao carregar informações:", error); 
                 document.getElementById('error-container').classList.remove('hidden'); 
             } 
         }
 
         async function loadServices() { 
-            const container = document.getElementById('services-options'); 
-            container.innerHTML = '<p class="text-slate-500 col-span-full">Carregando serviços...</p>'; 
-            try { 
-                const q = query(collection(db, "users", BARBERSHOP_OWNER_ID, "services")); 
+            const select = document.getElementById('service-select');
+            select.innerHTML = '<option value="">Carregando serviços...</option>';
+            try {
+                const q = query(collection(db, "users", OWNER_ID, "services"));
                 const querySnapshot = await getDocs(q);
-                container.innerHTML = '';
-                if (querySnapshot.empty) { 
-                    container.innerHTML = '<p class="text-slate-500 col-span-full">Nenhum serviço disponível no momento.</p>'; 
+                
+                state.services = querySnapshot.docs.map(docSnap => ({ id: docSnap.id, ...docSnap.data() }));
+
+                select.innerHTML = '<option value="">Selecione um serviço</option>';
+                if (state.services.length === 0) { 
+                    select.innerHTML = '<option value="">Nenhum serviço disponível</option>';
                     return; 
-                } 
-                querySnapshot.forEach((docSnap) => { 
-                    const service = { id: docSnap.id, ...docSnap.data() }; 
-                    const card = document.createElement('button'); 
-                    card.className = "step-card text-left bg-white border border-slate-200 p-4 rounded-lg hover:border-indigo-500 hover:bg-indigo-50 w-full"; 
-                    card.innerHTML = `<p class="font-semibold text-slate-800">${service.name}</p><p class="text-sm text-slate-500">${service.duration} min - R$ ${service.price.toFixed(2)}</p>`; 
-                    card.onclick = () => { state.selectedService = service; showStep('barber'); }; 
-                    container.appendChild(card); 
-                }); 
+                }
+                state.services.forEach(service => {
+                    const option = document.createElement('option');
+                    option.value = service.id;
+                    option.textContent = `${service.name} (${service.duration} min) - R$ ${service.price.toFixed(2)}`;
+                    select.appendChild(option);
+                });
             } catch (error) { 
                 console.error("Erro ao carregar serviços:", error); 
-                container.innerHTML = '<p class="text-red-500 col-span-full">Não foi possível carregar os serviços.</p>'; 
+                select.innerHTML = '<option value="">Erro ao carregar serviços</option>'; 
             } 
-        }
-
-        async function loadBarbers() { 
-            const container = document.getElementById('barbers-options'); 
-            container.innerHTML = '<p class="text-slate-500 col-span-full">Carregando profissionais...</p>';
-            try { 
-                const q = query(collection(db, "users", BARBERSHOP_OWNER_ID, "barbers")); 
-                const querySnapshot = await getDocs(q);
-                container.innerHTML = '';
-                if (querySnapshot.empty) { 
-                    container.innerHTML = '<p class="text-slate-500 col-span-full">Nenhum profissional disponível.</p>'; 
-                    return; 
-                } 
-                querySnapshot.forEach((docSnap) => { 
-                    const barber = { id: docSnap.id, ...docSnap.data() }; 
-                    const card = document.createElement('button'); 
-                    card.className = "step-card text-left bg-white border border-slate-200 p-4 rounded-lg hover:border-indigo-500 hover:bg-indigo-50 w-full"; 
-                    card.innerHTML = `<p class="font-semibold text-slate-800">${barber.name}</p>`; 
-                    card.onclick = () => { state.selectedBarber = barber; showStep('datetime'); }; 
-                    container.appendChild(card); 
-                }); 
-            } catch (error) { 
-                console.error("Erro ao carregar barbeiros:", error); 
-                container.innerHTML = '<p class="text-red-500 col-span-full">Não foi possível carregar os profissionais.</p>'; 
-            } 
-        }
-        
-        async function loadAvailableTimes(dateStr) {
+        }async function loadAvailableTimes(dateStr) {
             const timeSlotsContainer = document.getElementById('time-slots-container');
-            timeSlotsContainer.innerHTML = '<div class="text-center"><p class="text-slate-500 text-sm">Verificando horários...</p></div>';
+            timeSlotsContainer.innerHTML = '<p class="text-slate-500 text-sm text-center">Verificando horários...</p>';
+
+            if (!state.selectedService) {
+                timeSlotsContainer.innerHTML = '<p class="text-red-500 text-sm">Erro: Nenhum serviço selecionado.</p>';
+                return;
+            }
 
             try {
-                const settingsRef = doc(db, 'users', BARBERSHOP_OWNER_ID, 'settings', 'workingHours');
+                const settingsRef = doc(db, 'users', OWNER_ID, 'settings', 'workingHours');
                 const settingsSnap = await getDoc(settingsRef);
                 const workingHours = settingsSnap.exists() ? settingsSnap.data() : {};
 
-                const selectedDate = new Date(`${dateStr}T12:00:00`);
-                const dayOfWeek = selectedDate.getDay();
+                const selectedDate = new Date(`${dateStr}T12:00:00Z`); // Usar UTC para evitar problemas de fuso
+                const dayOfWeek = selectedDate.getUTCDay();
                 const dayKeys = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sab'];
                 const daySettings = workingHours[dayKeys[dayOfWeek]];
 
                 if (!daySettings || !daySettings.isOpen) {
-                    timeSlotsContainer.innerHTML = '<p class="text-slate-500 text-sm text-center mt-4">Fechado neste dia. Por favor, escolha outra data.</p>';
+                    timeSlotsContainer.innerHTML = '<p class="text-slate-500 text-sm text-center mt-4">Fechado neste dia.</p>';
                     return;
                 }
 
+                const serviceDuration = state.selectedService.duration;
                 const allPossibleSlots = [];
-                let startHour = parseInt(daySettings.start.split(':')[0]);
-                let startMinute = parseInt(daySettings.start.split(':')[1]);
-                let endHour = parseInt(daySettings.end.split(':')[0]);
-                let endMinute = parseInt(daySettings.end.split(':')[1]);
-                let currentHour = startHour;
-                let currentMinute = startMinute;
+                const startTime = new Date(`${dateStr}T${daySettings.start}:00`);
+                const endTime = new Date(`${dateStr}T${daySettings.end}:00`);
+                let currentTime = startTime;
 
-                while (currentHour < endHour || (currentHour === endHour && currentMinute < endMinute)) {
-                    allPossibleSlots.push(`${String(currentHour).padStart(2, '0')}:${String(currentMinute).padStart(2, '0')}`);
-                    currentMinute += 30;
-                    if (currentMinute >= 60) {
-                        currentHour++;
-                        currentMinute -= 60;
-                    }
+                // Gera slots de verificação a cada 15 minutos para maior precisão
+                while (new Date(currentTime.getTime() + serviceDuration * 60000) <= endTime) {
+                    allPossibleSlots.push(new Date(currentTime));
+                    currentTime.setMinutes(currentTime.getMinutes() + 15);
                 }
                 
-                const startOfDay = Timestamp.fromDate(new Date(`${dateStr}T00:00:00`));
-                const endOfDay = Timestamp.fromDate(new Date(`${dateStr}T23:59:59`));
-                const appointmentsQuery = query(collection(db, "users", BARBERSHOP_OWNER_ID, "appointments"), where('dateTime', '>=', startOfDay), where('dateTime', '<=', endOfDay));
+                const startOfDay = Timestamp.fromDate(new Date(`${dateStr}T00:00:00Z`));
+                const endOfDay = Timestamp.fromDate(new Date(`${dateStr}T23:59:59Z`));
+                const appointmentsQuery = query(collection(db, "users", OWNER_ID, "appointments"), where('dateTime', '>=', startOfDay), where('dateTime', '<=', endOfDay));
                 const querySnapshot = await getDocs(appointmentsQuery);
-                const bookedTimes = new Set(querySnapshot.docs.map(doc => {
-                    const date = doc.data().dateTime.toDate();
-                    return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
-                }));
-
-                const availableSlots = allPossibleSlots.filter(slot => !bookedTimes.has(slot));
                 
+                const bookedIntervals = querySnapshot.docs.map(doc => {
+                    const appData = doc.data();
+                    const appStart = appData.dateTime.toDate();
+                    const serviceForApp = state.services.find(s => s.id === appData.serviceId) || { duration: 30 };
+                    const appEnd = new Date(appStart.getTime() + serviceForApp.duration * 60000);
+                    return { start: appStart, end: appEnd };
+                });
+
                 timeSlotsContainer.innerHTML = '';
                 const grid = document.createElement('div');
                 grid.className = "grid grid-cols-3 sm:grid-cols-4 gap-2 mt-4";
+                let hasAvailableSlots = false;
 
-                if (availableSlots.length === 0) {
-                     timeSlotsContainer.innerHTML = '<p class="text-slate-500 text-sm text-center mt-4">Nenhum horário disponível para este dia.</p>';
-                     return;
-                }
-
-                const now = new Date();
-                const isToday = now.getFullYear() === selectedDate.getFullYear() && now.getMonth() === selectedDate.getMonth() && now.getDate() === selectedDate.getDate();
-
-                availableSlots.forEach(time => {
-                    const slotHour = parseInt(time.split(':')[0]);
-                    const slotMinute = parseInt(time.split(':')[1]);
-                    let isPast = false;
-
-                    if (isToday) {
-                        const currentHour = now.getHours();
-                        const currentMinute = now.getMinutes();
-                        if (slotHour < currentHour || (slotHour === currentHour && slotMinute < currentMinute)) {
-                            isPast = true;
+                allPossibleSlots.forEach(slotStart => {
+                    const slotEnd = new Date(slotStart.getTime() + serviceDuration * 60000);
+                    let isOverlapping = false;
+                    for (const interval of bookedIntervals) {
+                        if (slotStart < interval.end && slotEnd > interval.start) {
+                            isOverlapping = true;
+                            break;
                         }
                     }
 
-                    const slotBtn = document.createElement('button');
-                    slotBtn.type = "button";
-                    slotBtn.textContent = time;
-                    slotBtn.className = `time-slot border rounded-md py-2 text-sm font-semibold`;
-                    slotBtn.disabled = isPast;
-                    
-                    if (isPast) {
-                        slotBtn.classList.add('bg-slate-100', 'text-slate-400', 'cursor-not-allowed');
-                    } else {
-                        slotBtn.classList.add('border-slate-300', 'text-slate-700', 'hover:bg-indigo-500', 'hover:text-white', 'focus:bg-indigo-500', 'focus:text-white');
+                    if (slotStart < new Date()) isOverlapping = true;
+
+                    if (!isOverlapping) {
+                        hasAvailableSlots = true;
+                        const slotBtn = document.createElement('button');
+                        slotBtn.type = "button";
+                        slotBtn.textContent = `${String(slotStart.getHours()).padStart(2, '0')}:${String(slotStart.getMinutes()).padStart(2, '0')}`;
+                        slotBtn.className = `time-slot border rounded-md py-2 text-sm font-semibold border-slate-300 text-slate-700 hover:opacity-80`;
+                        
                         slotBtn.onclick = () => {
                             state.selectedDate = dateStr;
-                            state.selectedTime = time;
-                            document.querySelectorAll('.time-slot').forEach(btn => { btn.classList.remove('bg-indigo-500', 'text-white'); });
-                            slotBtn.classList.add('bg-indigo-500', 'text-white');
+                            state.selectedTime = slotBtn.textContent;
+                            document.querySelectorAll('.time-slot').forEach(btn => btn.classList.remove('selected'));
+                            slotBtn.classList.add('selected');
                             updateSummaryAndShowUserInfo();
                         };
+                        grid.appendChild(slotBtn);
                     }
-                    grid.appendChild(slotBtn);
                 });
-                timeSlotsContainer.appendChild(grid);
+
+                if (!hasAvailableSlots) {
+                    timeSlotsContainer.innerHTML = '<p class="text-slate-500 text-sm text-center mt-4">Nenhum horário disponível para este dia.</p>';
+                } else {
+                    timeSlotsContainer.appendChild(grid);
+                }
             } catch (error) {
                 console.error("Erro ao carregar horários:", error);
-                timeSlotsContainer.innerHTML = '<p class="text-red-500 text-sm text-center mt-4">Não foi possível carregar os horários. Tente novamente.</p>';
+                timeSlotsContainer.innerHTML = '<p class="text-red-500 text-sm text-center mt-4">Erro ao carregar horários.</p>';
             }
-        }
-        
-        function updateSummaryAndShowUserInfo() {
+        }function updateSummaryAndShowUserInfo() {
             const summaryDiv = document.getElementById('summary');
-            summaryDiv.innerHTML = `<p><strong>Serviço:</strong> ${state.selectedService.name}</p><p><strong>Profissional:</strong> ${state.selectedBarber.name}</p><p><strong>Data:</strong> ${new Date(state.selectedDate + 'T12:00:00').toLocaleDateString('pt-BR')} às ${state.selectedTime}</p><p class="mt-2 font-bold text-lg"><strong>Total:</strong> R$ ${state.selectedService.price.toFixed(2)}</p>`;
+            summaryDiv.innerHTML = `<p><strong>Serviço:</strong> ${state.selectedService.name}</p><p><strong>Data:</strong> ${new Date(state.selectedDate + 'T12:00:00').toLocaleDateString('pt-BR')} às ${state.selectedTime}</p><p class="mt-2 font-bold text-lg"><strong>Total:</strong> R$ ${state.selectedService.price.toFixed(2)}</p>`;
             showStep('userinfo');
         }
-
-        const findOrCreateClient = async (userId, clientName, clientPhone) => {
-            const clientsRef = collection(db, 'users', userId, 'clients');
-            const q = query(clientsRef, where("phone", "==", clientPhone));
-            const querySnapshot = await getDocs(q);
-            if (!querySnapshot.empty) {
-                return querySnapshot.docs[0].id;
-            } else {
-                const newClientRef = await addDoc(clientsRef, {
-                    name: clientName,
-                    phone: clientPhone,
-                    createdAt: Timestamp.now(),
-                    appointmentCount: 0
-                });
-                return newClientRef.id;
-            }
-        };
 
         async function handleConfirmBooking(e) {
             e.preventDefault();
@@ -332,41 +311,22 @@
             try {
                 const clientName = document.getElementById('public-client-name').value;
                 const clientPhone = document.getElementById('public-client-phone').value;
-                const clientId = await findOrCreateClient(BARBERSHOP_OWNER_ID, clientName, clientPhone);
                 const dateTime = new Date(`${state.selectedDate}T${state.selectedTime}`);
-                const appointmentTimestamp = Timestamp.fromDate(dateTime);
-
+                
                 const appointmentData = {
-                    clientName,
-                    clientPhone,
-                    clientId,
+                    clientName, clientPhone, 
                     serviceId: state.selectedService.id,
                     serviceName: state.selectedService.name,
-                    barberId: state.selectedBarber.id,
-                    barberName: state.selectedBarber.name,
-                    barberPhone: state.selectedBarber.phone || null,
-                    dateTime: appointmentTimestamp,
+                    dateTime: Timestamp.fromDate(dateTime),
                     price: state.selectedService.price,
                     status: 'confirmado',
-                    lembreteEnviado: null,
                     createdAt: Timestamp.now()
                 };
                 
-                const newAppointmentRef = await addDoc(collection(db, "users", BARBERSHOP_OWNER_ID, "appointments"), appointmentData);
-                const newAppointmentId = newAppointmentRef.id;
-
-                const clientRef = doc(db, 'users', BARBERSHOP_OWNER_ID, 'clients', clientId);
-                // // Adiciona a atualização do último agendamento no perfil do cliente
-                await updateDoc(clientRef, { 
-    appointmentCount: increment(1),
-    lastAppointmentDate: appointmentTimestamp,
-    winbackMessageSent: false // Reseta o status do lembrete de retorno
-});
-
+                await addDoc(collection(db, "users", OWNER_ID, "appointments"), appointmentData);
+                
                 const confirmationSummaryDiv = document.getElementById('confirmation-summary');
                 confirmationSummaryDiv.innerHTML = document.getElementById('summary').innerHTML;
-                
-                renderConfirmationActions(newAppointmentId, clientId);
                 
                 showStep('confirmation');
 
@@ -378,88 +338,35 @@
             }
         }
         
-        function renderConfirmationActions(appointmentId, clientId) {
-            const actionsContainer = document.getElementById('confirmation-actions');
-            actionsContainer.innerHTML = ''; 
-
-            if (state.selectedBarber.phone) {
-                const whatsappNumber = String(state.selectedBarber.phone).replace(/\D/g, "");
-                const clientName = document.getElementById('public-client-name').value;
-                const textMessage = encodeURIComponent(`Olá ${state.selectedBarber.name}, sou ${clientName}. Tenho uma dúvida sobre meu agendamento de ${state.selectedService.name} no dia ${new Date(state.selectedDate + 'T12:00:00').toLocaleDateString('pt-BR')} às ${state.selectedTime}.`);
-                const whatsappLink = `https://wa.me/55${whatsappNumber}?text=${textMessage}`;
-                
-                const whatsappButton = document.createElement('a');
-                whatsappButton.href = whatsappLink;
-                whatsappButton.target = "_blank";
-                whatsappButton.className = "inline-flex items-center justify-center w-full bg-green-500 text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:bg-green-600";
-                whatsappButton.innerHTML = `<i data-feather="message-circle" class="w-5 h-5 mr-2"></i>Falar com ${state.selectedBarber.name}`;
-                actionsContainer.appendChild(whatsappButton);
-            }
-
-            const cancelButton = document.createElement('button');
-            cancelButton.id = "cancel-booking-btn";
-            cancelButton.className = "w-full bg-red-100 text-red-700 font-semibold py-2 px-4 rounded-lg hover:bg-red-200";
-            cancelButton.innerHTML = "Cancelar Agendamento";
-            cancelButton.onclick = () => handleCancelBooking(appointmentId, clientId);
-            actionsContainer.appendChild(cancelButton);
-
-            feather.replace();
-        }
-
-        async function handleCancelBooking(appointmentId, clientId) {
-            if (!window.confirm("Tem certeza que deseja cancelar seu agendamento?")) return;
-            
-            try {
-                const appointmentRef = doc(db, 'users', BARBERSHOP_OWNER_ID, 'appointments', appointmentId);
-                
-                if (clientId) {
-                    const clientRef = doc(db, 'users', BARBERSHOP_OWNER_ID, 'clients', clientId);
-                    const clientSnap = await getDoc(clientRef);
-
-                    if (clientSnap.exists()) {
-                        const currentCount = clientSnap.data().appointmentCount;
-                        if (currentCount <= 1) {
-                            await deleteDoc(clientRef);
-                        } else {
-                            await updateDoc(clientRef, { appointmentCount: increment(-1) });
-                        }
-                    }
+        function setupEventListeners() {
+            document.getElementById('service-select').addEventListener('change', (e) => {
+                const selectedId = e.target.value;
+                if (selectedId) {
+                    state.selectedService = state.services.find(s => s.id === selectedId);
+                    document.getElementById('booking-date').value = '';
+                    document.getElementById('time-slots-container').innerHTML = '<p class="text-slate-500 text-sm">Selecione uma data para ver os horários disponíveis.</p>';
+                    showStep('datetime');
+                } else {
+                    state.selectedService = null;
+                    showStep('service');
                 }
-
-                await deleteDoc(appointmentRef);
-                
-                document.getElementById('confirmation-title').textContent = "Agendamento Cancelado";
-                document.getElementById('confirmation-message').textContent = "Seu horário foi cancelado com sucesso.";
-                document.getElementById('confirmation-summary').classList.add('hidden');
-                document.getElementById('confirmation-actions').classList.add('hidden');
-                const iconContainer = document.getElementById('confirmation-icon');
-                iconContainer.classList.remove('bg-green-100');
-                iconContainer.classList.add('bg-red-100');
-                iconContainer.innerHTML = '<i data-feather="x-circle" class="w-10 h-10 text-red-600"></i>';
-                feather.replace();
-
-            } catch (error) {
-                console.error("Erro ao cancelar agendamento:", error);
-                alert("Ocorreu um erro ao tentar cancelar. Por favor, tente novamente ou entre em contato com a barbearia.");
-            }
-        }
-
-        document.addEventListener('DOMContentLoaded', () => {
-            loadBarbershopInfo();
-            document.getElementById('back-to-step-1').onclick = () => showStep('service');
-            document.getElementById('back-to-step-2').onclick = () => showStep('barber');
-            document.getElementById('back-to-step-3').onclick = () => showStep('datetime');
-
-            const bookingDateInput = document.getElementById('booking-date'); 
-            const today = new Date(); 
-            const todayStr = today.toISOString().split('T')[0]; 
-            bookingDateInput.setAttribute('min', todayStr); 
-
-            bookingDateInput.addEventListener('change', (e) => { 
-                loadAvailableTimes(e.target.value); 
             });
 
+            document.getElementById('back-to-step-1').onclick = () => showStep('service');
+            document.getElementById('back-to-step-2').onclick = () => showStep('datetime');
+
+            const bookingDateInput = document.getElementById('booking-date'); 
+            bookingDateInput.setAttribute('min', new Date().toISOString().split('T')[0]); 
+            bookingDateInput.addEventListener('change', (e) => {
+                if (state.selectedService) {
+                    loadAvailableTimes(e.target.value);
+                } else {
+                    alert("Por favor, selecione um serviço primeiro.");
+                }
+            }); 
             document.getElementById('client-info-form').addEventListener('submit', handleConfirmBooking);
+        }document.addEventListener('DOMContentLoaded', () => {
+            loadInitialData();
             feather.replace(); 
         });
     </script>
