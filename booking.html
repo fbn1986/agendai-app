@@ -81,7 +81,7 @@
                          <button id="back-to-step-3" type="button" class="mt-4 text-sm text-slate-500 hover:text-slate-800">&larr; Voltar para data/hora</button>
                      </div>
                  </form>
-            </div>
+             </div>
 
             <div id="step-5-confirmation" class="hidden text-center">
                 <div id="confirmation-icon" class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -91,7 +91,7 @@
                 <p id="confirmation-message" class="text-slate-600 mt-2">Seu horário foi reservado com sucesso.</p>
                 <div id="confirmation-summary" class="bg-slate-50 p-4 rounded-lg mt-6 text-sm text-left space-y-1"></div>
                 <div id="confirmation-actions" class="mt-6 space-y-3">
-                    </div>
+                 </div>
             </div>
         </main>
     </div>
@@ -334,6 +334,7 @@
                 const clientPhone = document.getElementById('public-client-phone').value;
                 const clientId = await findOrCreateClient(BARBERSHOP_OWNER_ID, clientName, clientPhone);
                 const dateTime = new Date(`${state.selectedDate}T${state.selectedTime}`);
+                const appointmentTimestamp = Timestamp.fromDate(dateTime);
 
                 const appointmentData = {
                     clientName,
@@ -344,7 +345,7 @@
                     barberId: state.selectedBarber.id,
                     barberName: state.selectedBarber.name,
                     barberPhone: state.selectedBarber.phone || null,
-                    dateTime: Timestamp.fromDate(dateTime),
+                    dateTime: appointmentTimestamp,
                     price: state.selectedService.price,
                     status: 'confirmado',
                     lembreteEnviado: null,
@@ -355,7 +356,12 @@
                 const newAppointmentId = newAppointmentRef.id;
 
                 const clientRef = doc(db, 'users', BARBERSHOP_OWNER_ID, 'clients', clientId);
-                await updateDoc(clientRef, { appointmentCount: increment(1) });
+                // // Adiciona a atualização do último agendamento no perfil do cliente
+                await updateDoc(clientRef, { 
+    appointmentCount: increment(1),
+    lastAppointmentDate: appointmentTimestamp,
+    winbackMessageSent: false // Reseta o status do lembrete de retorno
+});
 
                 const confirmationSummaryDiv = document.getElementById('confirmation-summary');
                 confirmationSummaryDiv.innerHTML = document.getElementById('summary').innerHTML;
