@@ -672,8 +672,8 @@
             // --- Lógica para a tela de LINK DE AGENDAMENTO ---
             const linkInput = document.getElementById('public-booking-link');
             const copyBtn = document.getElementById('copy-link-btn');
-            const NETLIFY_URL = "https://agend-ai.netlify.app";
-            linkInput.value = `${NETLIFY_URL}/booking.html?user=${user.uid}`;
+            const baseUrl = window.location.origin; 
+            linkInput.value = `${baseUrl}/booking.html?user=${user.uid}`;
             copyBtn.addEventListener('click', () => {
                 navigator.clipboard.writeText(linkInput.value).then(() => {
                     alert('Link copiado para a área de transferência!');
