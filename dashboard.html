@@ -487,208 +487,218 @@
         function initializeFinance(userId) { const appointmentsRef = collection(db, 'users', userId, 'appointments'); onSnapshot(query(appointmentsRef), (snap) => { const now = new Date(); const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()); const monthStart = new Date(now.getFullYear(), now.getMonth(), 1); let todayRevenue = 0; let monthRevenue = 0; let monthAppointments = 0; snap.forEach(doc => { const app = doc.data(); const appDate = app.dateTime.toDate(); const price = app.price || 0; if (appDate >= monthStart) { monthRevenue += price; monthAppointments++; } if (appDate >= todayStart && appDate < new Date(todayStart.getTime() + 24 * 60 * 60 * 1000)) { todayRevenue += price; } }); document.getElementById('finance-today-revenue').textContent = `R$ ${todayRevenue.toFixed(2)}`; document.getElementById('finance-month-revenue').textContent = `R$ ${monthRevenue.toFixed(2)}`; document.getElementById('finance-avg-ticket').textContent = `R$ ${(monthRevenue / (monthAppointments || 1)).toFixed(2)}`; }); const generateReportBtn = document.getElementById('generate-report-btn'); generateReportBtn.addEventListener('click', async () => { const startDateInput = document.getElementById('filter-start-date').value; const endDateInput = document.getElementById('filter-end-date').value; if (!startDateInput || !endDateInput) { alert('Por favor, selecione a data de início e de fim.'); return; } const startTimestamp = Timestamp.fromDate(new Date(`${startDateInput}T00:00:00`)); const endTimestamp = Timestamp.fromDate(new Date(`${endDateInput}T23:59:59`)); const reportQuery = query(appointmentsRef, where("dateTime", ">=", startTimestamp), where("dateTime", "<=", endTimestamp), orderBy("dateTime")); const reportSnap = await getDocs(reportQuery); let periodRevenue = 0; const dailyData = new Map(); reportSnap.forEach(doc => { const app = doc.data(); const price = app.price || 0; periodRevenue += price; const day = app.dateTime.toDate().toLocaleDateString('pt-BR', {day: '2-digit', month: '2-digit'}); dailyData.set(day, (dailyData.get(day) || 0) + price); }); document.getElementById('report-summary').classList.remove('hidden'); document.getElementById('report-summary').classList.add('grid'); document.getElementById('finance-period-revenue').textContent = `R$ ${periodRevenue.toFixed(2)}`; const ctx = document.getElementById('revenue-chart').getContext('2d'); if (revenueChartInstance) { revenueChartInstance.destroy(); } revenueChartInstance = new Chart(ctx, { type: 'bar', data: { labels: Array.from(dailyData.keys()), datasets: [{ label: 'Faturamento no Período', data: Array.from(dailyData.values()), backgroundColor: '#4f46e5', borderColor: '#4338ca', borderWidth: 1 }] }, options: { scales: { y: { beginAtZero: true } }, plugins: { legend: { display: false } } } }); }); const today = new Date(); const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0]; const todayISO = today.toISOString().split('T')[0]; document.getElementById('filter-start-date').value = firstDayOfMonth; document.getElementById('filter-end-date').value = todayISO; generateReportBtn.click(); }
         
         // ✨ ALTERAÇÃO 2: A FUNÇÃO setupSettings FOI TOTALMENTE REESCRITA
-        function setupSettings(user, userData) {
-            const settingsSection = document.getElementById('configuracoes-section');
-            const mainPageTitle = document.getElementById('welcome-message');
-            
-            // HTML para o menu principal e todas as sub-telas
-            const settingsHTML = `
-                <div id="settings-view-wrapper">
-                    <div id="settings-menu-view">
-                        <h2 class="text-2xl font-bold text-slate-800 mb-6">Configurações</h2>
-                        <div class="bg-white rounded-lg shadow-sm overflow-hidden">
-                            <div class="settings-menu-item" data-view="company-view" data-title="Informações da Empresa">
-                                <div class="flex items-center"><i data-feather="briefcase" class="w-5 h-5 mr-4 text-slate-500"></i><span class="font-semibold text-slate-700">Informações da Empresa</span></div>
-                                <i data-feather="chevron-right" class="w-5 h-5 text-slate-400"></i>
-                            </div>
-                            <div class="settings-menu-item" data-view="hours-view" data-title="Expediente">
-                                <div class="flex items-center"><i data-feather="clock" class="w-5 h-5 mr-4 text-slate-500"></i><span class="font-semibold text-slate-700">Expediente</span></div>
-                                <i data-feather="chevron-right" class="w-5 h-5 text-slate-400"></i>
-                            </div>
-                            <div class="settings-menu-item" data-view="link-view" data-title="Link de Agendamento">
-                                <div class="flex items-center"><i data-feather="link" class="w-5 h-5 mr-4 text-slate-500"></i><span class="font-semibold text-slate-700">Link de Agendamento</span></div>
-                                <i data-feather="chevron-right" class="w-5 h-5 text-slate-400"></i>
-                            </div>
-                            <div class="settings-menu-item" data-view="subscription-view" data-title="Sua Assinatura">
-                                <div class="flex items-center"><i data-feather="credit-card" class="w-5 h-5 mr-4 text-slate-500"></i><span class="font-semibold text-slate-700">Sua Assinatura</span></div>
-                                <i data-feather="chevron-right" class="w-5 h-5 text-slate-400"></i>
-                            </div>
-                        </div>
-                    </div>
+        //  👇👇👇  COLE ESTA VERSÃO COMPLETA E ATUALIZADA NO LUGAR DA SUA ATUAL 👇👇👇
 
-                    <div id="company-view" class="hidden">
-                        <button class="back-to-settings mb-6 font-semibold text-indigo-600 flex items-center"><i data-feather="chevron-left" class="w-5 h-5"></i> Voltar</button>
-                        <div class="bg-white p-6 rounded-lg shadow-sm">
-                            <h3 class="text-lg font-semibold text-slate-800">Nome da Empresa</h3>
-                            <div class="mt-4">
-                                <label for="barbershop-name-input" class="block text-sm font-medium text-slate-700">Nome da Empresa</label>
-                                <input type="text" id="barbershop-name-input" class="input-style mt-1">
-                            </div>
-                            <button id="save-barbershop-name-btn" class="mt-4 w-full bg-indigo-600 text-white font-semibold py-2 px-4 rounded-lg flex items-center justify-center">Salvar Nome</button>
-                        </div>
+function setupSettings(user, userData) {
+    const settingsSection = document.getElementById('configuracoes-section');
+    const mainPageTitle = document.getElementById('welcome-message');
+    
+    const settingsHTML = `
+        <div id="settings-view-wrapper">
+            <div id="settings-menu-view">
+                <h2 class="text-2xl font-bold text-slate-800 mb-6">Configurações</h2>
+                <div class="bg-white rounded-lg shadow-sm overflow-hidden">
+                    <div class="settings-menu-item" data-view="company-view" data-title="Informações da Empresa">
+                        <div class="flex items-center"><i data-feather="briefcase" class="w-5 h-5 mr-4 text-slate-500"></i><span class="font-semibold text-slate-700">Informações da Empresa</span></div>
+                        <i data-feather="chevron-right" class="w-5 h-5 text-slate-400"></i>
                     </div>
-
-                    <div id="hours-view" class="hidden">
-                        <button class="back-to-settings mb-6 font-semibold text-indigo-600 flex items-center"><i data-feather="chevron-left" class="w-5 h-5"></i> Voltar</button>
-                        <div class="bg-white p-6 rounded-lg shadow-sm">
-                            <h3 class="text-lg font-semibold text-slate-800">Horários de Funcionamento</h3>
-                            <p class="text-sm text-slate-500 mt-1 mb-4">Defina seus dias e horários de trabalho.</p>
-                            <form id="working-hours-form" class="space-y-4"></form>
-                            <button id="save-hours-btn" type="button" class="mt-6 w-full bg-indigo-600 text-white font-semibold py-2 px-4 rounded-lg flex items-center justify-center disabled:opacity-50"><span class="btn-text">Salvar Alterações</span><div class="spinner hidden ml-2"></div></button>
-                        </div>
+                    <div class="settings-menu-item" data-view="hours-view" data-title="Expediente">
+                        <div class="flex items-center"><i data-feather="clock" class="w-5 h-5 mr-4 text-slate-500"></i><span class="font-semibold text-slate-700">Expediente</span></div>
+                        <i data-feather="chevron-right" class="w-5 h-5 text-slate-400"></i>
                     </div>
-
-                    <div id="link-view" class="hidden">
-                        <button class="back-to-settings mb-6 font-semibold text-indigo-600 flex items-center"><i data-feather="chevron-left" class="w-5 h-5"></i> Voltar</button>
-                        <div class="bg-white p-6 rounded-lg shadow-sm">
-                            <h3 class="text-lg font-semibold text-slate-800">Seu Link de Agendamento</h3>
-                            <p class="text-sm text-slate-500 mt-1 mb-4">Compartilhe este link no seu Instagram.</p>
-                            <div class="flex items-center space-x-2">
-                                <input id="public-booking-link" type="text" readonly class="w-full p-2 bg-slate-100 border border-slate-300 rounded-md">
-                                <button id="copy-link-btn" class="bg-indigo-600 text-white font-semibold py-2 px-4 rounded-lg flex-shrink-0">Copiar</button>
-                            </div>
-                        </div>
+                    <div class="settings-menu-item" data-view="link-view" data-title="Link de Agendamento">
+                        <div class="flex items-center"><i data-feather="link" class="w-5 h-5 mr-4 text-slate-500"></i><span class="font-semibold text-slate-700">Link de Agendamento</span></div>
+                        <i data-feather="chevron-right" class="w-5 h-5 text-slate-400"></i>
                     </div>
-                    
-                    <div id="subscription-view" class="hidden">
-                        <button class="back-to-settings mb-6 font-semibold text-indigo-600 flex items-center"><i data-feather="chevron-left" class="w-5 h-5"></i> Voltar</button>
-                        <div class="bg-white p-6 rounded-lg shadow-sm">
-                            <h3 class="text-lg font-semibold text-slate-800">Sua Assinatura</h3>
-                            <p class="text-sm text-slate-500 mt-1 mb-4">Acesse seu portal para gerenciar pagamentos.</p>
-                            <button id="manage-subscription-btn" class="mt-4 w-full bg-slate-800 text-white font-semibold py-2 px-4 rounded-lg flex items-center justify-center">
-                                <i data-feather="credit-card" class="w-5 h-5 mr-2"></i>Gerenciar Assinatura
-                            </button>
-                        </div>
+                    <div class="settings-menu-item" data-view="subscription-view" data-title="Sua Assinatura">
+                        <div class="flex items-center"><i data-feather="credit-card" class="w-5 h-5 mr-4 text-slate-500"></i><span class="font-semibold text-slate-700">Sua Assinatura</span></div>
+                        <i data-feather="chevron-right" class="w-5 h-5 text-slate-400"></i>
                     </div>
                 </div>
-            `;
+            </div>
+
+            <div id="company-view" class="hidden">
+                <button class="back-to-settings mb-6 font-semibold text-indigo-600 flex items-center"><i data-feather="chevron-left" class="w-5 h-5"></i> Voltar</button>
+                <div class="bg-white p-6 rounded-lg shadow-sm">
+                    <h3 class="text-lg font-semibold text-slate-800">Nome da Empresa</h3>
+                    <div class="mt-4">
+                        <label for="barbershop-name-input" class="block text-sm font-medium text-slate-700">Nome da Empresa</label>
+                        <input type="text" id="barbershop-name-input" class="input-style mt-1">
+                    </div>
+                    <button id="save-barbershop-name-btn" class="mt-4 w-full bg-indigo-600 text-white font-semibold py-2 px-4 rounded-lg flex items-center justify-center">Salvar Nome</button>
+                </div>
+            </div>
+
+            <div id="hours-view" class="hidden">
+                <button class="back-to-settings mb-6 font-semibold text-indigo-600 flex items-center"><i data-feather="chevron-left" class="w-5 h-5"></i> Voltar</button>
+                <div class="bg-white p-6 rounded-lg shadow-sm">
+                    <h3 class="text-lg font-semibold text-slate-800">Horários de Funcionamento</h3>
+                    <p class="text-sm text-slate-500 mt-1 mb-4">Defina seus dias e horários de trabalho.</p>
+                    <form id="working-hours-form" class="space-y-4"></form>
+                    <button id="save-hours-btn" type="button" class="mt-6 w-full bg-indigo-600 text-white font-semibold py-2 px-4 rounded-lg flex items-center justify-center disabled:opacity-50"><span class="btn-text">Salvar Alterações</span><div class="spinner hidden ml-2"></div></button>
+                </div>
+            </div>
+
+            <div id="link-view" class="hidden">
+                <button class="back-to-settings mb-6 font-semibold text-indigo-600 flex items-center"><i data-feather="chevron-left" class="w-5 h-5"></i> Voltar</button>
+                <div class="bg-white p-6 rounded-lg shadow-sm">
+                    <h3 class="text-lg font-semibold text-slate-800">Seu Link de Agendamento</h3>
+                    <p class="text-sm text-slate-500 mt-1 mb-4">Compartilhe este link no seu Instagram.</p>
+                    <div class="flex items-center space-x-2">
+                        <input id="public-booking-link" type="text" readonly class="w-full p-2 bg-slate-100 border border-slate-300 rounded-md">
+                        <button id="copy-link-btn" class="bg-indigo-600 text-white font-semibold py-2 px-4 rounded-lg flex-shrink-0">Copiar</button>
+                    </div>
+                </div>
+            </div>
             
-            // Injeta o HTML no container de configurações
-            settingsSection.innerHTML = settingsHTML;
-            const originalTitle = `Bem-vindo, ${userData.barbershopName}!`;
+            <div id="subscription-view" class="hidden">
+                 <button class="back-to-settings mb-6 font-semibold text-indigo-600 flex items-center"><i data-feather="chevron-left" class="w-5 h-5"></i> Voltar</button>
+                <div id="subscription-content-wrapper" class="bg-white p-6 rounded-lg shadow-sm">
+                    </div>
+            </div>
+        </div>
+    `;
+    
+    settingsSection.innerHTML = settingsHTML;
+    const originalTitle = `Bem-vindo, ${userData.barbershopName}!`;
 
-            // Função para controlar a navegação entre as telas
-            const navigateTo = (viewId, title) => {
-                const wrapper = document.getElementById('settings-view-wrapper');
-                // Esconde todas as telas
-                Array.from(wrapper.children).forEach(view => view.classList.add('hidden'));
-                // Mostra a tela alvo
-                document.getElementById(viewId).classList.remove('hidden');
-                // Atualiza o título principal da página
-                mainPageTitle.textContent = title;
-            };
+    const navigateTo = (viewId, title) => {
+        const wrapper = document.getElementById('settings-view-wrapper');
+        Array.from(wrapper.children).forEach(view => view.classList.add('hidden'));
+        document.getElementById(viewId).classList.remove('hidden');
+        mainPageTitle.textContent = title;
+    };
 
-            // Adiciona os listeners para os itens do menu
-            document.querySelectorAll('.settings-menu-item').forEach(item => {
-                item.addEventListener('click', () => {
-                    const viewId = item.dataset.view;
-                    const title = item.dataset.title;
-                    navigateTo(viewId, title);
-                });
-            });
+    document.querySelectorAll('.settings-menu-item').forEach(item => {
+        item.addEventListener('click', () => {
+            const viewId = item.dataset.view;
+            const title = item.dataset.title;
+            navigateTo(viewId, title);
+        });
+    });
 
-            // Adiciona os listeners para os botões "Voltar"
-            document.querySelectorAll('.back-to-settings').forEach(button => {
-                button.addEventListener('click', () => {
-                    navigateTo('settings-menu-view', originalTitle);
-                });
-            });
+    document.querySelectorAll('.back-to-settings').forEach(button => {
+        button.addEventListener('click', () => {
+            navigateTo('settings-menu-view', 'Configurações');
+        });
+    });
 
-            // --- Lógica para a tela de INFORMAÇÕES DA EMPRESA ---
-            const nameInput = document.getElementById('barbershop-name-input');
-            const saveNameBtn = document.getElementById('save-barbershop-name-btn');
-            if (nameInput && userData?.barbershopName) {
-                nameInput.value = userData.barbershopName;
+    // --- LÓGICA INTELIGENTE PARA A TELA DE ASSINATURA ---
+    const subscriptionContentWrapper = document.getElementById('subscription-content-wrapper');
+    const userHasActiveSubscription = userData.subscription?.status === 'active';
+
+    if (userHasActiveSubscription) {
+        // Se o usuário TEM uma assinatura ativa, mostra o botão de gerenciar
+        subscriptionContentWrapper.innerHTML = `
+            <h3 class="text-lg font-semibold text-slate-800">Sua Assinatura</h3>
+            <p class="text-sm text-slate-500 mt-1 mb-4">Acesse seu portal para gerenciar pagamentos, alterar seu cartão ou cancelar.</p>
+            <button id="manage-subscription-btn" class="mt-4 w-full bg-slate-800 text-white font-semibold py-2 px-4 rounded-lg flex items-center justify-center">
+                <i data-feather="credit-card" class="w-5 h-5 mr-2"></i>Gerenciar Assinatura
+            </button>
+        `;
+        document.getElementById('manage-subscription-btn').addEventListener('click', redirectToCustomerPortal);
+    } else {
+        // Se o usuário NÃO tem (está em teste ou expirou), mostra um botão para ASSINAR
+        const stripeLink = `https://buy.stripe.com/fZu6oA3ntgEM2pAfZVdZ600?client_reference_id=${user.uid}`;
+        subscriptionContentWrapper.innerHTML = `
+            <h3 class="text-lg font-semibold text-slate-800">Sua Assinatura</h3>
+            <p class="text-sm text-slate-500 mt-1 mb-4">Você está atualmente no período de teste. Para não perder o acesso, faça sua assinatura.</p>
+            <a href="${stripeLink}" target="_blank" class="mt-4 w-full bg-indigo-600 text-white font-semibold py-2 px-4 rounded-lg flex items-center justify-center">
+                Fazer Assinatura Agora
+            </a>
+        `;
+    }
+
+    // --- Lógica das outras telas ---
+    const nameInput = document.getElementById('barbershop-name-input');
+    const saveNameBtn = document.getElementById('save-barbershop-name-btn');
+    if (nameInput) nameInput.value = userData.barbershopName || '';
+    if (saveNameBtn) {
+        saveNameBtn.addEventListener('click', async () => {
+            const newName = nameInput.value.trim();
+            if (!newName) {
+                alert('O nome da empresa não pode ficar em branco.');
+                return;
             }
-            if (saveNameBtn) {
-                saveNameBtn.addEventListener('click', async () => {
-                    const newName = nameInput.value.trim();
-                    if (!newName) {
-                        alert('O nome da empresa não pode ficar em branco.'); return;
-                    }
-                    saveNameBtn.disabled = true;
-                    saveNameBtn.innerHTML = `<div class="spinner mx-auto"></div>`;
-                    try {
-                        const userDocRef = doc(db, "users", user.uid);
-                        await updateDoc(userDocRef, { barbershopName: newName });
-                        alert('Nome da empresa atualizado com sucesso!');
-                        document.getElementById('user-avatar').src = `https://placehold.co/40x40/e2e8f0/64748b?text=${newName.charAt(0).toUpperCase()}`;
-                        // Atualiza o título original para o próximo clique no botão "Voltar"
-                        mainPageTitle.textContent = `Bem-vindo, ${newName}!`; 
-                    } catch (error) {
-                        console.error("Erro ao atualizar nome:", error);
-                        alert('Ocorreu um erro ao salvar o nome.');
-                    } finally {
-                        saveNameBtn.disabled = false;
-                        saveNameBtn.textContent = 'Salvar Nome';
-                    }
-                });
+            saveNameBtn.disabled = true;
+            saveNameBtn.innerHTML = `<div class="spinner mx-auto"></div>`;
+            try {
+                const userDocRef = doc(db, "users", user.uid);
+                await updateDoc(userDocRef, { barbershopName: newName });
+                alert('Nome da empresa atualizado com sucesso!');
+                document.getElementById('welcome-message').textContent = `Bem-vindo, ${newName}!`;
+                document.getElementById('user-avatar').src = `https://placehold.co/40x40/e2e8f0/64748b?text=${newName.charAt(0).toUpperCase()}`;
+            } catch (error) {
+                console.error("Erro ao atualizar nome:", error);
+                alert('Ocorreu um erro ao salvar o nome.');
+            } finally {
+                saveNameBtn.disabled = false;
+                saveNameBtn.textContent = 'Salvar Nome';
             }
+        });
+    }
 
-            // --- Lógica para a tela de EXPEDIENTE ---
-            const hoursForm = document.getElementById('working-hours-form');
-            const saveHoursBtn = document.getElementById('save-hours-btn');
-            const loadHours = async () => {
-                const ref = doc(db, 'users', user.uid, 'settings', 'workingHours');
-                const docSnap = await getDoc(ref);
-                const hoursData = docSnap.exists() ? docSnap.data() : {};
-                const days = [ { id: 'dom', name: 'Domingo' }, { id: 'seg', name: 'Segunda' }, { id: 'ter', name: 'Terça' }, { id: 'qua', name: 'Quarta' }, { id: 'qui', name: 'Quinta' }, { id: 'sex', name: 'Sexta' }, { id: 'sab', name: 'Sábado' }];
-                hoursForm.innerHTML = '';
-                days.forEach(day => {
-                    const dayData = hoursData[day.id] || { isOpen: day.id !== 'dom', start: '09:00', end: '18:00' };
-                    const row = document.createElement('div');
-                    row.className = 'flex flex-col sm:flex-row sm:items-center justify-between border-t py-4';
-                    row.innerHTML = `<span class="font-medium text-slate-800 mb-2 sm:mb-0">${day.name}</span><div class="flex items-center gap-4 justify-between w-full sm:w-auto"><div class="flex items-center gap-2"><input type="time" id="${day.id}-start" value="${dayData.start}" class="p-1 border rounded-md text-sm w-24 bg-white" ${!dayData.isOpen ? 'disabled' : ''}><span class="text-slate-500">às</span><input type="time" id="${day.id}-end" value="${dayData.end}" class="p-1 border rounded-md text-sm w-24 bg-white" ${!dayData.isOpen ? 'disabled' : ''}></div><div class="relative inline-block w-10 align-middle"><input type="checkbox" id="${day.id}-toggle" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer" ${dayData.isOpen ? 'checked' : ''} /><label for="${day.id}-toggle" class="toggle-label block overflow-hidden h-6 rounded-full bg-slate-300 cursor-pointer"></label></div></div>`;
-                    hoursForm.appendChild(row);
-                    row.querySelector(`#${day.id}-toggle`).addEventListener('change', (e) => {
-                        row.querySelectorAll('input[type="time"]').forEach(input => input.disabled = !e.target.checked);
-                    });
-                });
-            };
-            const saveHours = async () => {
-                const btnText = saveHoursBtn.querySelector('.btn-text');
-                const spinner = saveHoursBtn.querySelector('.spinner');
-                saveHoursBtn.disabled = true;
-                btnText.textContent = 'Salvando...';
-                spinner.classList.remove('hidden');
-                const dataToSave = {};
-                ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sab'].forEach(id => {
-                    dataToSave[id] = { isOpen: document.getElementById(`${id}-toggle`).checked, start: document.getElementById(`${id}-start`).value, end: document.getElementById(`${id}-end`).value };
-                });
-                try {
-                    await setDoc(doc(db, 'users', user.uid, 'settings', 'workingHours'), dataToSave);
-                    workingHoursCache = dataToSave;
-                    alert("Horários salvos com sucesso!");
-                } catch(e) { console.error(e); alert("Erro ao salvar horários."); }
-                finally {
-                    saveHoursBtn.disabled = false;
-                    btnText.textContent = 'Salvar Alterações';
-                    spinner.classList.add('hidden');
-                }
-            };
-            loadHours(); // Carrega os horários ao entrar na tela de configurações
-            saveHoursBtn.addEventListener('click', saveHours);
-            
-            // --- Lógica para a tela de LINK DE AGENDAMENTO ---
-            const linkInput = document.getElementById('public-booking-link');
-            const copyBtn = document.getElementById('copy-link-btn');
-            const baseUrl = window.location.origin; 
-            linkInput.value = `${baseUrl}/booking.html?user=${user.uid}`;
-            copyBtn.addEventListener('click', () => {
-                navigator.clipboard.writeText(linkInput.value).then(() => {
-                    alert('Link copiado para a área de transferência!');
-                }).catch(err => {
-                    alert('Não foi possível copiar o link. Por favor, copie manualmente.');
-                });
+    const hoursForm = document.getElementById('working-hours-form');
+    const saveHoursBtn = document.getElementById('save-hours-btn');
+    const loadHours = async () => {
+        const ref = doc(db, 'users', user.uid, 'settings', 'workingHours');
+        const docSnap = await getDoc(ref);
+        const hoursData = docSnap.exists() ? docSnap.data() : {};
+        const days = [{ id: 'dom', name: 'Domingo' }, { id: 'seg', name: 'Segunda' }, { id: 'ter', name: 'Terça' }, { id: 'qua', name: 'Quarta' }, { id: 'qui', name: 'Quinta' }, { id: 'sex', name: 'Sexta' }, { id: 'sab', name: 'Sábado' }];
+        hoursForm.innerHTML = '';
+        days.forEach(day => {
+            const dayData = hoursData[day.id] || { isOpen: day.id !== 'dom', start: '09:00', end: '18:00' };
+            const row = document.createElement('div');
+            row.className = 'flex flex-col sm:flex-row sm:items-center justify-between border-t py-4';
+            row.innerHTML = `<span class="font-medium text-slate-800 mb-2 sm:mb-0">${day.name}</span><div class="flex items-center gap-4 justify-between w-full sm:w-auto"><div class="flex items-center gap-2"><input type="time" id="${day.id}-start" value="${dayData.start}" class="p-1 border rounded-md text-sm w-24 bg-white" ${!dayData.isOpen ? 'disabled' : ''}><span class="text-slate-500">às</span><input type="time" id="${day.id}-end" value="${dayData.end}" class="p-1 border rounded-md text-sm w-24 bg-white" ${!dayData.isOpen ? 'disabled' : ''}></div><div class="relative inline-block w-10 align-middle"><input type="checkbox" id="${day.id}-toggle" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer" ${dayData.isOpen ? 'checked' : ''} /><label for="${day.id}-toggle" class="toggle-label block overflow-hidden h-6 rounded-full bg-slate-300 cursor-pointer"></label></div></div>`;
+            hoursForm.appendChild(row);
+            row.querySelector(`#${day.id}-toggle`).addEventListener('change', (e) => {
+                row.querySelectorAll('input[type="time"]').forEach(input => input.disabled = !e.target.checked);
             });
-
-            // --- Lógica para a tela de ASSINATURA ---
-            document.getElementById('manage-subscription-btn').addEventListener('click', redirectToCustomerPortal);
-
-            // Estado inicial: mostra o menu principal
-            navigateTo('settings-menu-view', originalTitle);
-            feather.replace();
+        });
+    };
+    const saveHours = async () => {
+        const btnText = saveHoursBtn.querySelector('.btn-text');
+        const spinner = saveHoursBtn.querySelector('.spinner');
+        saveHoursBtn.disabled = true;
+        btnText.textContent = 'Salvando...';
+        spinner.classList.remove('hidden');
+        const dataToSave = {};
+        ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sab'].forEach(id => {
+            dataToSave[id] = { isOpen: document.getElementById(`${id}-toggle`).checked, start: document.getElementById(`${id}-start`).value, end: document.getElementById(`${id}-end`).value, };
+        });
+        try {
+            await setDoc(doc(db, 'users', user.uid, 'settings', 'workingHours'), dataToSave);
+            workingHoursCache = dataToSave;
+            alert("Horários salvos com sucesso!");
+        } catch (e) { console.error(e); alert("Erro ao salvar horários."); }
+        finally {
+            saveHoursBtn.disabled = false;
+            btnText.textContent = 'Salvar Alterações';
+            spinner.classList.add('hidden');
         }
-    </script>
+    };
+    if (hoursForm) loadHours();
+    if (saveHoursBtn) saveHoursBtn.addEventListener('click', saveHours);
+    
+    const linkInput = document.getElementById('public-booking-link');
+    const copyBtn = document.getElementById('copy-link-btn');
+    if (linkInput) {
+        linkInput.value = `${window.location.origin}/booking.html?user=${user.uid}`;
+    }
+    if (copyBtn) {
+        copyBtn.addEventListener('click', () => {
+            navigator.clipboard.writeText(linkInput.value).then(() => {
+                alert('Link copiado para a área de transferência!');
+            }).catch(err => {
+                console.error('Falha ao copiar o link: ', err);
+                alert('Não foi possível copiar o link.');
+            });
+        });
+    }
+    
+    navigateTo('settings-menu-view', 'Configurações');
+    feather.replace();
+}    </script>
 </body>
 </html>
