@@ -405,66 +405,97 @@
                 barbersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             };
             const renderAppointmentsForWeek = (offset = 0) => {
-                currentWeekOffset = offset;
-                const today = new Date();
-                today.setHours(0, 0, 0, 0);
-                today.setDate(today.getDate() + offset * 7);
-                const dayOfWeek = today.getDay();
-                const weekStart = new Date(today.setDate(today.getDate() - dayOfWeek));
-                const weekEnd = new Date(new Date(weekStart).setDate(weekStart.getDate() + 6));
-                weekEnd.setHours(23, 59, 59, 999);
-                document.getElementById('week-display').textContent = `${weekStart.toLocaleDateString('pt-BR', {day:'2-digit', month:'2-digit'})} - ${weekEnd.toLocaleDateString('pt-BR', {day:'2-digit', month:'2-digit'})}`;
-                const startTimestamp = Timestamp.fromDate(weekStart);
-                const endTimestamp = Timestamp.fromDate(weekEnd);
-                const q = query(collection(db, 'users', userId, 'appointments'), where("dateTime", ">=", startTimestamp), where("dateTime", "<=", endTimestamp), orderBy("dateTime"));
-                onSnapshot(q, (snapshot) => {
-                    appointmentsListContainer.innerHTML = '';
-                    if (snapshot.empty) {
-                        appointmentsListContainer.innerHTML = `<div class="text-center text-slate-500 py-10 bg-white rounded-lg shadow-sm"><p>Nenhum agendamento para esta semana.</p></div>`;
-                        return;
-                    }
-                    const groupedAppointments = new Map();
-                    snapshot.forEach(docSnap => {
-                        const app = { id: docSnap.id, ...docSnap.data() };
-                        const dayKey = app.dateTime.toDate().toISOString().split('T')[0];
-                        if (!groupedAppointments.has(dayKey)) {
-                            groupedAppointments.set(dayKey, []);
-                        }
-                        groupedAppointments.get(dayKey).push(app);
-                    });
-                    groupedAppointments.forEach((appointmentsOnDay, dayKey) => {
-                        const date = new Date(`${dayKey}T12:00:00`);
-                        const dayHeader = document.createElement('h3');
-                        dayHeader.className = 'text-xl font-bold text-slate-700 pb-2 border-b mb-4';
-                        dayHeader.textContent = date.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' });
-                        appointmentsListContainer.appendChild(dayHeader);
-                        const dayContainer = document.createElement('div');
-                        dayContainer.className = 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4';
-                        appointmentsOnDay.forEach(app => {
-                            const card = document.createElement('div');
-                            card.className = 'appointment-card bg-white p-4 rounded-lg shadow flex flex-col justify-between';
-                            const appDate = app.dateTime.toDate();
-                            card.innerHTML = `
-                                <div>
-                                    <div class="flex justify-between items-center">
-                                        <span class="font-bold text-lg text-indigo-600">${String(appDate.getHours()).padStart(2, '0')}:${String(appDate.getMinutes()).padStart(2, '0')}</span>
-                                        <span class="text-xs font-semibold text-slate-600">${app.barberName}</span>
-                                    </div>
-                                    <div class="mt-2">
-                                        <p class="font-semibold text-slate-800">${app.clientName}</p>
-                                        <p class="text-sm text-slate-500">${app.serviceName}</p>
-                                    </div>
-                                </div>
-                                <p class="text-right font-bold text-slate-700 mt-4">R$ ${(app.price || 0).toFixed(2)}</p>
-                            `;
-                            card.addEventListener('click', () => openEditModal(userId, app.id));
-                            dayContainer.appendChild(card);
-                        });
-                        appointmentsListContainer.appendChild(dayContainer);
-                    });
-                    feather.replace();
-                });
-            };
+    currentWeekOffset = offset; // Salva o offset atual para "lembrar" a posição
+
+    // --- INÍCIO DO BLOCO DE CÁLCULO DE DATA CORRIGIDO ---
+    // Este bloco foi reescrito para ser mais seguro e não causar "pulos".
+    
+    // 1. Pega a data de hoje como ponto de partida fixo.
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    // 2. Calcula a data alvo na semana desejada, adicionando o offset de semanas.
+    const targetDate = new Date(today);
+    targetDate.setDate(today.getDate() + offset * 7);
+
+    // 3. A partir da data alvo, calcula o Domingo (início da semana).
+    const dayOfWeek = targetDate.getDay(); // 0 para Domingo, 1 para Segunda, etc.
+    const weekStart = new Date(targetDate);
+    weekStart.setDate(targetDate.getDate() - dayOfWeek);
+
+    // 4. A partir do início da semana, calcula o Sábado (fim da semana).
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekStart.getDate() + 6);
+    weekEnd.setHours(23, 59, 59, 999);
+    
+    // --- FIM DO BLOCO DE CÁLCULO DE DATA CORRIGIDO ---
+
+    // O resto da sua função continua exatamente igual a partir daqui...
+    document.getElementById('week-display').textContent = `${weekStart.toLocaleDateString('pt-BR', {day:'2-digit', month:'2-digit'})} - ${weekEnd.toLocaleDateString('pt-BR', {day:'2-digit', month:'2-digit'})}`;
+    
+    const startTimestamp = Timestamp.fromDate(weekStart);
+    const endTimestamp = Timestamp.fromDate(weekEnd);
+    
+    const q = query(collection(db, 'users', userId, 'appointments'), where("dateTime", ">=", startTimestamp), where("dateTime", "<=", endTimestamp), orderBy("dateTime"));
+    
+    onSnapshot(q, (snapshot) => {
+        const appointmentsListContainer = document.getElementById('appointments-list');
+        appointmentsListContainer.innerHTML = ''; // Limpa a lista antes de redesenhar
+
+        if (snapshot.empty) {
+            appointmentsListContainer.innerHTML = `<div class="text-center text-slate-500 py-10 bg-white rounded-lg shadow-sm"><p>Nenhum agendamento para esta semana.</p></div>`;
+            return;
+        }
+
+        const groupedAppointments = new Map();
+        snapshot.forEach(docSnap => {
+            const app = { id: docSnap.id, ...docSnap.data() };
+            const dayKey = app.dateTime.toDate().toISOString().split('T')[0];
+            if (!groupedAppointments.has(dayKey)) {
+                groupedAppointments.set(dayKey, []);
+            }
+            groupedAppointments.get(dayKey).push(app);
+        });
+
+        // Ordena os dias da semana antes de exibir
+        const sortedDays = [...groupedAppointments.keys()].sort();
+
+        sortedDays.forEach(dayKey => {
+            const appointmentsOnDay = groupedAppointments.get(dayKey);
+            const date = new Date(`${dayKey}T12:00:00`);
+            const dayHeader = document.createElement('h3');
+            dayHeader.className = 'text-xl font-bold text-slate-700 pb-2 border-b mb-4';
+            dayHeader.textContent = date.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' });
+            appointmentsListContainer.appendChild(dayHeader);
+            
+            const dayContainer = document.createElement('div');
+            dayContainer.className = 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4';
+            
+            appointmentsOnDay.forEach(app => {
+                const card = document.createElement('div');
+                card.className = 'appointment-card bg-white p-4 rounded-lg shadow flex flex-col justify-between';
+                const appDate = app.dateTime.toDate();
+                card.innerHTML = `
+                    <div>
+                        <div class="flex justify-between items-center">
+                            <span class="font-bold text-lg text-indigo-600">${String(appDate.getHours()).padStart(2, '0')}:${String(appDate.getMinutes()).padStart(2, '0')}</span>
+                            <span class="text-xs font-semibold text-slate-600">${app.barberName}</span>
+                        </div>
+                        <div class="mt-2">
+                            <p class="font-semibold text-slate-800">${app.clientName}</p>
+                            <p class="text-sm text-slate-500">${app.serviceName}</p>
+                        </div>
+                    </div>
+                    <p class="text-right font-bold text-slate-700 mt-4">R$ ${(app.price || 0).toFixed(2)}</p>
+                `;
+                card.addEventListener('click', () => openEditModal(userId, app.id));
+                dayContainer.appendChild(card);
+            });
+            appointmentsListContainer.appendChild(dayContainer);
+        });
+        feather.replace();
+    });
+};
             const loadWorkingHours = async () => { if (workingHoursCache) return workingHoursCache; const ref = doc(db, 'users', userId, 'settings', 'workingHours'); const docSnap = await getDoc(ref); if (docSnap.exists()) { workingHoursCache = docSnap.data(); return workingHoursCache; } return null; };
             const renderAvailableTimes = async (dateString, excludedTime = null) => { const timeSlotsContainer = document.getElementById('time-slots-container'); if (!dateString) { if(timeSlotsContainer) timeSlotsContainer.innerHTML = `<p class="text-sm text-slate-500 col-span-4">Selecione uma data para ver os horários.</p>`; return; } if(timeSlotsContainer) timeSlotsContainer.innerHTML = `<div class="spinner-large mx-auto my-4 col-span-4"></div>`; const workingHours = await loadWorkingHours(); if (!workingHours) { if(timeSlotsContainer) timeSlotsContainer.innerHTML = `<p class="text-sm text-red-500 col-span-4">Defina seus horários nas configurações primeiro.</p>`; return; } const selectedDate = new Date(`${dateString}T00:00:00`); const dayOfWeek = selectedDate.getDay(); const dayKeys = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sab']; const dayConfig = workingHours[dayKeys[dayOfWeek]]; if (!dayConfig || !dayConfig.isOpen) { if(timeSlotsContainer) timeSlotsContainer.innerHTML = `<p class="text-sm text-slate-500 col-span-4">Fechado neste dia.</p>`; return; } const startOfDay = Timestamp.fromDate(new Date(`${dateString}T00:00:00`)); const endOfDay = Timestamp.fromDate(new Date(`${dateString}T23:59:59`)); const q = query(collection(db, 'users', userId, 'appointments'), where("dateTime", ">=", startOfDay), where("dateTime", "<=", endOfDay)); const appointmentsSnap = await getDocs(q); const bookedTimes = appointmentsSnap.docs.map(doc => { const appDate = doc.data().dateTime.toDate(); return `${String(appDate.getHours()).padStart(2, '0')}:${String(appDate.getMinutes()).padStart(2, '0')}`; }); if(timeSlotsContainer) timeSlotsContainer.innerHTML = ''; const allSlots = []; let currentTime = new Date(`${dateString}T${dayConfig.start}`); const endTime = new Date(`${dateString}T${dayConfig.end}`); while (currentTime < endTime) { const timeString = `${String(currentTime.getHours()).padStart(2, '0')}:${String(currentTime.getMinutes()).padStart(2, '0')}`; allSlots.push(timeString); currentTime.setMinutes(currentTime.getMinutes() + 30); } if (allSlots.length === 0) { if(timeSlotsContainer) timeSlotsContainer.innerHTML = `<p class="text-sm text-slate-500 col-span-4">Nenhum horário disponível.</p>`; return; } const now = new Date(); const isToday = (selectedDate.toDateString() === now.toDateString()); allSlots.forEach(time => { const isBooked = bookedTimes.includes(time) && time !== excludedTime; let isPast = false; if (isToday) { const slotTime = new Date(`${dateString}T${time}`); isPast = slotTime < now; } const button = document.createElement('button'); button.type = 'button'; button.textContent = time; button.dataset.time = time; button.disabled = isBooked || isPast; button.className = `py-2 px-4 border rounded-lg text-sm font-semibold ${isBooked || isPast ? 'bg-slate-200 text-slate-400 cursor-not-allowed' : 'bg-white hover:bg-indigo-50 hover:border-indigo-500'}`; button.addEventListener('click', (e) => { selectedTime = e.target.dataset.time; document.querySelectorAll('#time-slots-container button').forEach(btn => { btn.classList.remove('bg-indigo-600', 'text-white', 'border-indigo-600'); btn.classList.add('bg-white'); }); e.target.classList.add('bg-indigo-600', 'text-white', 'border-indigo-600'); e.target.classList.remove('bg-white'); }); if(timeSlotsContainer) timeSlotsContainer.appendChild(button); }); };
             const closeAppointmentModal = () => { appointmentModal.innerHTML = ''; appointmentModal.classList.add('hidden'); };
@@ -479,7 +510,7 @@
             document.getElementById('prev-week-btn').addEventListener('click', () => renderAppointmentsForWeek(currentWeekOffset - 1));
             document.getElementById('next-week-btn').addEventListener('click', () => renderAppointmentsForWeek(currentWeekOffset + 1));
             addAppointmentBtn.addEventListener('click', openNewAppointmentModal);
-            renderAppointmentsForWeek(0);
+            renderAppointmentsForWeek(currentWeekOffset);
         }
         function initializeClients(userId) { const tableBody = document.getElementById('clients-table-body'); const searchInput = document.getElementById('client-search-input'); const clientsRef = collection(db, 'users', userId, 'clients'); let clientsData = []; const renderTable = (clients) => { if (clients.length === 0) { tableBody.innerHTML = `<tr><td colspan="5" class="text-center p-6 text-slate-500">Nenhum cliente encontrado.</td></tr>`; return; } tableBody.innerHTML = ''; clients.forEach(client => { const row = tableBody.insertRow(); let lastDateFormatted = '-'; if (client.lastAppointmentDate) { const lastDate = client.lastAppointmentDate.toDate(); lastDateFormatted = lastDate.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' }); } row.innerHTML = ` <td class="px-6 py-4 font-medium text-gray-900">${client.name}</td> <td class="px-6 py-4">${client.phone}</td> <td class="px-6 py-4">${client.appointmentCount || 0}</td> <td class="px-6 py-4 text-slate-600">${lastDateFormatted}</td> <td class="px-6 py-4 text-center"> <button class="text-red-500 hover:text-red-700 delete-client-btn" data-client-id="${client.id}" data-client-name="${client.name}"> <i data-feather="trash-2" class="w-4 h-4 pointer-events-none"></i> </button> </td> `; }); feather.replace(); }; onSnapshot(query(clientsRef, orderBy("name")), (snapshot) => { clientsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); renderTable(clientsData); searchInput.dispatchEvent(new Event('input')); }); searchInput.addEventListener('input', (e) => { const searchTerm = e.target.value.toLowerCase(); const filteredClients = clientsData.filter(client => client.name.toLowerCase().includes(searchTerm) || (client.phone && client.phone.includes(searchTerm)) ); renderTable(filteredClients); }); tableBody.addEventListener('click', async (e) => { const deleteButton = e.target.closest('.delete-client-btn'); if (deleteButton) { const clientId = deleteButton.dataset.clientId; const clientName = deleteButton.dataset.clientName; if (window.confirm(`Tem certeza que deseja excluir o cliente ${clientName}? Esta ação NÃO PODE ser desfeita e removerá o cliente permanentemente.`)) { try { await deleteDoc(doc(db, 'users', userId, 'clients', clientId)); alert('Cliente excluído com sucesso.'); } catch (error) { console.error("Erro ao excluir cliente:", error); alert('Não foi possível excluir o cliente.'); } } } }); }
         function initializeServices(userId) { const form = document.getElementById('service-form'); const listDiv = document.getElementById('services-list'); let editingServiceId = null; form.addEventListener('submit', async (e) => { e.preventDefault(); const saveBtn = form.querySelector('button[type="submit"]'); const btnText = saveBtn.querySelector('.btn-text'); saveBtn.disabled = true; const serviceData = { name: form.elements['service-name'].value, duration: Number(form.elements['service-duration'].value), price: Number(form.elements['service-price'].value) }; try { if (editingServiceId) { const serviceRef = doc(db, 'users', userId, 'services', editingServiceId); await updateDoc(serviceRef, serviceData); } else { await addDoc(collection(db, 'users', userId, 'services'), serviceData); } form.reset(); editingServiceId = null; btnText.textContent = 'Salvar Serviço'; } catch (error) { console.error("Erro ao salvar serviço:", error); } finally { saveBtn.disabled = false; } }); onSnapshot(query(collection(db, 'users', userId, 'services'), orderBy("name")), (snap) => { servicesCache.clear(); listDiv.innerHTML = snap.empty ? '<p>Nenhum serviço registrado.</p>' : ''; snap.forEach(doc => { const service = { id: doc.id, ...doc.data() }; servicesCache.set(service.id, service); const el = document.createElement('div'); el.className = 'flex justify-between items-center bg-slate-50 p-3 rounded-lg'; el.innerHTML = `<div><p class="font-semibold">${service.name}</p><p class="text-sm text-slate-500">${service.duration} min - R$ ${service.price.toFixed(2)}</p></div><div class="flex items-center gap-4"><button class="text-slate-500 hover:text-indigo-600 edit-service-btn" data-service-id="${service.id}"><i data-feather="edit-2" class="w-4 h-4 pointer-events-none"></i></button><button class="text-slate-500 hover:text-red-600 delete-service-btn" data-service-id="${service.id}"><i data-feather="trash-2" class="w-4 h-4 pointer-events-none"></i></button></div>`; listDiv.appendChild(el); }); feather.replace(); }); listDiv.addEventListener('click', async (e) => { const editButton = e.target.closest('.edit-service-btn'); const deleteButton = e.target.closest('.delete-service-btn'); if (editButton) { const serviceId = editButton.dataset.serviceId; const serviceRef = doc(db, 'users', userId, 'services', serviceId); const docSnap = await getDoc(serviceRef); if (docSnap.exists()) { const service = docSnap.data(); form.elements['service-name'].value = service.name; form.elements['service-duration'].value = service.duration; form.elements['service-price'].value = service.price; form.querySelector('.btn-text').textContent = 'Atualizar Serviço'; editingServiceId = serviceId; } } if (deleteButton) { const serviceId = deleteButton.dataset.serviceId; if (window.confirm("Tem certeza que deseja excluir este serviço?")) { await deleteDoc(doc(db, "users", userId, "services", serviceId)); } } }); }

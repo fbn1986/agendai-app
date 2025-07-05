@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Agendamento - AgendaUp</title>
+    <title>Agendamento - AgendAI</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/feather-icons"></script>
@@ -12,101 +12,97 @@
             font-family: 'Poppins', sans-serif;
             background-color: #f8fafc;
         }
-        .input-style { 
-            margin-top: 0.25rem; 
-            display: block; 
-            width: 100%; 
-            padding: 0.75rem; 
-            border: 1px solid #cbd5e1; 
-            border-radius: 0.375rem; 
-            background-color: #f8fafc;
-        }
-        .time-slot:disabled {
+        select:disabled, input:disabled, button:disabled {
             background-color: #f1f5f9;
-            color: #94a3b8;
             cursor: not-allowed;
-            border-color: #e2e8f0;
+            opacity: 0.7;
         }
-        .time-slot.selected {
-            background-color: #4f46e5;
-            color: white;
-            border-color: #4f46e5;
+        .remove-service-btn {
+            transition: color 0.2s ease-in-out;
         }
     </style>
-</head><body class="flex justify-center items-start min-h-screen p-4 sm:p-6 md:p-8 bg-slate-50">
+</head>
+<body class="flex justify-center items-start min-h-screen p-4 sm:p-6 md:p-8">
 
-    <div id="main-container" class="w-full max-w-lg mx-auto hidden">
+    <div id="main-container" class="w-full max-w-2xl mx-auto hidden">
         <header class="text-center mb-8">
-            <img id="barbershop-logo" src="https://i.postimg.cc/ZKq9v4Xh/Flux-Dev-Design-a-clean-professional-logo-for-a-scheduling-pla-2.jpg" alt="Logo da Barbearia" class="w-24 h-24 rounded-full mx-auto mb-4 object-cover border-4 border-white shadow-lg">
-            <h1 id="barbershop-name" class="text-2xl sm:text-3xl font-bold text-slate-800">Carregando...</h1>
+            <img src="https://i.postimg.cc/ZKq9v4Xh/Flux-Dev-Design-a-clean-professional-logo-for-a-scheduling-pla-2.jpg" alt="Logo da Barbearia" class="w-24 h-24 rounded-full mx-auto mb-4 object-cover">
+            <h1 id="barbershop-name" class="text-2xl sm:text-3xl font-bold text-slate-800">Nome da Barbearia</h1>
             <p class="text-slate-500 mt-1">Faça seu agendamento online</p>
         </header>
 
-        <main id="booking-main" class="bg-white p-6 sm:p-8 rounded-lg shadow-xl">
-            <h2 class="text-xl font-bold text-slate-900 mb-6 text-center">Novo Agendamento</h2>
-            <form id="booking-form" class="space-y-5">
-                
+        <main class="bg-white p-4 sm:p-6 md:p-8 rounded-lg shadow-md space-y-8">
+            
+            <form id="booking-form" class="space-y-6">
                 <div>
-                    <label for="client-name" class="block text-sm font-medium text-slate-700">Nome</label>
-                    <input type="text" id="client-name" required class="input-style" placeholder="Seu nome completo">
+                    <label for="client-name" class="block text-sm font-medium text-slate-700">Seu nome</label>
+                    <input type="text" id="client-name" name="client-name" placeholder="Digite seu nome completo" required class="mt-1 block w-full p-2 border border-slate-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
                 </div>
-                
                 <div>
-                    <label for="client-phone" class="block text-sm font-medium text-slate-700">Telefone</label>
-                    <input type="tel" id="client-phone" required class="input-style" placeholder="(XX) XXXXX-XXXX">
+                    <label for="client-phone" class="block text-sm font-medium text-slate-700">Seu WhatsApp</label>
+                    <input type="tel" id="client-phone" name="client-phone" placeholder="(XX) XXXXX-XXXX" required class="mt-1 block w-full p-2 border border-slate-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+                </div>
+                 <div>
+                    <label for="barber-select" class="block text-sm font-medium text-slate-700">Profissional</label>
+                    <select id="barber-select" name="barber" required class="mt-1 block w-full p-2 border border-slate-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+                        <option value="">Carregando...</option>
+                    </select>
                 </div>
 
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-2">Serviços</label>
+                    <div id="services-container" class="space-y-3">
+                        </div>
+                    <button type="button" id="add-service-btn" class="mt-3 text-indigo-600 hover:text-indigo-800 font-semibold text-sm flex items-center" disabled>
+                        <i data-feather="plus-circle" class="w-4 h-4 mr-2"></i>Adicionar outro serviço
+                    </button>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                         <label for="booking-date" class="block text-sm font-medium text-slate-700">Data</label>
-                        <input type="date" id="booking-date" required class="input-style">
+                        <input type="date" id="booking-date" name="date" required disabled class="mt-1 block w-full p-2 border border-slate-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
                     </div>
                     <div>
-                        <label for="time-select" class="block text-sm font-medium text-slate-700">Hora de Início</label>
-                        <select id="time-select" required class="input-style bg-white">
-                            <option value="">--:--</option>
+                        <label for="time-select" class="block text-sm font-medium text-slate-700">Hora</label>
+                        <select id="time-select" name="time" required disabled class="mt-1 block w-full p-2 border border-slate-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+                            <option value="">Aguardando data</option>
                         </select>
                     </div>
                 </div>
 
-                <div>
-                    <label class="block text-sm font-medium text-slate-700">Serviços</label>
-                    <div id="services-container" class="space-y-2 mt-1">
-                        </div>
-                    <button type="button" id="add-service-btn" class="mt-2 text-sm font-semibold text-indigo-600 hover:text-indigo-800 flex items-center">
-                        <i data-feather="plus" class="w-4 h-4 mr-1"></i>Adicionar outro serviço
-                    </button>
-                </div>
-                
-                <div class="pt-4 border-t">
-                    <p class="text-right font-bold text-lg text-slate-800">Valor Total: <span id="total-price" class="text-indigo-600">R$ 0,00</span></p>
-                </div>
-                
-                <div class="flex items-center gap-4 pt-4">
-                    <button id="cancel-btn" type="button" class="w-full text-center text-slate-600 font-semibold py-3 px-4 rounded-lg hover:bg-slate-100">Cancelar</button>
-                    <button id="confirm-booking-btn" type="submit" class="w-full bg-indigo-600 text-white font-semibold py-3 px-4 rounded-lg shadow-md hover:bg-indigo-700 disabled:opacity-50" disabled>
-                        Salvar Agendamento
-                    </button>
+                <div class="pt-4 border-t border-slate-200 space-y-4">
+                    <div class="flex justify-between items-center text-lg font-bold text-slate-800">
+                        <span>Valor Total</span>
+                        <span id="total-price">R$ 0,00</span>
+                    </div>
+                    <div class="flex flex-col-reverse sm:flex-row gap-3">
+                        <button type="button" id="cancel-btn" class="w-full text-center px-4 py-2 text-sm font-medium text-slate-600 bg-slate-100 rounded-md hover:bg-slate-200">Cancelar</button>
+                        <button type="submit" id="confirm-booking-btn" class="w-full text-center px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md shadow-sm hover:bg-indigo-700">Salvar Agendamento</button>
+                    </div>
                 </div>
             </form>
+
+            <div id="step-5-confirmation" class="hidden text-center">
+                <div id="confirmation-icon" class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i data-feather="check" class="w-10 h-10 text-green-600"></i>
+                </div>
+                <h2 id="confirmation-title" class="font-bold text-xl text-slate-800">Agendamento Confirmado!</h2>
+                <p id="confirmation-message" class="text-slate-600 mt-2">Seu horário foi reservado com sucesso.</p>
+                <div id="confirmation-summary" class="bg-slate-50 p-4 rounded-lg mt-6 text-sm text-left space-y-1"></div>
+                <div id="confirmation-actions" class="mt-6 space-y-3"></div>
+            </div>
         </main>
     </div>
     
     <div id="error-container" class="hidden text-center p-4">
         <h1 class="text-2xl font-bold text-red-600">Link de Agendamento Inválido</h1>
-        <p class="text-slate-600 mt-2">Não foi possível encontrar o estabelecimento.</p>
-    </div><div id="confirmation-view" class="hidden w-full max-w-lg mx-auto bg-white p-8 rounded-lg shadow-xl text-center">
-        <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <i data-feather="check" class="w-10 h-10 text-green-600"></i>
-        </div>
-        <h2 class="font-bold text-xl text-slate-800">Agendamento Confirmado!</h2>
-        <p class="text-slate-600 mt-2">Seus horários foram reservados com sucesso.</p>
-        <div id="confirmation-summary" class="bg-slate-50 p-4 rounded-lg mt-6 text-sm text-left space-y-1"></div>
+        <p class="text-slate-600 mt-2">Não foi possível encontrar o serviço. Por favor, verifique o link ou entre em contato com o estabelecimento.</p>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
-        import { getFirestore, doc, getDoc, addDoc, collection, query, where, Timestamp, getDocs, increment, updateDoc, writeBatch } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
+        import { getFirestore, doc, getDoc, addDoc, collection, query, where, Timestamp, getDocs, increment, updateDoc, deleteDoc, writeBatch } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
         
         const firebaseConfig = {
             apiKey: "AIzaSyAkIUtakV64F2SYjvJylTGlw8-vTfXc3Fk",
@@ -121,185 +117,372 @@
         const db = getFirestore(app);
         
         const urlParams = new URLSearchParams(window.location.search);
-        const OWNER_ID = urlParams.get('user');
-        
-        const state = { 
+        const BARBERSHOP_OWNER_ID = urlParams.get('user');
+
+        const state = {
             selectedServices: [],
-            selectedDate: null, 
+            selectedBarber: null,
+            selectedDate: null,
             selectedTime: null,
             allServices: [],
-            selectedBarber: null
+            allBarbers: [],
         };
 
-        async function loadInitialData() { 
-            if (!OWNER_ID) { 
-                document.getElementById('main-container').classList.add('hidden');
-                document.getElementById('error-container').classList.remove('hidden'); 
-                return; 
-            } 
-            try { 
-                const userRef = doc(db, "users", OWNER_ID);
-                const servicesQuery = query(collection(db, "users", OWNER_ID, "services"));
-                const barbersQuery = query(collection(db, "users", OWNER_ID, "barbers"));
-                
-                const [userSnap, servicesSnap, barbersSnap] = await Promise.all([getDoc(userRef), getDocs(servicesQuery), getDocs(barbersQuery)]);
-
-                if (userSnap.exists()) { 
-                    document.getElementById('barbershop-name').textContent = userSnap.data().barbershopName || "Salão"; 
-                    state.allServices = servicesSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                    
-                    if (barbersSnap.docs.length > 0) {
-                        state.selectedBarber = { id: barbersSnap.docs[0].id, ...barbersSnap.docs[0].data() };
-                    }
-
-                    document.getElementById('main-container').classList.remove('hidden'); 
-                    setupEventListeners();
-                    addServiceDropdown(); // Adiciona o primeiro dropdown de serviço
-                } else { 
-                    document.getElementById('error-container').classList.remove('hidden'); 
-                } 
-            } catch (error) { 
-                console.error("Erro ao carregar informações:", error); 
-                document.getElementById('error-container').classList.remove('hidden'); 
-            } 
-        }function addServiceDropdown() {
-            const container = document.getElementById('services-container');
-            const newIndex = container.children.length;
-
-            const serviceDiv = document.createElement('div');
-            serviceDiv.className = 'flex items-center gap-2';
-            
-            const select = document.createElement('select');
-            select.className = 'input-style bg-white flex-grow service-select';
-            select.dataset.index = newIndex;
-            select.innerHTML = '<option value="">Selecione um serviço</option>';
-            state.allServices.forEach(service => {
-                const option = document.createElement('option');
-                option.value = JSON.stringify(service);
-                option.textContent = `${service.name} (R$ ${service.price.toFixed(2)})`;
-                select.appendChild(option);
-            });
-            serviceDiv.appendChild(select);
-            
-            if (newIndex > 0) {
-                const removeBtn = document.createElement('button');
-                removeBtn.type = 'button';
-                removeBtn.innerHTML = '<i data-feather="trash-2" class="w-5 h-5 text-red-500"></i>';
-                removeBtn.onclick = () => {
-                    serviceDiv.remove();
-                    updateTotalPriceAndSlots();
-                    feather.replace();
-                };
-                serviceDiv.appendChild(removeBtn);
+        const elements = {
+            mainContainer: document.getElementById('main-container'),
+            errorContainer: document.getElementById('error-container'),
+            barbershopName: document.getElementById('barbershop-name'),
+            bookingForm: document.getElementById('booking-form'),
+            clientName: document.getElementById('client-name'),
+            clientPhone: document.getElementById('client-phone'),
+            barberSelect: document.getElementById('barber-select'),
+            bookingDate: document.getElementById('booking-date'),
+            timeSelect: document.getElementById('time-select'),
+            servicesContainer: document.getElementById('services-container'),
+            addServiceBtn: document.getElementById('add-service-btn'),
+            totalPrice: document.getElementById('total-price'),
+            confirmBookingBtn: document.getElementById('confirm-booking-btn'),
+            cancelBtn: document.getElementById('cancel-btn'),
+            confirmationScreen: document.getElementById('step-5-confirmation')
+        };
+        
+        function showScreen(screenName) {
+            elements.bookingForm.classList.add('hidden');
+            elements.confirmationScreen.classList.add('hidden');
+            if (screenName === 'form') {
+                elements.bookingForm.classList.remove('hidden');
+            } else if (screenName === 'confirmation') {
+                elements.confirmationScreen.classList.remove('hidden');
             }
-
-            container.appendChild(serviceDiv);
-            feather.replace();
-
-            select.addEventListener('change', updateTotalPriceAndSlots);
         }
 
-        function updateTotalPriceAndSlots() {
-            let totalPrice = 0;
-            const serviceDropdowns = document.querySelectorAll('.service-select');
-            state.selectedServices = [];
+        async function loadBarbershopInfo() {
+            if (!BARBERSHOP_OWNER_ID) {
+                elements.errorContainer.classList.remove('hidden');
+                return;
+            }
+            try {
+                const docRef = doc(db, "users", BARBERSHOP_OWNER_ID);
+                const docSnap = await getDoc(docRef);
+                if (docSnap.exists()) {
+                    elements.barbershopName.textContent = docSnap.data().barbershopName || "Barbearia";
+                    elements.mainContainer.classList.remove('hidden');
+                    await Promise.all([loadServices(), loadBarbers()]);
+                    initializeForm();
+                } else {
+                    elements.mainContainer.classList.add('hidden');
+                    elements.errorContainer.classList.remove('hidden');
+                }
+            } catch (error) {
+                console.error("Erro ao carregar informações de empresa:", error);
+                elements.mainContainer.classList.add('hidden');
+                elements.errorContainer.classList.remove('hidden');
+            }
+        }
 
-            serviceDropdowns.forEach(select => {
+        async function loadServices() {
+            try {
+                const q = query(collection(db, "users", BARBERSHOP_OWNER_ID, "services"));
+                const querySnapshot = await getDocs(q);
+                state.allServices = querySnapshot.docs.map(docSnap => ({ id: docSnap.id, ...docSnap.data() }));
+            } catch (error) {
+                console.error("Erro ao carregar serviços:", error);
+                alert("Não foi possível carregar os serviços.");
+            }
+        }
+
+        async function loadBarbers() {
+            const select = elements.barberSelect;
+            select.innerHTML = '<option value="">Carregando...</option>';
+            try {
+                const q = query(collection(db, "users", BARBERSHOP_OWNER_ID, "barbers"));
+                const querySnapshot = await getDocs(q);
+                state.allBarbers = querySnapshot.docs.map(docSnap => ({ id: docSnap.id, ...docSnap.data() }));
+                
+                select.innerHTML = '<option value="">Selecione um profissional</option>';
+                if (state.allBarbers.length === 0) {
+                    select.innerHTML = '<option value="">Nenhum profissional</option>';
+                    select.disabled = true;
+                } else {
+                    state.allBarbers.forEach(barber => {
+                        const option = new Option(barber.name, barber.id);
+                        select.add(option);
+                    });
+                }
+            } catch (error) {
+                console.error("Erro ao carregar barbeiros:", error);
+                select.innerHTML = '<option value="">Erro ao carregar</option>';
+            }
+        }
+        
+        function addServiceRow() {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'flex items-center gap-2';
+            
+            const select = document.createElement('select');
+            select.className = 'service-select mt-1 block w-full p-2 border border-slate-300 rounded-md';
+            select.innerHTML = '<option value="">Selecione um serviço</option>';
+            if (state.allServices.length > 0) {
+                state.allServices.forEach(service => {
+                    select.add(new Option(`${service.name} (R$ ${service.price.toFixed(2)})`, service.id));
+                });
+            } else {
+                select.innerHTML = '<option value="">Nenhum serviço disponível</option>';
+                select.disabled = true;
+            }
+            
+            const removeBtn = document.createElement('button');
+            removeBtn.type = 'button';
+            removeBtn.innerHTML = '<i data-feather="trash-2" class="w-5 h-5 text-red-500"></i>';
+            removeBtn.className = 'remove-service-btn p-1 rounded-md hover:bg-red-100';
+            removeBtn.onclick = () => removeServiceRow(wrapper);
+            
+            wrapper.appendChild(select);
+            wrapper.appendChild(removeBtn);
+            elements.servicesContainer.appendChild(wrapper);
+            feather.replace();
+            updateCart();
+        }
+
+        function removeServiceRow(rowElement) {
+            rowElement.remove();
+            updateCart();
+        }
+
+        function updateCart() {
+            const serviceSelects = document.querySelectorAll('.service-select');
+            state.selectedServices = [];
+            let totalPrice = 0;
+
+            serviceSelects.forEach(select => {
                 if (select.value) {
-                    const service = JSON.parse(select.value);
-                    totalPrice += service.price;
-                    state.selectedServices.push(service);
+                    const service = state.allServices.find(s => s.id === select.value);
+                    if (service) {
+                        state.selectedServices.push(service);
+                        totalPrice += service.price;
+                    }
                 }
             });
 
-            document.getElementById('total-price').textContent = `R$ ${totalPrice.toFixed(2)}`;
-
-            if (state.selectedDate && state.selectedServices.length > 0) {
-                loadAvailableTimes(state.selectedDate);
+            elements.totalPrice.textContent = `R$ ${totalPrice.toFixed(2)}`;
+            
+            const hasServices = state.selectedServices.length > 0;
+            elements.bookingDate.disabled = !hasServices;
+            
+            if (!hasServices) {
+                elements.bookingDate.value = '';
+                state.selectedDate = null;
             }
+
+            if (state.selectedDate) {
+                loadAvailableTimes(state.selectedDate);
+            } else {
+                elements.timeSelect.disabled = true;
+                elements.timeSelect.innerHTML = '<option value="">Aguardando data</option>';
+            }
+
+            const canAddMore = state.allServices.length > state.selectedServices.length;
+            elements.addServiceBtn.style.display = canAddMore ? 'flex' : 'none';
         }
 
         async function loadAvailableTimes(dateStr) {
-            const timeSelect = document.getElementById('time-select');
-            timeSelect.innerHTML = '<option value="">Carregando...</option>';
+            const timeSelect = elements.timeSelect;
             timeSelect.disabled = true;
+            timeSelect.innerHTML = '<option value="">Verificando...</option>';
+
+            if (!dateStr) {
+                timeSelect.innerHTML = '<option value="">Aguardando data</option>';
+                return;
+            }
+
+            const slotsNeeded = state.selectedServices.length;
+            if (slotsNeeded === 0) {
+                timeSelect.innerHTML = '<option value="">Escolha um serviço</option>';
+                return;
+            }
 
             try {
-                const settingsRef = doc(db, 'users', OWNER_ID, 'settings', 'workingHours');
+                const settingsRef = doc(db, 'users', BARBERSHOP_OWNER_ID, 'settings', 'workingHours');
                 const settingsSnap = await getDoc(settingsRef);
                 const workingHours = settingsSnap.exists() ? settingsSnap.data() : {};
-                
-                const selectedDate = new Date(`${dateStr}T12:00:00Z`);
-                const dayOfWeek = selectedDate.getUTCDay();
+                const selectedDate = new Date(`${dateStr}T12:00:00`);
+                const dayOfWeek = selectedDate.getDay();
                 const dayKeys = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sab'];
                 const daySettings = workingHours[dayKeys[dayOfWeek]];
 
                 if (!daySettings || !daySettings.isOpen) {
-                    timeSelect.innerHTML = '<option value="">Fechado neste dia</option>';
+                    timeSelect.innerHTML = '<option value="">Fechado</option>';
                     return;
                 }
 
                 const allPossibleSlots = [];
-                let currentHour = parseInt(daySettings.start.split(':')[0]);
-                let currentMinute = parseInt(daySettings.start.split(':')[1]);
-                let endHour = parseInt(daySettings.end.split(':')[0]);
-                let endMinute = parseInt(daySettings.end.split(':')[1]);
+                let [startHour, startMinute] = daySettings.start.split(':').map(Number);
+                let [endHour, endMinute] = daySettings.end.split(':').map(Number);
+                let current = new Date(selectedDate);
+                current.setHours(startHour, startMinute, 0, 0);
+                const end = new Date(selectedDate);
+                end.setHours(endHour, endMinute, 0, 0);
 
-                while (currentHour < endHour || (currentHour === endHour && currentMinute < endMinute)) {
-                    allPossibleSlots.push(`${String(currentHour).padStart(2, '0')}:${String(currentMinute).padStart(2, '0')}`);
-                    currentMinute += 30;
-                    if (currentMinute >= 60) {
-                        currentHour++;
-                        currentMinute -= 60;
-                    }
+                while (current < end) {
+                    allPossibleSlots.push(`${String(current.getHours()).padStart(2, '0')}:${String(current.getMinutes()).padStart(2, '0')}`);
+                    current.setMinutes(current.getMinutes() + 30);
                 }
-                
-                const startOfDay = Timestamp.fromDate(new Date(`${dateStr}T00:00:00Z`));
-                const endOfDay = Timestamp.fromDate(new Date(`${dateStr}T23:59:59Z`));
-                const appointmentsQuery = query(collection(db, "users", OWNER_ID, "appointments"), where('dateTime', '>=', startOfDay), where('dateTime', '<=', endOfDay));
+
+                const startOfDay = Timestamp.fromDate(new Date(`${dateStr}T00:00:00`));
+                const endOfDay = Timestamp.fromDate(new Date(`${dateStr}T23:59:59`));
+                const appointmentsQuery = query(collection(db, "users", BARBERSHOP_OWNER_ID, "appointments"), where('dateTime', '>=', startOfDay), where('dateTime', '<=', endOfDay));
                 const querySnapshot = await getDocs(appointmentsQuery);
                 const bookedTimes = new Set(querySnapshot.docs.map(doc => {
                     const date = doc.data().dateTime.toDate();
                     return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
                 }));
 
-                const now = new Date();
-                const isToday = now.toISOString().split('T')[0] === dateStr;
-
-                timeSelect.innerHTML = '<option value="">Selecione um horário</option>';
-                let availableCount = 0;
-                allPossibleSlots.forEach(time => {
-                    const numServices = state.selectedServices.length;
-                    let canBook = true;
-                    for (let i = 0; i < numServices; i++) {
-                        const tempDate = new Date(`${dateStr}T${time}:00`);
-                        tempDate.setMinutes(tempDate.getMinutes() + (i * 30));
-                        const checkTime = `${String(tempDate.getHours()).padStart(2, '0')}:${String(tempDate.getMinutes()).padStart(2, '0')}`;
-                        if (bookedTimes.has(checkTime) || (isToday && tempDate < now)) {
-                            canBook = false;
+                const freeSlots = new Set(allPossibleSlots.filter(slot => !bookedTimes.has(slot)));
+                const validStartTimes = [];
+                for (let i = 0; i <= allPossibleSlots.length - slotsNeeded; i++) {
+                    let isSequenceValid = true;
+                    for (let j = 0; j < slotsNeeded; j++) {
+                        if (!freeSlots.has(allPossibleSlots[i+j])) {
+                            isSequenceValid = false;
                             break;
                         }
                     }
+                    if (isSequenceValid) {
+                        validStartTimes.push(allPossibleSlots[i]);
+                    }
+                }
+                
+                timeSelect.innerHTML = '<option value="">Selecione um horário</option>';
+                if (validStartTimes.length === 0) {
+                     timeSelect.innerHTML = '<option value="">Sem horários sequenciais</option>';
+                     return;
+                }
+                
+                const now = new Date();
+                const isToday = now.toISOString().split('T')[0] === dateStr;
 
-                    if (canBook) {
-                        const option = document.createElement('option');
-                        option.value = time;
-                        option.textContent = time;
-                        timeSelect.appendChild(option);
-                        availableCount++;
+                validStartTimes.forEach(time => {
+                    const [slotHour, slotMinute] = time.split(':').map(Number);
+                    let isPast = false;
+                    if (isToday) {
+                        const currentHour = now.getHours();
+                        const currentMinute = now.getMinutes();
+                        if (slotHour < currentHour || (slotHour === currentHour && slotMinute < currentMinute)) {
+                            isPast = true;
+                        }
+                    }
+                    if (!isPast) {
+                        timeSelect.add(new Option(time, time));
                     }
                 });
-
-                if (availableCount === 0) {
-                    timeSelect.innerHTML = '<option value="">Sem horários livres</option>';
-                } else {
-                    timeSelect.disabled = false;
+                
+                timeSelect.disabled = false;
+                if (timeSelect.options.length <= 1) {
+                    timeSelect.innerHTML = '<option value="">Nenhum horário disponível</option>';
+                    timeSelect.disabled = true;
                 }
             } catch (error) {
                 console.error("Erro ao carregar horários:", error);
                 timeSelect.innerHTML = '<option value="">Erro ao carregar</option>';
             }
-        }const findOrCreateClient = async (userId, clientName, clientPhone) => {
+        }
+        
+        async function handleConfirmBooking(e) {
+            e.preventDefault();
+            const btn = elements.confirmBookingBtn;
+            btn.disabled = true;
+            btn.innerHTML = 'Confirmando...';
+
+            try {
+                const clientName = elements.clientName.value;
+                const clientPhone = elements.clientPhone.value;
+                const startTime = elements.timeSelect.value;
+                const barberId = elements.barberSelect.value;
+                const barber = state.allBarbers.find(b => b.id === barberId);
+
+                if (state.selectedServices.length === 0 || !startTime || !barber || !state.selectedDate) {
+                    alert("Por favor, preencha todos os campos: profissional, serviço(s), data e hora.");
+                    btn.disabled = false;
+                    btn.innerHTML = 'Salvar Agendamento';
+                    return;
+                }
+                
+                const clientId = await findOrCreateClient(BARBERSHOP_OWNER_ID, clientName, clientPhone);
+                const batch = writeBatch(db);
+                let currentAppointmentTime = new Date(`${state.selectedDate}T${startTime}`);
+
+                for (const service of state.selectedServices) {
+                    const appointmentTimestamp = Timestamp.fromDate(currentAppointmentTime);
+                    const appointmentData = {
+                        clientName, clientPhone, clientId,
+                        serviceId: service.id,
+                        serviceName: service.name,
+                        barberId: barber.id,
+                        barberName: barber.name,
+                        barberPhone: barber.phone || null,
+                        dateTime: appointmentTimestamp,
+                        price: service.price,
+                        status: 'confirmado',
+                        lembreteEnviado: null,
+                        createdAt: Timestamp.now()
+                    };
+                    const newAppointmentRef = doc(collection(db, "users", BARBERSHOP_OWNER_ID, "appointments"));
+                    batch.set(newAppointmentRef, appointmentData);
+                    currentAppointmentTime.setMinutes(currentAppointmentTime.getMinutes() + 30);
+                }
+
+                const clientRef = doc(db, 'users', BARBERSHOP_OWNER_ID, 'clients', clientId);
+                batch.update(clientRef, { 
+                    appointmentCount: increment(state.selectedServices.length),
+                    lastAppointmentDate: Timestamp.fromDate(new Date(`${state.selectedDate}T${startTime}`)),
+                    winbackMessageSent: false
+                });
+
+                await batch.commit();
+                renderConfirmationScreen(clientName, startTime, barber);
+                showScreen('confirmation');
+            } catch (error) {
+                console.error("Erro ao confirmar agendamento: ", error);
+                alert("Não foi possível confirmar o agendamento. Tente novamente.");
+                btn.disabled = false;
+                btn.innerHTML = 'Salvar Agendamento';
+            }
+        }
+
+        function renderConfirmationScreen(clientName, startTime, barber) {
+             const summaryDiv = document.getElementById('confirmation-summary');
+             const dateFormatted = new Date(state.selectedDate + 'T12:00:00').toLocaleDateString('pt-BR');
+             let summaryHTML = `<p><strong>Cliente:</strong> ${clientName}</p>`;
+             summaryHTML += `<p><strong>Profissional:</strong> ${barber.name}</p>`;
+             summaryHTML += `<p><strong>Data:</strong> ${dateFormatted}</p>`;
+             summaryHTML += `<p><strong>Horário de Início:</strong> ${startTime}</p><hr class="my-2">`;
+             
+             let totalPrice = 0;
+             state.selectedServices.forEach(s => {
+                summaryHTML += `<p><strong>Serviço:</strong> ${s.name} - R$ ${s.price.toFixed(2)}</p>`;
+                totalPrice += s.price;
+             });
+             summaryHTML += `<hr class="my-2"><p class="font-bold text-lg"><strong>Total:</strong> R$ ${totalPrice.toFixed(2)}</p>`;
+             summaryDiv.innerHTML = summaryHTML;
+
+             const actionsContainer = document.getElementById('confirmation-actions');
+             actionsContainer.innerHTML = '<p class="text-xs text-center text-slate-500">Para alterar ou cancelar, entre em contato com a empresa.</p>';
+             
+             if (barber.phone) {
+                 const whatsappNumber = String(barber.phone).replace(/\D/g, "");
+                 const textMessage = encodeURIComponent(`Olá ${barber.name}, sou ${clientName}. Acabei de fazer um agendamento para o dia ${dateFormatted} às ${startTime}.`);
+                 const whatsappLink = `https://wa.me/55${whatsappNumber}?text=${textMessage}`;
+                 const whatsappButton = document.createElement('a');
+                 whatsappButton.href = whatsappLink;
+                 whatsappButton.target = "_blank";
+                 whatsappButton.className = "inline-flex items-center justify-center w-full bg-green-500 text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:bg-green-600";
+                 whatsappButton.innerHTML = `<i data-feather="message-circle" class="w-5 h-5 mr-2"></i>Falar com ${barber.name}`;
+                 actionsContainer.prepend(whatsappButton);
+             }
+             feather.replace();
+        }
+
+        const findOrCreateClient = async (userId, clientName, clientPhone) => {
             const clientsRef = collection(db, 'users', userId, 'clients');
             const q = query(clientsRef, where("phone", "==", clientPhone));
             const querySnapshot = await getDocs(q);
@@ -316,111 +499,60 @@
             }
         };
 
-        async function handleConfirmBooking(e) {
-            e.preventDefault();
-            const form = e.target;
-            const btn = document.getElementById('confirm-booking-btn');
-            btn.disabled = true;
-            btn.innerHTML = 'Confirmando...';
+        function initializeForm() {
+            const todayStr = new Date().toISOString().split('T')[0]; 
+            elements.bookingDate.setAttribute('min', todayStr);
 
-            try {
-                const clientName = form.elements['client-name'].value;
-                const clientPhone = form.elements['client-phone'].value;
-                const clientId = await findOrCreateClient(OWNER_ID, clientName, clientPhone);
+            elements.barberSelect.addEventListener('change', (e) => {
+                const barberId = e.target.value;
+                state.selectedBarber = state.allBarbers.find(b => b.id === barberId) || null;
                 
-                const batch = writeBatch(db);
-                const firstAppointmentDate = new Date(`${state.selectedDate}T${state.selectedTime}:00`);
-
-                for (let i = 0; i < state.selectedServices.length; i++) {
-                    const service = state.selectedServices[i];
-                    const appointmentDate = new Date(firstAppointmentDate.getTime() + (i * 30 * 60000));
-                    
-                    const newAppointmentRef = doc(collection(db, "users", OWNER_ID, "appointments"));
-
-                    batch.set(newAppointmentRef, {
-                        clientName, clientPhone, clientId,
-                        serviceId: service.id,
-                        serviceName: service.name,
-                        barberId: state.selectedBarber.id,
-                        barberName: state.selectedBarber.name,
-                        dateTime: Timestamp.fromDate(appointmentDate),
-                        price: service.price,
-                        status: 'confirmado',
-                        createdAt: Timestamp.now()
-                    });
-                }
-                
-                await batch.commit();
-
-                const clientRef = doc(db, 'users', OWNER_ID, 'clients', clientId);
-                await updateDoc(clientRef, { 
-                    appointmentCount: increment(state.selectedServices.length),
-                    lastAppointmentDate: Timestamp.fromDate(firstAppointmentDate)
-                });
-
-                document.getElementById('main-container').classList.add('hidden');
-                document.getElementById('confirmation-view').classList.remove('hidden');
-                
-                let serviceListHTML = state.selectedServices.map(s => `<p><strong>Serviço:</strong> ${s.name}</p>`).join('');
-                let totalPrice = state.selectedServices.reduce((acc, s) => acc + s.price, 0);
-                
-                document.getElementById('confirmation-summary').innerHTML = `
-                    <p><strong>Nome:</strong> ${clientName}</p>
-                    ${serviceListHTML}
-                    <p><strong>Data:</strong> ${firstAppointmentDate.toLocaleDateString('pt-BR')} a partir das ${state.selectedTime}</p>
-                    <p class="font-bold"><strong>Total:</strong> R$ ${totalPrice.toFixed(2)}</p>
-                `;
-                feather.replace();
-
-            } catch (error) {
-                console.error("Erro ao confirmar agendamento: ", error);
-                alert("Não foi possível confirmar o agendamento. Tente novamente.");
-                btn.disabled = false;
-                btn.innerHTML = 'Salvar Agendamento';
-            }
-        }function setupEventListeners() {
-            const dateInput = document.getElementById('booking-date');
-            const timeSelect = document.getElementById('time-select');
-            const confirmBtn = document.getElementById('confirm-booking-btn');
-
-            document.getElementById('add-service-btn').addEventListener('click', addServiceDropdown);
-            
-            dateInput.setAttribute('min', new Date().toISOString().split('T')[0]);
-
-            dateInput.addEventListener('change', (e) => {
-                state.selectedDate = e.target.value;
-                state.selectedTime = null;
-                timeSelect.innerHTML = '<option value="">--:--</option>';
-                confirmBtn.disabled = true;
-                if (state.selectedServices.length > 0) {
-                    loadAvailableTimes(state.selectedDate);
+                // Habilita os serviços apenas se um profissional for selecionado
+                const servicesSelects = document.querySelectorAll('.service-select');
+                if (state.selectedBarber) {
+                    if (servicesSelects.length === 0) addServiceRow();
+                    document.querySelectorAll('.service-select').forEach(s => s.disabled = false);
+                    elements.addServiceBtn.disabled = false;
                 } else {
-                    alert("Por favor, selecione pelo menos um serviço primeiro.");
-                    dateInput.value = '';
+                    document.querySelectorAll('.service-select').forEach(s => s.disabled = true);
+                    elements.addServiceBtn.disabled = true;
                 }
             });
             
-            timeSelect.addEventListener('change', (e) => {
+            elements.bookingDate.addEventListener('change', (e) => {
+                state.selectedDate = e.target.value;
+                loadAvailableTimes(state.selectedDate);
+            });
+            
+            elements.timeSelect.addEventListener('change', (e) => {
                 state.selectedTime = e.target.value;
-                confirmBtn.disabled = !state.selectedTime;
             });
-            
-            document.getElementById('booking-form').addEventListener('submit', handleConfirmBooking);
-            
-            document.getElementById('cancel-btn').addEventListener('click', () => {
-                if (confirm("Tem certeza que deseja limpar o formulário?")) {
-                    document.getElementById('booking-form').reset();
-                    document.getElementById('total-price').textContent = 'R$ 0,00';
-                    document.getElementById('services-container').innerHTML = '';
-                    addServiceDropdown();
-                    timeSelect.innerHTML = '<option value="">--:--</option>';
-                    confirmBtn.disabled = true;
+
+            elements.servicesContainer.addEventListener('change', (e) => {
+                if (e.target.classList.contains('service-select')) {
+                    updateCart();
                 }
             });
+
+            elements.addServiceBtn.addEventListener('click', addServiceRow);
+            elements.bookingForm.addEventListener('submit', handleConfirmBooking);
+            elements.cancelBtn.onclick = () => {
+                if(confirm('Tem certeza que deseja limpar o formulário?')) {
+                    elements.bookingForm.reset();
+                    elements.servicesContainer.innerHTML = '';
+                    state.selectedServices = [];
+                    updateCart(); // Reseta os estados e campos desabilitados
+                    addServiceRow();
+                }
+            };
+            
+            // Inicia com a primeira linha de serviço desabilitada
+            addServiceRow();
+            document.querySelector('.service-select').disabled = true;
         }
 
         document.addEventListener('DOMContentLoaded', () => {
-            loadInitialData();
+            loadBarbershopInfo();
             feather.replace(); 
         });
     </script>
