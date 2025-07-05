@@ -218,7 +218,7 @@ exports.createStripePortalLink = onCall({
         }
 
         // 3. Define a URL para onde o cliente voltará após sair do portal
-        const returnUrl = request.data.returnUrl || "https://barbeariagenda.com.br/dashboard.html"; // IMPORTANTE: Mude para sua URL de produção
+        const returnUrl = request.data.returnUrl || "https://agendaup.com.br/dashboard.html"; // IMPORTANTE: Mude para sua URL de produção
 
         // 4. Cria a sessão do portal no Stripe
         const session = await stripe.billingPortal.sessions.create({
@@ -278,12 +278,12 @@ exports.enviarLembreteDeRetorno = onSchedule({
                 const clientName = client.name;
                 const clientPhone = client.phone;
                 // ATENÇÃO: Verifique se este é o seu domínio correto
-                const bookingLink = `https://barbeariagenda.com.br/booking.html?user=${ownerId}`; 
+                const bookingLink = `https://agendaup.com.br/booking.html?user=${ownerId}`; 
 
                 if (!clientPhone) return;
 
                 const numeroLimpo = `55${String(clientPhone).replace(/\D/g, "")}`;
-                const mensagem = `Olá, ${clientName}! Sentimos sua falta. Já faz um tempo desde sua última visita! Que tal agendar um novo horário e dar um trato no visual?\n\nAgende aqui: ${bookingLink}`;
+                const mensagem = `Olá, ${clientName}! Sentimos sua falta. Já faz um tempo desde sua última visita! Que tal agendar um novo horário? \n\nAgende aqui: ${bookingLink}`;
 
                 const sendPromise = axios.post(
                     `${EVOLUTION_URL}/message/sendText/${EVOLUTION_INSTANCE}`,
@@ -352,7 +352,7 @@ exports.enviarLembreteDeRetorno = onSchedule({
                 
                 const clientName = client.name;
                 const clientPhone = client.phone;
-                const bookingLink = `https://barbeariagenda.com.br/booking.html?user=${ownerId}`;
+                const bookingLink = `https://agendaup.com.br/booking.html?user=${ownerId}`;
 
                 if (!clientPhone) return;
 
