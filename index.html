@@ -16,6 +16,22 @@
         .hero-section { background-color: #111827; }
         .cta-button { transition: all 0.3s ease; }
         .cta-button:hover { transform: translateY(-3px); box-shadow: 0 10px 20px rgba(0,0,0,0.1); }
+        
+        /* Estilos para o Acordeão do FAQ */
+        .faq-answer {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-in-out;
+        }
+        .faq-question.active + .faq-answer {
+            max-height: 200px; /* Ajuste se a resposta for muito longa */
+        }
+        .faq-question .faq-icon {
+            transition: transform 0.3s ease-in-out;
+        }
+        .faq-question.active .faq-icon {
+            transform: rotate(45deg);
+        }
     </style>
 </head>
 <body class="text-gray-800">
@@ -58,7 +74,89 @@
             </div>
         </section>
 
-        <section id="pricing" class="py-20">
+        <!-- ✨ SEÇÃO DE FAQ ATUALIZADA ✨ -->
+        <section id="faq" class="py-20">
+            <div class="container mx-auto px-6">
+                <div class="text-center mb-12">
+                    <h2 class="text-3xl md:text-4xl font-bold text-gray-900">Perguntas Frequentes</h2>
+                    <p class="text-gray-600 max-w-2xl mx-auto mt-4">Tiramos as principais dúvidas para você começar com tranquilidade.</p>
+                </div>
+                <div class="max-w-3xl mx-auto space-y-4" id="faq-container">
+                    <!-- Item 1 -->
+                    <div class="bg-white border border-gray-200 rounded-lg">
+                        <button class="faq-question w-full text-left p-6 flex justify-between items-center">
+                            <span class="font-semibold text-lg text-gray-800">Preciso de um computador para usar o sistema?</span>
+                            <i data-feather="plus" class="faq-icon w-6 h-6 text-indigo-600"></i>
+                        </button>
+                        <div class="faq-answer px-6 pb-6">
+                            <p class="text-gray-600">Não! O agendaUp funciona perfeitamente em qualquer dispositivo, seja computador, tablet ou celular. Você pode gerenciar sua agenda de onde estiver.</p>
+                        </div>
+                    </div>
+                    <!-- Item 2 -->
+                    <div class="bg-white border border-gray-200 rounded-lg">
+                        <button class="faq-question w-full text-left p-6 flex justify-between items-center">
+                            <span class="font-semibold text-lg text-gray-800">Meus clientes precisam baixar algum aplicativo?</span>
+                            <i data-feather="plus" class="faq-icon w-6 h-6 text-indigo-600"></i>
+                        </button>
+                        <div class="faq-answer px-6 pb-6">
+                            <p class="text-gray-600">Não. Seus clientes fazem o agendamento através de um link simples que você compartilha. Eles acessam pelo navegador do celular ou computador, sem precisar instalar nada.</p>
+                        </div>
+                    </div>
+                    <!-- Item 3 -->
+                    <div class="bg-white border border-gray-200 rounded-lg">
+                        <button class="faq-question w-full text-left p-6 flex justify-between items-center">
+                            <span class="font-semibold text-lg text-gray-800">Como funcionam os Lembretes Automáticos?</span>
+                            <i data-feather="plus" class="faq-icon w-6 h-6 text-indigo-600"></i>
+                        </button>
+                        <div class="faq-answer px-6 pb-6">
+                            <p class="text-gray-600">Nosso sistema identifica os agendamentos do dia seguinte e envia uma mensagem de lembrete via WhatsApp para seu cliente 24 horas antes. Isso reduz drasticamente as faltas e garante sua agenda cheia.</p>
+                        </div>
+                    </div>
+                    <!-- Item 4 -->
+                    <div class="bg-white border border-gray-200 rounded-lg">
+                        <button class="faq-question w-full text-left p-6 flex justify-between items-center">
+                            <span class="font-semibold text-lg text-gray-800">O que são as Notificações Instantâneas?</span>
+                            <i data-feather="plus" class="faq-icon w-6 h-6 text-indigo-600"></i>
+                        </button>
+                        <div class="faq-answer px-6 pb-6">
+                            <p class="text-gray-600">Assim que um cliente agenda um horário, você recebe uma notificação na hora pelo WhatsApp com todos os detalhes. Você fica sabendo de tudo em tempo real, sem precisar checar o painel a todo momento.</p>
+                        </div>
+                    </div>
+                    <!-- Item 5 -->
+                    <div class="bg-white border border-gray-200 rounded-lg">
+                        <button class="faq-question w-full text-left p-6 flex justify-between items-center">
+                            <span class="font-semibold text-lg text-gray-800">Como funciona o Lembrete de Retorno?</span>
+                            <i data-feather="plus" class="faq-icon w-6 h-6 text-indigo-600"></i>
+                        </button>
+                        <div class="faq-answer px-6 pb-6">
+                            <p class="text-gray-600">Para aumentar a fidelidade, o sistema identifica clientes que não agendam um horário há mais de 30 dias e envia uma mensagem amigável, como "Sentimos sua falta!", junto com seu link de agendamento para incentivá-los a voltar.</p>
+                        </div>
+                    </div>
+                    <!-- Item 6 -->
+                    <div class="bg-white border border-gray-200 rounded-lg">
+                        <button class="faq-question w-full text-left p-6 flex justify-between items-center">
+                            <span class="font-semibold text-lg text-gray-800">O que acontece depois dos 14 dias de teste?</span>
+                            <i data-feather="plus" class="faq-icon w-6 h-6 text-indigo-600"></i>
+                        </button>
+                        <div class="faq-answer px-6 pb-6">
+                            <p class="text-gray-600">Após o período de teste, para continuar usando as funcionalidades, você pode escolher nosso plano Premium. Se optar por não assinar, seus dados ficam salvos, mas o acesso ao painel e o link de agendamento serão pausados até que uma assinatura seja feita.</p>
+                        </div>
+                    </div>
+                     <!-- Item 7 -->
+                     <div class="bg-white border border-gray-200 rounded-lg">
+                        <button class="faq-question w-full text-left p-6 flex justify-between items-center">
+                            <span class="font-semibold text-lg text-gray-800">Posso cancelar minha assinatura a qualquer momento?</span>
+                            <i data-feather="plus" class="faq-icon w-6 h-6 text-indigo-600"></i>
+                        </button>
+                        <div class="faq-answer px-6 pb-6">
+                            <p class="text-gray-600">Sim! Você tem total liberdade. A assinatura é mensal e sem fidelidade. Você pode cancelar quando quiser diretamente no seu painel de configurações, sem burocracia.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="pricing" class="py-20 bg-white">
             <div class="container mx-auto px-6 text-center">
                  <h2 class="text-3xl md:text-4xl font-bold text-gray-900 mb-4">Escolha o plano ideal para você</h2>
                  <p class="text-gray-600 max-w-2xl mx-auto mb-12">Comece de graça e evolua quando estiver pronto. Simples e transparente.</p>
@@ -124,7 +222,6 @@
     <footer class="bg-gray-800 text-white"><div class="container mx-auto p-6 text-center text-sm text-gray-400">&copy; 2024 agendaUp. Todos os direitos reservados.</div></footer>
 
     <script type="module">
-      // ✨ ALTERAÇÃO 1: Importado o 'sendPasswordResetEmail'
       import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
       import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut, GoogleAuthProvider, signInWithPopup, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
       import { getFirestore, doc, setDoc, getDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
@@ -147,7 +244,6 @@
       const closeModalBtn = document.getElementById('close-modal');
       const authContent = document.getElementById('auth-content');
       
-      // ✨ ALTERAÇÃO 2: Adicionado o link "Esqueceu a senha?"
       const loginFormHTML = `
         <h2 class="text-2xl font-bold text-center mb-1 text-gray-900">Bem-vindo!</h2>
         <p class="text-center text-gray-500 mb-6">Acesse sua conta para gerenciar.</p>
@@ -168,7 +264,6 @@
         <p class="text-center text-sm text-gray-600 mt-4">Não tem uma conta? <a href="#" id="show-register" class="font-medium text-indigo-600 hover:underline">Cadastre-se</a></p>
       `; 
 
-      // ✨ ALTERAÇÃO 3: Adicionado o campo "Confirmar Senha"
       const registerFormHTML = `
         <h2 class="text-2xl font-bold text-center mb-1 text-gray-900">Crie sua conta grátis</h2>
         <p class="text-center text-gray-500 mb-6">Comece agora seu teste de 14 dias.</p>
@@ -200,7 +295,6 @@
           if (content === loginFormHTML) {
               document.getElementById('login-form').addEventListener('submit', handleLogin);
               document.getElementById('show-register').addEventListener('click', (e) => { e.preventDefault(); openModal(registerFormHTML); });
-              // ✨ ALTERAÇÃO 4: Adicionado listener para o link "Esqueceu a senha?"
               document.getElementById('forgot-password-link').addEventListener('click', handleForgotPassword);
           }
 
@@ -215,7 +309,6 @@
       closeModalBtn.addEventListener('click', closeModal);
       authModal.addEventListener('click', (e) => { if (e.target === authModal) closeModal(); });
 
-      // ✨ ALTERAÇÃO 5: Lógica de verificação de senhas
       async function handleRegister(e) {
           e.preventDefault();
           const form = e.target;
@@ -223,10 +316,9 @@
           const password = form.elements['register-password'].value;
           const confirmPassword = form.elements['register-password-confirm'].value;
 
-          // Verifica se as senhas coincidem
           if (password !== confirmPassword) {
               alert("As senhas não coincidem. Por favor, tente novamente.");
-              return; // Para a execução da função
+              return;
           }
 
           registerButton.disabled = true;
@@ -304,12 +396,11 @@
           }
       }
 
-      // ✨ ALTERAÇÃO 6: Nova função para lidar com a redefinição de senha
       async function handleForgotPassword(e) {
           e.preventDefault();
           const email = prompt("Por favor, digite seu e-mail para redefinir a senha:");
           if (!email) {
-              return; // Caso o usuário cancele o prompt
+              return;
           }
 
           try {
@@ -346,6 +437,24 @@
       document.getElementById('main-cta-hero').addEventListener('click', () => openModal(registerFormHTML));
       document.getElementById('pricing-free-btn').addEventListener('click', () => openModal(registerFormHTML));
       document.getElementById('main-cta-final').addEventListener('click', () => openModal(registerFormHTML));
+
+      // ✨ LÓGICA PARA O ACORDEÃO DO FAQ ✨
+      const faqContainer = document.getElementById('faq-container');
+      if(faqContainer) {
+          faqContainer.addEventListener('click', (e) => {
+              const questionButton = e.target.closest('.faq-question');
+              if (questionButton) {
+                  // Fecha todas as outras respostas abertas
+                  document.querySelectorAll('.faq-question').forEach(btn => {
+                      if (btn !== questionButton) {
+                          btn.classList.remove('active');
+                      }
+                  });
+                  // Alterna a pergunta clicada
+                  questionButton.classList.toggle('active');
+              }
+          });
+      }
 
       feather.replace();
     </script>

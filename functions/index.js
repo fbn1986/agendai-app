@@ -58,7 +58,7 @@ exports.enviarLembretesAutomaticos = onSchedule({
     const horaFormatada = dataAgendamento.toLocaleTimeString('pt-BR', opcoesHora);
     const diaFormatado = dataAgendamento.toLocaleDateString('pt-BR', opcoesData);
 
-    let mensagem = `Olá, ${clientName}! Lembrete do seu agendamento para amanhã.\n\n` +
+    let mensagem = `Olá, ${clientName}! Lembrete do seu agendamento!\n\n` +
                    `*Serviço:* ${serviceName}\n` +
                    `*Profissional:* ${barberName}\n` +
                    `*Data:* ${diaFormatado} às ${horaFormatada}\n\n`;
