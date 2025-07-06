@@ -63,6 +63,7 @@
                         <label for="booking-date" class="block text-sm font-medium text-slate-700">Data</label>
                         <input type="date" id="booking-date" name="date" required disabled class="mt-1 block w-full p-2 border border-slate-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
                     </div>
+                    <!-- ✨ ESTRUTURA REVERTIDA PARA LISTA SUSPENSA ✨ -->
                     <div>
                         <label for="time-select" class="block text-sm font-medium text-slate-700">Hora</label>
                         <select id="time-select" name="time" required disabled class="mt-1 block w-full p-2 border border-slate-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
@@ -285,19 +286,15 @@
             elements.addServiceBtn.style.display = canAddMore ? 'flex' : 'none';
         }
 
+        // ✨ FUNÇÃO ATUALIZADA PARA USAR LISTA SUSPENSA COM OPÇÕES DESABILITADAS ✨
         async function loadAvailableTimes(dateStr) {
             const timeSelect = elements.timeSelect;
             timeSelect.disabled = true;
             timeSelect.innerHTML = '<option value="">Verificando...</option>';
+            state.selectedTime = null;
 
-            if (!dateStr) {
-                timeSelect.innerHTML = '<option value="">Aguardando data</option>';
-                return;
-            }
-
-            const slotsNeeded = state.selectedServices.length;
-            if (slotsNeeded === 0) {
-                timeSelect.innerHTML = '<option value="">Escolha um serviço</option>';
+            if (!dateStr || state.selectedServices.length === 0) {
+                timeSelect.innerHTML = `<option value="">${dateStr ? 'Escolha um serviço' : 'Aguardando data...'}</option>`;
                 return;
             }
 
@@ -315,6 +312,7 @@
                     return;
                 }
 
+                const slotsNeeded = state.selectedServices.length;
                 const allPossibleSlots = [];
                 let [startHour, startMinute] = daySettings.start.split(':').map(Number);
                 let [endHour, endMinute] = daySettings.end.split(':').map(Number);
@@ -338,7 +336,7 @@
                 }));
 
                 const freeSlots = new Set(allPossibleSlots.filter(slot => !bookedTimes.has(slot)));
-                const validStartTimes = [];
+                const validStartTimes = new Set();
                 for (let i = 0; i <= allPossibleSlots.length - slotsNeeded; i++) {
                     let isSequenceValid = true;
                     for (let j = 0; j < slotsNeeded; j++) {
@@ -348,20 +346,21 @@
                         }
                     }
                     if (isSequenceValid) {
-                        validStartTimes.push(allPossibleSlots[i]);
+                        validStartTimes.add(allPossibleSlots[i]);
                     }
                 }
                 
                 timeSelect.innerHTML = '<option value="">Selecione um horário</option>';
-                if (validStartTimes.length === 0) {
-                     timeSelect.innerHTML = '<option value="">Sem horários sequenciais</option>';
+                if (allPossibleSlots.length === 0) {
+                     timeSelect.innerHTML = '<option value="">Nenhum horário disponível</option>';
                      return;
                 }
                 
                 const now = new Date();
                 const isToday = now.toISOString().split('T')[0] === dateStr;
+                let hasAvailableSlots = false;
 
-                validStartTimes.forEach(time => {
+                allPossibleSlots.forEach(time => {
                     const [slotHour, slotMinute] = time.split(':').map(Number);
                     let isPast = false;
                     if (isToday) {
@@ -371,16 +370,29 @@
                             isPast = true;
                         }
                     }
-                    if (!isPast) {
-                        timeSelect.add(new Option(time, time));
+
+                    const isAvailable = validStartTimes.has(time);
+                    const option = new Option();
+                    option.value = time;
+                    
+                    if (!isAvailable) {
+                        option.textContent = `${time} - Ocupado`;
+                        option.disabled = true;
+                    } else if (isPast) {
+                        option.textContent = `${time} - Indisponível`;
+                        option.disabled = true;
+                    } else {
+                        option.textContent = time;
+                        hasAvailableSlots = true;
                     }
+                    timeSelect.add(option);
                 });
                 
-                timeSelect.disabled = false;
-                if (timeSelect.options.length <= 1) {
-                    timeSelect.innerHTML = '<option value="">Nenhum horário disponível</option>';
-                    timeSelect.disabled = true;
+                timeSelect.disabled = !hasAvailableSlots;
+                if (!hasAvailableSlots) {
+                    timeSelect.innerHTML = '<option value="">Sem horários disponíveis</option>';
                 }
+
             } catch (error) {
                 console.error("Erro ao carregar horários:", error);
                 timeSelect.innerHTML = '<option value="">Erro ao carregar</option>';
@@ -482,23 +494,6 @@
              feather.replace();
         }
 
-        const findOrCreateClient = async (userId, clientName, clientPhone) => {
-            const clientsRef = collection(db, 'users', userId, 'clients');
-            const q = query(clientsRef, where("phone", "==", clientPhone));
-            const querySnapshot = await getDocs(q);
-            if (!querySnapshot.empty) {
-                return querySnapshot.docs[0].id;
-            } else {
-                const newClientRef = await addDoc(clientsRef, {
-                    name: clientName,
-                    phone: clientPhone,
-                    createdAt: Timestamp.now(),
-                    appointmentCount: 0
-                });
-                return newClientRef.id;
-            }
-        };
-
         function initializeForm() {
             const todayStr = new Date().toISOString().split('T')[0]; 
             elements.bookingDate.setAttribute('min', todayStr);
@@ -507,7 +502,6 @@
                 const barberId = e.target.value;
                 state.selectedBarber = state.allBarbers.find(b => b.id === barberId) || null;
                 
-                // Habilita os serviços apenas se um profissional for selecionado
                 const servicesSelects = document.querySelectorAll('.service-select');
                 if (state.selectedBarber) {
                     if (servicesSelects.length === 0) addServiceRow();
@@ -523,7 +517,7 @@
                 state.selectedDate = e.target.value;
                 loadAvailableTimes(state.selectedDate);
             });
-            
+
             elements.timeSelect.addEventListener('change', (e) => {
                 state.selectedTime = e.target.value;
             });
@@ -541,12 +535,11 @@
                     elements.bookingForm.reset();
                     elements.servicesContainer.innerHTML = '';
                     state.selectedServices = [];
-                    updateCart(); // Reseta os estados e campos desabilitados
+                    updateCart();
                     addServiceRow();
                 }
             };
             
-            // Inicia com a primeira linha de serviço desabilitada
             addServiceRow();
             document.querySelector('.service-select').disabled = true;
         }
