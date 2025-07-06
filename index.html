@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="pt-BR" class="scroll-smooth">
 <head>
+    <link rel="manifest" href="/manifest.json">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>agendaUp – Sistema de Agendamento Online </title>
@@ -458,5 +459,17 @@
 
       feather.replace();
     </script>
+    <script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/sw.js')
+      .then((registration) => {
+        console.log('Service Worker registrado com sucesso:', registration);
+      })
+      .catch((error) => {
+        console.log('Falha no registro do Service Worker:', error);
+      });
+  }
+</script>
+
 </body>
 </html>
