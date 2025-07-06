@@ -63,7 +63,6 @@
                         <label for="booking-date" class="block text-sm font-medium text-slate-700">Data</label>
                         <input type="date" id="booking-date" name="date" required disabled class="mt-1 block w-full p-2 border border-slate-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
                     </div>
-                    <!-- ✨ ESTRUTURA REVERTIDA PARA LISTA SUSPENSA ✨ -->
                     <div>
                         <label for="time-select" class="block text-sm font-medium text-slate-700">Hora</label>
                         <select id="time-select" name="time" required disabled class="mt-1 block w-full p-2 border border-slate-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
@@ -286,7 +285,6 @@
             elements.addServiceBtn.style.display = canAddMore ? 'flex' : 'none';
         }
 
-        // ✨ FUNÇÃO ATUALIZADA PARA USAR LISTA SUSPENSA COM OPÇÕES DESABILITADAS ✨
         async function loadAvailableTimes(dateStr) {
             const timeSelect = elements.timeSelect;
             timeSelect.disabled = true;
@@ -399,6 +397,24 @@
             }
         }
         
+        // ✨ FUNÇÃO ADICIONADA ✨
+        const findOrCreateClient = async (userId, clientName, clientPhone) => {
+            const clientsRef = collection(db, 'users', userId, 'clients');
+            const q = query(clientsRef, where("phone", "==", clientPhone));
+            const querySnapshot = await getDocs(q);
+            if (!querySnapshot.empty) {
+                return querySnapshot.docs[0].id;
+            } else {
+                const newClientRef = await addDoc(clientsRef, {
+                    name: clientName,
+                    phone: clientPhone,
+                    createdAt: Timestamp.now(),
+                    appointmentCount: 0
+                });
+                return newClientRef.id;
+            }
+        };
+
         async function handleConfirmBooking(e) {
             e.preventDefault();
             const btn = elements.confirmBookingBtn;
