@@ -42,6 +42,11 @@
         .settings-menu-item:hover {
             background-color: #f9fafb;
         }
+        .admin-filter-btn.active {
+            background-color: #4f46e5;
+            color: white;
+            border-color: #4f46e5;
+        }
     </style>
 </head>
 <body class="bg-slate-100">
@@ -99,7 +104,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
         import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
-        import { getFirestore, doc, getDoc, setDoc, onSnapshot, query, collection, addDoc, getDocs, Timestamp, orderBy, where, updateDoc, deleteDoc, increment, limit } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
+        import { getFirestore, doc, getDoc, setDoc, onSnapshot, query, collection, addDoc, getDocs, Timestamp, orderBy, where, updateDoc, deleteDoc, increment, limit, FieldValue } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
         import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-functions.js";
 
         const firebaseConfig = {
@@ -124,8 +129,144 @@
         let revenueChartInstance = null;
         let servicesCache = new Map();
         let allClients = [];
-        let currentWeekOffset = 0;
         let workingHoursCache = null; 
+
+        // ===================================================================
+        // LÓGICA DA AGENDA (JÁ CORRIGIDA)
+        // ===================================================================
+
+        let isAgendaInitialized = false; 
+        let currentWeekDate = new Date(); 
+        let barbersData = []; 
+        let selectedTime = null; 
+
+        function initializeAgenda(userId) {
+            if (!isAgendaInitialized) {
+                setupAgendaEventListeners(userId);
+                isAgendaInitialized = true;
+            }
+            renderAppointmentsForWeek(userId, currentWeekDate);
+        }
+
+        function setupAgendaEventListeners(userId) {
+            document.getElementById('prev-week-btn').addEventListener('click', () => {
+                currentWeekDate.setDate(currentWeekDate.getDate() - 7);
+                renderAppointmentsForWeek(userId, currentWeekDate);
+            });
+
+            document.getElementById('next-week-btn').addEventListener('click', () => {
+                currentWeekDate.setDate(currentWeekDate.getDate() + 7);
+                renderAppointmentsForWeek(userId, currentWeekDate);
+            });
+
+            document.getElementById('add-appointment-btn').addEventListener('click', () => {
+                openNewAppointmentModal(userId);
+            });
+        }
+
+        function renderAppointmentsForWeek(userId, dateForWeek) {
+            const weekStart = new Date(dateForWeek);
+            weekStart.setDate(dateForWeek.getDate() - dateForWeek.getDay());
+            weekStart.setHours(0, 0, 0, 0);
+
+            const weekEnd = new Date(weekStart);
+            weekEnd.setDate(weekStart.getDate() + 6);
+            weekEnd.setHours(23, 59, 59, 999);
+
+            document.getElementById('week-display').textContent = 
+                `${weekStart.toLocaleDateString('pt-BR', {day:'2-digit', month:'2-digit'})} - ${weekEnd.toLocaleDateString('pt-BR', {day:'2-digit', month:'2-digit'})}`;
+            
+            const startTimestamp = Timestamp.fromDate(weekStart);
+            const endTimestamp = Timestamp.fromDate(weekEnd);
+            
+            const q = query(collection(db, 'users', userId, 'appointments'), where("dateTime", ">=", startTimestamp), where("dateTime", "<=", endTimestamp), orderBy("dateTime"));
+            
+            onSnapshot(q, (snapshot) => {
+                const appointmentsListContainer = document.getElementById('appointments-list');
+                appointmentsListContainer.innerHTML = '';
+
+                if (snapshot.empty) {
+                    appointmentsListContainer.innerHTML = `<div class="text-center text-slate-500 py-10 bg-white rounded-lg shadow-sm"><p>Nenhum agendamento para esta semana.</p></div>`;
+                    return;
+                }
+
+                const groupedAppointments = new Map();
+                snapshot.forEach(docSnap => {
+                    const app = { id: docSnap.id, ...docSnap.data() };
+                    const dayKey = app.dateTime.toDate().toISOString().split('T')[0];
+                    if (!groupedAppointments.has(dayKey)) {
+                        groupedAppointments.set(dayKey, []);
+                    }
+                    groupedAppointments.get(dayKey).push(app);
+                });
+
+                const sortedDays = [...groupedAppointments.keys()].sort();
+
+                sortedDays.forEach(dayKey => {
+                    const appointmentsOnDay = groupedAppointments.get(dayKey);
+                    const date = new Date(`${dayKey}T12:00:00`);
+                    const dayHeader = document.createElement('h3');
+                    dayHeader.className = 'text-xl font-bold text-slate-700 pb-2 border-b mb-4';
+                    dayHeader.textContent = date.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' });
+                    appointmentsListContainer.appendChild(dayHeader);
+                    
+                    const dayContainer = document.createElement('div');
+                    dayContainer.className = 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4';
+                    
+                    appointmentsOnDay.forEach(app => {
+                        const card = document.createElement('div');
+                        card.className = 'appointment-card bg-white p-4 rounded-lg shadow flex flex-col justify-between';
+                        const appDate = app.dateTime.toDate();
+                        card.innerHTML = `
+                            <div>
+                                <div class="flex justify-between items-center">
+                                    <span class="font-bold text-lg text-indigo-600">${String(appDate.getHours()).padStart(2, '0')}:${String(appDate.getMinutes()).padStart(2, '0')}</span>
+                                    <span class="text-xs font-semibold text-slate-600">${app.barberName}</span>
+                                </div>
+                                <div class="mt-2">
+                                    <p class="font-semibold text-slate-800">${app.clientName}</p>
+                                    <p class="text-sm text-slate-500">${app.serviceName}</p>
+                                </div>
+                            </div>
+                            <p class="text-right font-bold text-slate-700 mt-4">R$ ${(app.price || 0).toFixed(2)}</p>
+                        `;
+                        card.addEventListener('click', () => openEditModal(userId, app.id));
+                        dayContainer.appendChild(card);
+                    });
+                    appointmentsListContainer.appendChild(dayContainer);
+                });
+                feather.replace();
+            });
+        }
+        
+        const cacheBarbers = async (userId) => {
+            const barbersQuery = query(collection(db, 'users', userId, 'barbers'));
+            const snapshot = await getDocs(barbersQuery);
+            barbersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        };
+
+        const loadWorkingHours = async (userId) => { if (workingHoursCache) return workingHoursCache; const ref = doc(db, 'users', userId, 'settings', 'workingHours'); const docSnap = await getDoc(ref); if (docSnap.exists()) { workingHoursCache = docSnap.data(); return workingHoursCache; } return null; };
+        
+        const renderAvailableTimes = async (userId, dateString, excludedTime = null) => { const timeSlotsContainer = document.getElementById('time-slots-container'); if (!dateString) { if(timeSlotsContainer) timeSlotsContainer.innerHTML = `<p class="text-sm text-slate-500 col-span-4">Selecione uma data para ver os horários.</p>`; return; } if(timeSlotsContainer) timeSlotsContainer.innerHTML = `<div class="spinner-large mx-auto my-4 col-span-4"></div>`; const workingHours = await loadWorkingHours(userId); if (!workingHours) { if(timeSlotsContainer) timeSlotsContainer.innerHTML = `<p class="text-sm text-red-500 col-span-4">Defina seus horários nas configurações primeiro.</p>`; return; } const selectedDate = new Date(`${dateString}T00:00:00`); const dayOfWeek = selectedDate.getDay(); const dayKeys = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sab']; const dayConfig = workingHours[dayKeys[dayOfWeek]]; if (!dayConfig || !dayConfig.isOpen) { if(timeSlotsContainer) timeSlotsContainer.innerHTML = `<p class="text-sm text-slate-500 col-span-4">Fechado neste dia.</p>`; return; } const startOfDay = Timestamp.fromDate(new Date(`${dateString}T00:00:00`)); const endOfDay = Timestamp.fromDate(new Date(`${dateString}T23:59:59`)); const q = query(collection(db, 'users', userId, 'appointments'), where("dateTime", ">=", startOfDay), where("dateTime", "<=", endOfDay)); const appointmentsSnap = await getDocs(q); const bookedTimes = appointmentsSnap.docs.map(doc => { const appDate = doc.data().dateTime.toDate(); return `${String(appDate.getHours()).padStart(2, '0')}:${String(appDate.getMinutes()).padStart(2, '0')}`; }); if(timeSlotsContainer) timeSlotsContainer.innerHTML = ''; const allSlots = []; let currentTime = new Date(`${dateString}T${dayConfig.start}`); const endTime = new Date(`${dateString}T${dayConfig.end}`); while (currentTime < endTime) { const timeString = `${String(currentTime.getHours()).padStart(2, '0')}:${String(currentTime.getMinutes()).padStart(2, '0')}`; allSlots.push(timeString); currentTime.setMinutes(currentTime.getMinutes() + 30); } if (allSlots.length === 0) { if(timeSlotsContainer) timeSlotsContainer.innerHTML = `<p class="text-sm text-slate-500 col-span-4">Nenhum horário disponível.</p>`; return; } const now = new Date(); const isToday = (selectedDate.toDateString() === now.toDateString()); allSlots.forEach(time => { const isBooked = bookedTimes.includes(time) && time !== excludedTime; let isPast = false; if (isToday) { const slotTime = new Date(`${dateString}T${time}`); isPast = slotTime < now; } const button = document.createElement('button'); button.type = 'button'; button.textContent = time; button.dataset.time = time; button.disabled = isBooked || isPast; button.className = `py-2 px-4 border rounded-lg text-sm font-semibold ${isBooked || isPast ? 'bg-slate-200 text-slate-400 cursor-not-allowed' : 'bg-white hover:bg-indigo-50 hover:border-indigo-500'}`; button.addEventListener('click', (e) => { selectedTime = e.target.dataset.time; document.querySelectorAll('#time-slots-container button').forEach(btn => { btn.classList.remove('bg-indigo-600', 'text-white', 'border-indigo-600'); btn.classList.add('bg-white'); }); e.target.classList.add('bg-indigo-600', 'text-white', 'border-indigo-600'); e.target.classList.remove('bg-white'); }); if(timeSlotsContainer) timeSlotsContainer.appendChild(button); }); };
+        
+        const closeAppointmentModal = () => { appointmentModal.innerHTML = ''; appointmentModal.classList.add('hidden'); };
+        
+        async function populateSelectWithOptions(userId, coll, selectId, emptyMsg, selectedValue = null) { const selectEl = document.getElementById(selectId); const q = query(collection(db, 'users', userId, coll), orderBy("name")); onSnapshot(q, (snap) => { selectEl.innerHTML = ''; if (snap.empty) { selectEl.innerHTML = `<option disabled selected>${emptyMsg}</option>`; return; } snap.forEach(doc => { const opt = document.createElement('option'); opt.value = doc.id; opt.textContent = doc.data().name; if (doc.id === selectedValue) { opt.selected = true; } selectEl.appendChild(opt); }); }); }
+        
+        const findOrCreateClient = async (userId, clientName, clientPhone) => { const clientsRef = collection(db, 'users', userId, 'clients'); const q = query(clientsRef, where("phone", "==", clientPhone)); const querySnapshot = await getDocs(q); let clientId; if (querySnapshot.empty) { const newClientRef = await addDoc(clientsRef, { name: clientName, phone: clientPhone, createdAt: Timestamp.now(), appointmentCount: 0 }); clientId = newClientRef.id; } else { clientId = querySnapshot.docs[0].id; } return clientId; };
+        
+        const openNewAppointmentModal = (userId) => { selectedTime = null; appointmentModal.innerHTML = `<div class="bg-white rounded-lg shadow-2xl p-8 max-w-2xl w-full relative"><button id="close-modal-btn" class="absolute top-4 right-4 text-gray-400 hover:text-gray-800"><i data-feather="x" class="w-6 h-6"></i></button><h3 class="text-lg font-semibold text-slate-800 mb-6">Novo Agendamento</h3><form id="appointment-form" class="space-y-4"><div class="grid grid-cols-1 md:grid-cols-2 gap-4"><div><label for="client-name" class="block text-sm font-medium text-slate-600">Nome do Cliente</label><input type="text" id="client-name" required class="input-style"></div><div><label for="client-phone" class="block text-sm font-medium text-slate-600">Telefone do Cliente</label><input type="tel" id="client-phone" required class="input-style" placeholder="(XX) XXXXX-XXXX"></div></div><div class="grid grid-cols-1 md:grid-cols-2 gap-4"><div><label for="appointment-service" class="block text-sm font-medium text-slate-600">Serviço</label><select id="appointment-service" required class="input-style"></select></div><div><label for="appointment-barber" class="block text-sm font-medium text-slate-600">Profissional</label><select id="appointment-barber" required class="input-style"></select></div></div><div class="grid grid-cols-1 md:grid-cols-2 gap-4"><div><label for="appointment-date" class="block text-sm font-medium text-slate-600">Data</label><input type="date" id="appointment-date" required class="input-style"></div><div><label class="block text-sm font-medium text-slate-600">Hora</label><div id="time-slots-container" class="mt-2 grid grid-cols-3 sm:grid-cols-4 gap-2 border p-2 rounded-md min-h-[80px]"></div></div></div><button id="save-appointment-btn" type="submit" class="w-full bg-indigo-600 text-white font-semibold py-3 px-4 rounded-lg shadow-md hover:bg-indigo-700 flex items-center justify-center disabled:opacity-50 mt-6"><span class="btn-text">Salvar Agendamento</span><div class="spinner hidden ml-2"></div></button></form></div>`; appointmentModal.classList.remove('hidden'); appointmentModal.classList.add('flex'); document.getElementById('close-modal-btn').addEventListener('click', closeAppointmentModal); document.getElementById('appointment-form').addEventListener('submit', (e) => handleSaveNewAppointment(e, userId)); const dateInput = document.getElementById('appointment-date'); dateInput.min = new Date().toISOString().split("T")[0]; dateInput.addEventListener('change', () => renderAvailableTimes(userId, dateInput.value)); populateSelectWithOptions(userId, 'services', 'appointment-service', 'Nenhum serviço'); cacheBarbers(userId).then(() => { const selectBarber = document.getElementById('appointment-barber'); selectBarber.innerHTML = ''; if(barbersData.length === 0) { selectBarber.innerHTML = `<option disabled selected>Nenhum profissional</option>`; } barbersData.forEach(barber => { const opt = document.createElement('option'); opt.value = barber.id; opt.textContent = barber.name; selectBarber.appendChild(opt); }); }); renderAvailableTimes(userId, null); feather.replace(); };
+        
+        async function handleSaveNewAppointment(e, userId) { e.preventDefault(); const form = e.target; if (!selectedTime) { alert("Por favor, selecione um horário."); return; } const saveBtn = form.querySelector('button[type="submit"]'); const btnText = saveBtn.querySelector('.btn-text'); const spinner = saveBtn.querySelector('.spinner'); saveBtn.disabled = true; btnText.textContent = 'Salvando...'; spinner.classList.remove('hidden'); try { const clientName = form.elements['client-name'].value; const clientPhone = form.elements['client-phone'].value; const clientId = await findOrCreateClient(userId, clientName, clientPhone); const date = form.elements['appointment-date'].value; const dateTime = Timestamp.fromDate(new Date(`${date}T${selectedTime}`)); const serviceRef = doc(db, 'users', userId, 'services', form.elements['appointment-service'].value); const serviceSnap = await getDoc(serviceRef); const servicePrice = serviceSnap.exists() ? serviceSnap.data().price : 0; const selectedBarberOption = form.elements['appointment-barber']; const selectedBarberId = selectedBarberOption.value; const barberData = barbersData.find(b => b.id === selectedBarberId); await addDoc(collection(db, 'users', userId, 'appointments'), { clientName, clientPhone, clientId, serviceId: form.elements['appointment-service'].value, serviceName: form.elements['appointment-service'].options[form.elements['appointment-service'].selectedIndex].text, barberId: selectedBarberId, barberName: barberData.name, barberPhone: barberData.phone, dateTime, price: servicePrice, status: 'confirmado', lembreteEnviado: null, createdAt: Timestamp.now() }); const clientRef = doc(db, 'users', userId, 'clients', clientId); await updateDoc(clientRef, { appointmentCount: increment(1), lastAppointmentDate: dateTime, winbackMessageSent: false }); closeAppointmentModal(); alert('Agendamento criado com sucesso!'); } catch(err) { console.error("Erro ao salvar agendamento:", err); alert('Ocorreu um erro. Tente novamente.'); } finally { saveBtn.disabled = false; btnText.textContent = 'Salvar Agendamento'; spinner.classList.add('hidden'); } }
+        
+        const openEditModal = async (userId, appointmentId) => { const appDocRef = doc(db, 'users', userId, 'appointments', appointmentId); const appDocSnap = await getDoc(appDocRef); if (!appDocSnap.exists()) { alert("Agendamento não encontrado."); return; } const appointmentData = appDocSnap.data(); const appDate = appointmentData.dateTime.toDate(); const dateString = appDate.toISOString().split('T')[0]; const timeString = `${String(appDate.getHours()).padStart(2, '0')}:${String(appDate.getMinutes()).padStart(2, '0')}`; selectedTime = timeString; appointmentModal.innerHTML = `<div class="bg-white rounded-lg shadow-2xl p-8 max-w-2xl w-full relative"><button id="close-modal-btn" class="absolute top-4 right-4 text-gray-400 hover:text-gray-800"><i data-feather="x" class="w-6 h-6"></i></button><h3 class="text-lg font-semibold text-slate-800 mb-6">Editar Agendamento</h3><form id="edit-appointment-form" class="space-y-4"><p class="text-sm font-semibold">Cliente: ${appointmentData.clientName}</p><div class="grid grid-cols-1 md:grid-cols-2 gap-4"><div><label for="appointment-service" class="block text-sm font-medium text-slate-600">Serviço</label><select id="appointment-service" required class="input-style"></select></div><div><label for="appointment-barber" class="block text-sm font-medium text-slate-600">Profissional</label><select id="appointment-barber" required class="input-style"></select></div></div><div class="grid grid-cols-1 md:grid-cols-2 gap-4"><div><label for="appointment-date" class="block text-sm font-medium text-slate-600">Data</label><input type="date" id="appointment-date" required class="input-style" value="${dateString}"></div><div><label class="block text-sm font-medium text-slate-600">Hora</label><div id="time-slots-container" class="mt-2 grid grid-cols-3 sm:grid-cols-4 gap-2 border p-2 rounded-md min-h-[80px]"></div></div></div><div class="flex items-center gap-4 mt-6"><button id="update-appointment-btn" type="submit" class="w-full bg-indigo-600 text-white font-semibold py-3 px-4 rounded-lg shadow-md hover:bg-indigo-700">Salvar Alterações</button><button id="delete-appointment-btn" type="button" class="w-auto bg-red-600 text-white font-semibold py-3 px-4 rounded-lg shadow-md hover:bg-red-700"><i data-feather="trash-2" class="w-5 h-5"></i></button></div></form></div>`; appointmentModal.classList.remove('hidden'); appointmentModal.classList.add('flex'); document.getElementById('close-modal-btn').addEventListener('click', closeAppointmentModal); document.getElementById('edit-appointment-form').addEventListener('submit', (e) => handleUpdateAppointment(e, userId, appointmentId)); document.getElementById('delete-appointment-btn').addEventListener('click', () => handleDeleteAppointment(userId, appointmentId)); const dateInput = document.getElementById('appointment-date'); dateInput.min = new Date().toISOString().split("T")[0]; dateInput.addEventListener('change', () => renderAvailableTimes(userId, dateInput.value, timeString)); await populateSelectWithOptions(userId, 'services', 'appointment-service', 'Nenhum serviço', appointmentData.serviceId); await populateSelectWithOptions(userId, 'barbers', 'appointment-barber', 'Nenhum profissional', appointmentData.barberId); await renderAvailableTimes(userId, dateString, timeString); document.querySelector(`#time-slots-container button[data-time="${timeString}"]`)?.click(); feather.replace(); };
+        
+        async function handleUpdateAppointment(e, userId, appointmentId) { e.preventDefault(); if (!selectedTime) { alert("Por favor, selecione um horário."); return; } const form = e.target; const date = form.elements['appointment-date'].value; const newDateTime = Timestamp.fromDate(new Date(`${date}T${selectedTime}`)); const serviceId = form.elements['appointment-service'].value; const serviceName = form.elements['appointment-service'].options[form.elements['appointment-service'].selectedIndex].text; const barberId = form.elements['appointment-barber'].value; const barberName = form.elements['appointment-barber'].options[form.elements['appointment-barber'].selectedIndex].text; const appDocRef = doc(db, 'users', userId, 'appointments', appointmentId); await updateDoc(appDocRef, { dateTime: newDateTime, serviceId: serviceId, serviceName: serviceName, barberId: barberId, barberName: barberName, }); closeAppointmentModal(); alert("Agendamento atualizado com sucesso!"); }
+        
+        async function handleDeleteAppointment(userId, appointmentId) { if (confirm("Tem certeza que deseja excluir este agendamento? Esta ação não pode ser desfeita.")) { const appDocRef = doc(db, 'users', userId, 'appointments', appointmentId); try { const appDocSnap = await getDoc(appDocRef); if (appDocSnap.exists()) { const { clientId } = appDocSnap.data(); if (clientId) { const clientRef = doc(db, 'users', userId, 'clients', clientId); const clientSnap = await getDoc(clientRef); if (clientSnap.exists()) { const currentCount = clientSnap.data().appointmentCount; if (currentCount <= 1) { await deleteDoc(clientRef); } else { await updateDoc(clientRef, { appointmentCount: increment(-1) }); } } } } await deleteDoc(appDocRef); closeAppointmentModal(); alert("Agendamento excluído com sucesso."); } catch (error) { console.error("Erro ao excluir o agendamento e atualizar cliente:", error); alert("Não foi possível excluir o agendamento."); } } }
+
+
+        // --- Lógica Principal da Aplicação (Autenticação, Navegação, etc.) ---
 
         async function redirectToCustomerPortal() {
             const manageButton = document.getElementById('manage-subscription-btn');
@@ -155,23 +296,49 @@
                     return; 
                 }
                 const userData = userDocSnap.data();
+
+                if (userData.role === 'admin') {
+                    addAdminMenuLink();
+                }
+
                 const createdAt = userData.createdAt?.toDate();
                 if (!createdAt) { 
                     showAccessDenied("Erro: Data de criação da conta não encontrada."); 
                     loadingOverlay.classList.add('hidden');
                     return; 
                 }
+
+                const workingHoursRef = doc(db, 'users', user.uid, 'settings', 'workingHours');
+                const workingHoursSnap = await getDoc(workingHoursRef);
+
+                if (!workingHoursSnap.exists()) {
+                    console.log("Primeiro login detectado: Criando horários de expediente padrão no banco de dados.");
+                    const defaultWorkingHours = {
+                        dom: { isOpen: false, start: '09:00', end: '18:00' },
+                        seg: { isOpen: true, start: '09:00', end: '18:00' },
+                        ter: { isOpen: true, start: '09:00', end: '18:00' },
+                        qua: { isOpen: true, start: '09:00', end: '18:00' },
+                        qui: { isOpen: true, start: '09:00', end: '18:00' },
+                        sex: { isOpen: true, start: '09:00', end: '18:00' },
+                        sab: { isOpen: true, start: '09:00', end: '18:00' }
+                    };
+                    try {
+                        await setDoc(workingHoursRef, defaultWorkingHours);
+                        workingHoursCache = defaultWorkingHours;
+                    } catch (error) {
+                        console.error("Erro ao criar horários de expediente padrão:", error);
+                    }
+                }
+
                 const trialEndDate = new Date(createdAt.getTime());
                 trialEndDate.setDate(trialEndDate.getDate() + 14);
                 
-                // Lógica de acesso atualizada
                 const hasActiveSubscription = userData.subscription?.status === 'active';
                 const isTrialActive = new Date() < trialEndDate;
-                const isLifetimeUser = userData.isLifetime === true; // Verifica a "chave mestra"
+                const isLifetimeUser = userData.isLifetime === true;
 
                 loadingOverlay.classList.add('hidden');
 
-                // A nova condição "isLifetimeUser" é adicionada para liberar o acesso
                 if (hasActiveSubscription || isTrialActive || isLifetimeUser) {
                     const daysLeft = isTrialActive && !hasActiveSubscription && !isLifetimeUser 
                         ? Math.ceil((trialEndDate - new Date()) / (1000 * 60 * 60 * 24)) 
@@ -223,6 +390,19 @@
             feather.replace();
         }
 
+        function addAdminMenuLink() {
+            const mainNav = document.getElementById('main-nav');
+            if (document.getElementById('admin-nav-link')) return;
+
+            const adminLink = document.createElement('a');
+            adminLink.id = 'admin-nav-link';
+            adminLink.href = '#admin';
+            adminLink.className = 'flex items-center px-4 py-2 text-sm font-semibold text-red-600 hover:bg-red-50 rounded-lg border-t-2 mt-4 pt-4 border-slate-200';
+            adminLink.innerHTML = `<i data-feather="shield" class="w-5 h-5 mr-3"></i>Admin`;
+            mainNav.appendChild(adminLink);
+            feather.replace();
+        }
+
         function setupNavigation(user, userData) {
             const mainNav = document.getElementById('main-nav');
             const sidebar = document.getElementById('sidebar');
@@ -236,7 +416,8 @@
                 servicos: () => initializeServices(user.uid),
                 Profissional: () => initializeBarbers(user.uid),
                 financeiro: () => initializeFinance(user.uid),
-                configuracoes: () => setupSettings(user, userData), // Passando 'user' inteiro
+                configuracoes: () => setupSettings(user, userData),
+                admin: () => initializeAdminPanel(),
             };
 
             const toggleSidebar = () => {
@@ -257,8 +438,18 @@
                     toggleSidebar();
                 }
 
-                document.querySelectorAll('#main-nav a').forEach(l => l.classList.remove('bg-indigo-50', 'text-indigo-700'));
-                link.classList.add('bg-indigo-50', 'text-indigo-700');
+                document.querySelectorAll('#main-nav a').forEach(l => {
+                    l.classList.remove('bg-indigo-50', 'text-indigo-700', 'bg-red-50');
+                    if (!l.id || l.id !== 'admin-nav-link') {
+                        l.classList.add('text-slate-600');
+                    }
+                });
+                
+                if (link.id === 'admin-nav-link') {
+                    link.classList.add('bg-red-50', 'text-red-700');
+                } else {
+                    link.classList.add('bg-indigo-50', 'text-indigo-700');
+                }
                 
                 const targetId = link.getAttribute('href').substring(1);
                 document.querySelectorAll('#main-content > div').forEach(section => section.classList.add('hidden'));
@@ -276,8 +467,8 @@
             document.querySelector('#main-nav a[href="#inicio"]').click();
         }
 
+        // ✨ HTML DO PAINEL DE ADMIN ATUALIZADO COM FILTROS ✨
         function getDashboardHTML() {
-          // ✨ ALTERAÇÃO 1: A SEÇÃO DE CONFIGURAÇÕES FOI TOTALMENTE REFEITA AQUI
           return `
               <div id="inicio-section">
                   <h2 class="text-2xl font-bold text-slate-800 mb-6">Início</h2>
@@ -292,7 +483,7 @@
                   <div class="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
                       <div class="flex items-center gap-4">
                           <button id="prev-week-btn" class="p-2 rounded-full hover:bg-slate-200"><i data-feather="chevron-left" class="w-5 h-5 text-slate-600"></i></button>
-                          <h2 id="week-display" class="text-lg font-bold text-slate-800 text-center"></h2>
+                          <h2 id="week-display" class="text-lg font-bold text-slate-800 text-center w-32"></h2>
                           <button id="next-week-btn" class="p-2 rounded-full hover:bg-slate-200"><i data-feather="chevron-right" class="w-5 h-5 text-slate-600"></i></button>
                       </div>
                       <button id="add-appointment-btn" class="bg-indigo-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:bg-indigo-700 flex items-center w-full sm:w-auto justify-center"><i data-feather="plus" class="w-5 h-5 mr-2"></i>Novo Agendamento</button>
@@ -325,7 +516,7 @@
                           </form>
                       </section>
                       <section class="bg-white p-6 rounded-lg shadow-sm">
-                          <h3 class="text-lg font-semibold text-slate-800 mb-4">Meu Profissional</h3>
+                          <h3 class="text-lg font-semibold text-slate-800 mb-4">Meus Profissionais</h3>
                           <div id="barbers-list" class="space-y-3"></div>
                       </section>
                   </div>
@@ -362,7 +553,37 @@
                   </section>
               </div>
               <div id="configuracoes-section" class="hidden">
+              </div>
+              <div id="admin-section" class="hidden">
+                  <h2 class="text-2xl font-bold text-slate-800 mb-6">Painel de Administrador</h2>
+                  
+                  <section id="admin-metrics-section" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                      <div class="bg-white p-6 rounded-lg shadow-sm"><p class="text-sm text-slate-500">Usuários Totais</p><p id="admin-total-users" class="text-3xl font-bold text-slate-800 mt-1">...</p></div>
+                      <div class="bg-white p-6 rounded-lg shadow-sm"><p class="text-sm text-slate-500">Assinantes Ativos</p><p id="admin-active-subs" class="text-3xl font-bold text-slate-800 mt-1">...</p></div>
+                      <div class="bg-white p-6 rounded-lg shadow-sm"><p class="text-sm text-slate-500">Acesso Vitalício</p><p id="admin-lifetime-users" class="text-3xl font-bold text-slate-800 mt-1">...</p></div>
+                      <div class="bg-white p-6 rounded-lg shadow-sm"><p class="text-sm text-slate-500">Em Teste</p><p id="admin-trial-users" class="text-3xl font-bold text-slate-800 mt-1">...</p></div>
+                  </section>
+
+                  <div class="bg-white p-6 rounded-lg shadow-sm">
+                      <h3 class="text-lg font-semibold text-slate-800 mb-4">Gerenciar Usuários</h3>
+                      
+                      <div id="admin-filters" class="flex flex-wrap items-center gap-2 mb-4 pb-4 border-b">
+                          <button class="admin-filter-btn active text-sm font-semibold py-2 px-4 rounded-lg border bg-indigo-600 text-white" data-filter="all">Todos</button>
+                          <button class="admin-filter-btn text-sm font-semibold py-2 px-4 rounded-lg border bg-white" data-filter="active">Assinantes</button>
+                          <button class="admin-filter-btn text-sm font-semibold py-2 px-4 rounded-lg border bg-white" data-filter="lifetime">Vitalícios</button>
+                          <button class="admin-filter-btn text-sm font-semibold py-2 px-4 rounded-lg border bg-white" data-filter="trial">Em Teste</button>
+                          <button class="admin-filter-btn text-sm font-semibold py-2 px-4 rounded-lg border bg-white" data-filter="expired">Expirados</button>
+                      </div>
+
+                      <div class="flex items-center gap-4 mb-6">
+                          <input type="text" id="admin-user-search-input" placeholder="Buscar por e-mail ou nome da empresa..." class="input-style flex-grow">
+                          <button id="admin-user-search-btn" class="bg-indigo-600 text-white font-semibold py-2 px-6 rounded-lg">Buscar</button>
+                      </div>
+                      <div id="admin-user-results" class="space-y-4">
+                          <p class="text-slate-500">Use os filtros ou a busca para encontrar usuários.</p>
+                      </div>
                   </div>
+              </div>
           `;
         }
         
@@ -394,342 +615,582 @@
             });
         }
         
-        function initializeAgenda(userId) {
-            const addAppointmentBtn = document.getElementById('add-appointment-btn');
-            const appointmentsListContainer = document.getElementById('appointments-list');
-            let selectedTime = null;
-            let barbersData = [];
-            const cacheBarbers = async () => {
-                const barbersQuery = query(collection(db, 'users', userId, 'barbers'));
-                const snapshot = await getDocs(barbersQuery);
-                barbersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            };
-            const renderAppointmentsForWeek = (offset = 0) => {
-    currentWeekOffset = offset; // Salva o offset atual para "lembrar" a posição
-
-    // --- INÍCIO DO BLOCO DE CÁLCULO DE DATA CORRIGIDO ---
-    // Este bloco foi reescrito para ser mais seguro e não causar "pulos".
-    
-    // 1. Pega a data de hoje como ponto de partida fixo.
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    // 2. Calcula a data alvo na semana desejada, adicionando o offset de semanas.
-    const targetDate = new Date(today);
-    targetDate.setDate(today.getDate() + offset * 7);
-
-    // 3. A partir da data alvo, calcula o Domingo (início da semana).
-    const dayOfWeek = targetDate.getDay(); // 0 para Domingo, 1 para Segunda, etc.
-    const weekStart = new Date(targetDate);
-    weekStart.setDate(targetDate.getDate() - dayOfWeek);
-
-    // 4. A partir do início da semana, calcula o Sábado (fim da semana).
-    const weekEnd = new Date(weekStart);
-    weekEnd.setDate(weekStart.getDate() + 6);
-    weekEnd.setHours(23, 59, 59, 999);
-    
-    // --- FIM DO BLOCO DE CÁLCULO DE DATA CORRIGIDO ---
-
-    // O resto da sua função continua exatamente igual a partir daqui...
-    document.getElementById('week-display').textContent = `${weekStart.toLocaleDateString('pt-BR', {day:'2-digit', month:'2-digit'})} - ${weekEnd.toLocaleDateString('pt-BR', {day:'2-digit', month:'2-digit'})}`;
-    
-    const startTimestamp = Timestamp.fromDate(weekStart);
-    const endTimestamp = Timestamp.fromDate(weekEnd);
-    
-    const q = query(collection(db, 'users', userId, 'appointments'), where("dateTime", ">=", startTimestamp), where("dateTime", "<=", endTimestamp), orderBy("dateTime"));
-    
-    onSnapshot(q, (snapshot) => {
-        const appointmentsListContainer = document.getElementById('appointments-list');
-        appointmentsListContainer.innerHTML = ''; // Limpa a lista antes de redesenhar
-
-        if (snapshot.empty) {
-            appointmentsListContainer.innerHTML = `<div class="text-center text-slate-500 py-10 bg-white rounded-lg shadow-sm"><p>Nenhum agendamento para esta semana.</p></div>`;
-            return;
-        }
-
-        const groupedAppointments = new Map();
-        snapshot.forEach(docSnap => {
-            const app = { id: docSnap.id, ...docSnap.data() };
-            const dayKey = app.dateTime.toDate().toISOString().split('T')[0];
-            if (!groupedAppointments.has(dayKey)) {
-                groupedAppointments.set(dayKey, []);
-            }
-            groupedAppointments.get(dayKey).push(app);
-        });
-
-        // Ordena os dias da semana antes de exibir
-        const sortedDays = [...groupedAppointments.keys()].sort();
-
-        sortedDays.forEach(dayKey => {
-            const appointmentsOnDay = groupedAppointments.get(dayKey);
-            const date = new Date(`${dayKey}T12:00:00`);
-            const dayHeader = document.createElement('h3');
-            dayHeader.className = 'text-xl font-bold text-slate-700 pb-2 border-b mb-4';
-            dayHeader.textContent = date.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' });
-            appointmentsListContainer.appendChild(dayHeader);
-            
-            const dayContainer = document.createElement('div');
-            dayContainer.className = 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4';
-            
-            appointmentsOnDay.forEach(app => {
-                const card = document.createElement('div');
-                card.className = 'appointment-card bg-white p-4 rounded-lg shadow flex flex-col justify-between';
-                const appDate = app.dateTime.toDate();
-                card.innerHTML = `
-                    <div>
-                        <div class="flex justify-between items-center">
-                            <span class="font-bold text-lg text-indigo-600">${String(appDate.getHours()).padStart(2, '0')}:${String(appDate.getMinutes()).padStart(2, '0')}</span>
-                            <span class="text-xs font-semibold text-slate-600">${app.barberName}</span>
-                        </div>
-                        <div class="mt-2">
-                            <p class="font-semibold text-slate-800">${app.clientName}</p>
-                            <p class="text-sm text-slate-500">${app.serviceName}</p>
-                        </div>
-                    </div>
-                    <p class="text-right font-bold text-slate-700 mt-4">R$ ${(app.price || 0).toFixed(2)}</p>
-                `;
-                card.addEventListener('click', () => openEditModal(userId, app.id));
-                dayContainer.appendChild(card);
-            });
-            appointmentsListContainer.appendChild(dayContainer);
-        });
-        feather.replace();
-    });
-};
-            const loadWorkingHours = async () => { if (workingHoursCache) return workingHoursCache; const ref = doc(db, 'users', userId, 'settings', 'workingHours'); const docSnap = await getDoc(ref); if (docSnap.exists()) { workingHoursCache = docSnap.data(); return workingHoursCache; } return null; };
-            const renderAvailableTimes = async (dateString, excludedTime = null) => { const timeSlotsContainer = document.getElementById('time-slots-container'); if (!dateString) { if(timeSlotsContainer) timeSlotsContainer.innerHTML = `<p class="text-sm text-slate-500 col-span-4">Selecione uma data para ver os horários.</p>`; return; } if(timeSlotsContainer) timeSlotsContainer.innerHTML = `<div class="spinner-large mx-auto my-4 col-span-4"></div>`; const workingHours = await loadWorkingHours(); if (!workingHours) { if(timeSlotsContainer) timeSlotsContainer.innerHTML = `<p class="text-sm text-red-500 col-span-4">Defina seus horários nas configurações primeiro.</p>`; return; } const selectedDate = new Date(`${dateString}T00:00:00`); const dayOfWeek = selectedDate.getDay(); const dayKeys = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sab']; const dayConfig = workingHours[dayKeys[dayOfWeek]]; if (!dayConfig || !dayConfig.isOpen) { if(timeSlotsContainer) timeSlotsContainer.innerHTML = `<p class="text-sm text-slate-500 col-span-4">Fechado neste dia.</p>`; return; } const startOfDay = Timestamp.fromDate(new Date(`${dateString}T00:00:00`)); const endOfDay = Timestamp.fromDate(new Date(`${dateString}T23:59:59`)); const q = query(collection(db, 'users', userId, 'appointments'), where("dateTime", ">=", startOfDay), where("dateTime", "<=", endOfDay)); const appointmentsSnap = await getDocs(q); const bookedTimes = appointmentsSnap.docs.map(doc => { const appDate = doc.data().dateTime.toDate(); return `${String(appDate.getHours()).padStart(2, '0')}:${String(appDate.getMinutes()).padStart(2, '0')}`; }); if(timeSlotsContainer) timeSlotsContainer.innerHTML = ''; const allSlots = []; let currentTime = new Date(`${dateString}T${dayConfig.start}`); const endTime = new Date(`${dateString}T${dayConfig.end}`); while (currentTime < endTime) { const timeString = `${String(currentTime.getHours()).padStart(2, '0')}:${String(currentTime.getMinutes()).padStart(2, '0')}`; allSlots.push(timeString); currentTime.setMinutes(currentTime.getMinutes() + 30); } if (allSlots.length === 0) { if(timeSlotsContainer) timeSlotsContainer.innerHTML = `<p class="text-sm text-slate-500 col-span-4">Nenhum horário disponível.</p>`; return; } const now = new Date(); const isToday = (selectedDate.toDateString() === now.toDateString()); allSlots.forEach(time => { const isBooked = bookedTimes.includes(time) && time !== excludedTime; let isPast = false; if (isToday) { const slotTime = new Date(`${dateString}T${time}`); isPast = slotTime < now; } const button = document.createElement('button'); button.type = 'button'; button.textContent = time; button.dataset.time = time; button.disabled = isBooked || isPast; button.className = `py-2 px-4 border rounded-lg text-sm font-semibold ${isBooked || isPast ? 'bg-slate-200 text-slate-400 cursor-not-allowed' : 'bg-white hover:bg-indigo-50 hover:border-indigo-500'}`; button.addEventListener('click', (e) => { selectedTime = e.target.dataset.time; document.querySelectorAll('#time-slots-container button').forEach(btn => { btn.classList.remove('bg-indigo-600', 'text-white', 'border-indigo-600'); btn.classList.add('bg-white'); }); e.target.classList.add('bg-indigo-600', 'text-white', 'border-indigo-600'); e.target.classList.remove('bg-white'); }); if(timeSlotsContainer) timeSlotsContainer.appendChild(button); }); };
-            const closeAppointmentModal = () => { appointmentModal.innerHTML = ''; appointmentModal.classList.add('hidden'); };
-            async function populateSelectWithOptions(userId, coll, selectId, emptyMsg, selectedValue = null) { const selectEl = document.getElementById(selectId); const q = query(collection(db, 'users', userId, coll), orderBy("name")); onSnapshot(q, (snap) => { selectEl.innerHTML = ''; if (snap.empty) { selectEl.innerHTML = `<option disabled selected>${emptyMsg}</option>`; return; } snap.forEach(doc => { const opt = document.createElement('option'); opt.value = doc.id; opt.textContent = doc.data().name; if (doc.id === selectedValue) { opt.selected = true; } selectEl.appendChild(opt); }); }); }
-            const findOrCreateClient = async (userId, clientName, clientPhone) => { const clientsRef = collection(db, 'users', userId, 'clients'); const q = query(clientsRef, where("phone", "==", clientPhone)); const querySnapshot = await getDocs(q); let clientId; if (querySnapshot.empty) { const newClientRef = await addDoc(clientsRef, { name: clientName, phone: clientPhone, createdAt: Timestamp.now(), appointmentCount: 0 }); clientId = newClientRef.id; } else { clientId = querySnapshot.docs[0].id; } return clientId; };
-            const openNewAppointmentModal = () => { selectedTime = null; appointmentModal.innerHTML = `<div class="bg-white rounded-lg shadow-2xl p-8 max-w-2xl w-full relative"><button id="close-modal-btn" class="absolute top-4 right-4 text-gray-400 hover:text-gray-800"><i data-feather="x" class="w-6 h-6"></i></button><h3 class="text-lg font-semibold text-slate-800 mb-6">Novo Agendamento</h3><form id="appointment-form" class="space-y-4"><div class="grid grid-cols-1 md:grid-cols-2 gap-4"><div><label for="client-name" class="block text-sm font-medium text-slate-600">Nome do Cliente</label><input type="text" id="client-name" required class="input-style"></div><div><label for="client-phone" class="block text-sm font-medium text-slate-600">Telefone do Cliente</label><input type="tel" id="client-phone" required class="input-style" placeholder="(XX) XXXXX-XXXX"></div></div><div class="grid grid-cols-1 md:grid-cols-2 gap-4"><div><label for="appointment-service" class="block text-sm font-medium text-slate-600">Serviço</label><select id="appointment-service" required class="input-style"></select></div><div><label for="appointment-barber" class="block text-sm font-medium text-slate-600">Profissional</label><select id="appointment-barber" required class="input-style"></select></div></div><div class="grid grid-cols-1 md:grid-cols-2 gap-4"><div><label for="appointment-date" class="block text-sm font-medium text-slate-600">Data</label><input type="date" id="appointment-date" required class="input-style"></div><div><label class="block text-sm font-medium text-slate-600">Hora</label><div id="time-slots-container" class="mt-2 grid grid-cols-3 sm:grid-cols-4 gap-2 border p-2 rounded-md min-h-[80px]"></div></div></div><button id="save-appointment-btn" type="submit" class="w-full bg-indigo-600 text-white font-semibold py-3 px-4 rounded-lg shadow-md hover:bg-indigo-700 flex items-center justify-center disabled:opacity-50 mt-6"><span class="btn-text">Salvar Agendamento</span><div class="spinner hidden ml-2"></div></button></form></div>`; appointmentModal.classList.remove('hidden'); appointmentModal.classList.add('flex'); document.getElementById('close-modal-btn').addEventListener('click', closeAppointmentModal); document.getElementById('appointment-form').addEventListener('submit', (e) => handleSaveNewAppointment(e, userId)); const dateInput = document.getElementById('appointment-date'); dateInput.min = new Date().toISOString().split("T")[0]; dateInput.addEventListener('change', () => renderAvailableTimes(dateInput.value)); populateSelectWithOptions(userId, 'services', 'appointment-service', 'Nenhum serviço'); cacheBarbers().then(() => { const selectBarber = document.getElementById('appointment-barber'); selectBarber.innerHTML = ''; if(barbersData.length === 0) { selectBarber.innerHTML = `<option disabled selected>Nenhum profissional</option>`; } barbersData.forEach(barber => { const opt = document.createElement('option'); opt.value = barber.id; opt.textContent = barber.name; selectBarber.appendChild(opt); }); }); renderAvailableTimes(null); feather.replace(); };
-            async function handleSaveNewAppointment(e, userId) { e.preventDefault(); const form = e.target; if (!selectedTime) { alert("Por favor, selecione um horário."); return; } const saveBtn = form.querySelector('button[type="submit"]'); const btnText = saveBtn.querySelector('.btn-text'); const spinner = saveBtn.querySelector('.spinner'); saveBtn.disabled = true; btnText.textContent = 'Salvando...'; spinner.classList.remove('hidden'); try { const clientName = form.elements['client-name'].value; const clientPhone = form.elements['client-phone'].value; const clientId = await findOrCreateClient(userId, clientName, clientPhone); const date = form.elements['appointment-date'].value; const dateTime = Timestamp.fromDate(new Date(`${date}T${selectedTime}`)); const serviceRef = doc(db, 'users', userId, 'services', form.elements['appointment-service'].value); const serviceSnap = await getDoc(serviceRef); const servicePrice = serviceSnap.exists() ? serviceSnap.data().price : 0; const selectedBarberOption = form.elements['appointment-barber']; const selectedBarberId = selectedBarberOption.value; const barberData = barbersData.find(b => b.id === selectedBarberId); await addDoc(collection(db, 'users', userId, 'appointments'), { clientName, clientPhone, clientId, serviceId: form.elements['appointment-service'].value, serviceName: form.elements['appointment-service'].options[form.elements['appointment-service'].selectedIndex].text, barberId: selectedBarberId, barberName: barberData.name, barberPhone: barberData.phone, dateTime, price: servicePrice, status: 'confirmado', lembreteEnviado: null, createdAt: Timestamp.now() }); const clientRef = doc(db, 'users', userId, 'clients', clientId); await updateDoc(clientRef, { appointmentCount: increment(1), lastAppointmentDate: dateTime, winbackMessageSent: false }); closeAppointmentModal(); alert('Agendamento criado com sucesso!'); } catch(err) { console.error("Erro ao salvar agendamento:", err); alert('Ocorreu um erro. Tente novamente.'); } finally { saveBtn.disabled = false; btnText.textContent = 'Salvar Agendamento'; spinner.classList.add('hidden'); } }
-            const openEditModal = async (userId, appointmentId) => { const appDocRef = doc(db, 'users', userId, 'appointments', appointmentId); const appDocSnap = await getDoc(appDocRef); if (!appDocSnap.exists()) { alert("Agendamento não encontrado."); return; } const appointmentData = appDocSnap.data(); const appDate = appointmentData.dateTime.toDate(); const dateString = appDate.toISOString().split('T')[0]; const timeString = `${String(appDate.getHours()).padStart(2, '0')}:${String(appDate.getMinutes()).padStart(2, '0')}`; selectedTime = timeString; appointmentModal.innerHTML = `<div class="bg-white rounded-lg shadow-2xl p-8 max-w-2xl w-full relative"><button id="close-modal-btn" class="absolute top-4 right-4 text-gray-400 hover:text-gray-800"><i data-feather="x" class="w-6 h-6"></i></button><h3 class="text-lg font-semibold text-slate-800 mb-6">Editar Agendamento</h3><form id="edit-appointment-form" class="space-y-4"><p class="text-sm font-semibold">Cliente: ${appointmentData.clientName}</p><div class="grid grid-cols-1 md:grid-cols-2 gap-4"><div><label for="appointment-service" class="block text-sm font-medium text-slate-600">Serviço</label><select id="appointment-service" required class="input-style"></select></div><div><label for="appointment-barber" class="block text-sm font-medium text-slate-600">Profissional</label><select id="appointment-barber" required class="input-style"></select></div></div><div class="grid grid-cols-1 md:grid-cols-2 gap-4"><div><label for="appointment-date" class="block text-sm font-medium text-slate-600">Data</label><input type="date" id="appointment-date" required class="input-style" value="${dateString}"></div><div><label class="block text-sm font-medium text-slate-600">Hora</label><div id="time-slots-container" class="mt-2 grid grid-cols-3 sm:grid-cols-4 gap-2 border p-2 rounded-md min-h-[80px]"></div></div></div><div class="flex items-center gap-4 mt-6"><button id="update-appointment-btn" type="submit" class="w-full bg-indigo-600 text-white font-semibold py-3 px-4 rounded-lg shadow-md hover:bg-indigo-700">Salvar Alterações</button><button id="delete-appointment-btn" type="button" class="w-auto bg-red-600 text-white font-semibold py-3 px-4 rounded-lg shadow-md hover:bg-red-700"><i data-feather="trash-2" class="w-5 h-5"></i></button></div></form></div>`; appointmentModal.classList.remove('hidden'); appointmentModal.classList.add('flex'); document.getElementById('close-modal-btn').addEventListener('click', closeAppointmentModal); document.getElementById('edit-appointment-form').addEventListener('submit', (e) => handleUpdateAppointment(e, userId, appointmentId)); document.getElementById('delete-appointment-btn').addEventListener('click', () => handleDeleteAppointment(userId, appointmentId)); const dateInput = document.getElementById('appointment-date'); dateInput.min = new Date().toISOString().split("T")[0]; dateInput.addEventListener('change', () => renderAvailableTimes(dateInput.value, timeString)); await populateSelectWithOptions(userId, 'services', 'appointment-service', 'Nenhum serviço', appointmentData.serviceId); await populateSelectWithOptions(userId, 'barbers', 'appointment-barber', 'Nenhum profissional', appointmentData.barberId); await renderAvailableTimes(dateString, timeString); document.querySelector(`#time-slots-container button[data-time="${timeString}"]`)?.click(); feather.replace(); };
-            async function handleUpdateAppointment(e, userId, appointmentId) { e.preventDefault(); if (!selectedTime) { alert("Por favor, selecione um horário."); return; } const form = e.target; const date = form.elements['appointment-date'].value; const newDateTime = Timestamp.fromDate(new Date(`${date}T${selectedTime}`)); const serviceId = form.elements['appointment-service'].value; const serviceName = form.elements['appointment-service'].options[form.elements['appointment-service'].selectedIndex].text; const barberId = form.elements['appointment-barber'].value; const barberName = form.elements['appointment-barber'].options[form.elements['appointment-barber'].selectedIndex].text; const appDocRef = doc(db, 'users', userId, 'appointments', appointmentId); await updateDoc(appDocRef, { dateTime: newDateTime, serviceId: serviceId, serviceName: serviceName, barberId: barberId, barberName: barberName, }); closeAppointmentModal(); alert("Agendamento atualizado com sucesso!"); }
-            async function handleDeleteAppointment(userId, appointmentId) { if (window.confirm("Tem certeza que deseja excluir este agendamento? Esta ação não pode ser desfeita.")) { const appDocRef = doc(db, 'users', userId, 'appointments', appointmentId); try { const appDocSnap = await getDoc(appDocRef); if (appDocSnap.exists()) { const { clientId } = appDocSnap.data(); if (clientId) { const clientRef = doc(db, 'users', userId, 'clients', clientId); const clientSnap = await getDoc(clientRef); if (clientSnap.exists()) { const currentCount = clientSnap.data().appointmentCount; if (currentCount <= 1) { await deleteDoc(clientRef); } else { await updateDoc(clientRef, { appointmentCount: increment(-1) }); } } } } await deleteDoc(appDocRef); closeAppointmentModal(); alert("Agendamento excluído com sucesso."); } catch (error) { console.error("Erro ao excluir o agendamento e atualizar cliente:", error); alert("Não foi possível excluir o agendamento."); } } }
-
-            document.getElementById('prev-week-btn').addEventListener('click', () => renderAppointmentsForWeek(currentWeekOffset - 1));
-            document.getElementById('next-week-btn').addEventListener('click', () => renderAppointmentsForWeek(currentWeekOffset + 1));
-            addAppointmentBtn.addEventListener('click', openNewAppointmentModal);
-            renderAppointmentsForWeek(currentWeekOffset);
-        }
-        function initializeClients(userId) { const tableBody = document.getElementById('clients-table-body'); const searchInput = document.getElementById('client-search-input'); const clientsRef = collection(db, 'users', userId, 'clients'); let clientsData = []; const renderTable = (clients) => { if (clients.length === 0) { tableBody.innerHTML = `<tr><td colspan="5" class="text-center p-6 text-slate-500">Nenhum cliente encontrado.</td></tr>`; return; } tableBody.innerHTML = ''; clients.forEach(client => { const row = tableBody.insertRow(); let lastDateFormatted = '-'; if (client.lastAppointmentDate) { const lastDate = client.lastAppointmentDate.toDate(); lastDateFormatted = lastDate.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' }); } row.innerHTML = ` <td class="px-6 py-4 font-medium text-gray-900">${client.name}</td> <td class="px-6 py-4">${client.phone}</td> <td class="px-6 py-4">${client.appointmentCount || 0}</td> <td class="px-6 py-4 text-slate-600">${lastDateFormatted}</td> <td class="px-6 py-4 text-center"> <button class="text-red-500 hover:text-red-700 delete-client-btn" data-client-id="${client.id}" data-client-name="${client.name}"> <i data-feather="trash-2" class="w-4 h-4 pointer-events-none"></i> </button> </td> `; }); feather.replace(); }; onSnapshot(query(clientsRef, orderBy("name")), (snapshot) => { clientsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); renderTable(clientsData); searchInput.dispatchEvent(new Event('input')); }); searchInput.addEventListener('input', (e) => { const searchTerm = e.target.value.toLowerCase(); const filteredClients = clientsData.filter(client => client.name.toLowerCase().includes(searchTerm) || (client.phone && client.phone.includes(searchTerm)) ); renderTable(filteredClients); }); tableBody.addEventListener('click', async (e) => { const deleteButton = e.target.closest('.delete-client-btn'); if (deleteButton) { const clientId = deleteButton.dataset.clientId; const clientName = deleteButton.dataset.clientName; if (window.confirm(`Tem certeza que deseja excluir o cliente ${clientName}? Esta ação NÃO PODE ser desfeita e removerá o cliente permanentemente.`)) { try { await deleteDoc(doc(db, 'users', userId, 'clients', clientId)); alert('Cliente excluído com sucesso.'); } catch (error) { console.error("Erro ao excluir cliente:", error); alert('Não foi possível excluir o cliente.'); } } } }); }
-        function initializeServices(userId) { const form = document.getElementById('service-form'); const listDiv = document.getElementById('services-list'); let editingServiceId = null; form.addEventListener('submit', async (e) => { e.preventDefault(); const saveBtn = form.querySelector('button[type="submit"]'); const btnText = saveBtn.querySelector('.btn-text'); saveBtn.disabled = true; const serviceData = { name: form.elements['service-name'].value, duration: Number(form.elements['service-duration'].value), price: Number(form.elements['service-price'].value) }; try { if (editingServiceId) { const serviceRef = doc(db, 'users', userId, 'services', editingServiceId); await updateDoc(serviceRef, serviceData); } else { await addDoc(collection(db, 'users', userId, 'services'), serviceData); } form.reset(); editingServiceId = null; btnText.textContent = 'Salvar Serviço'; } catch (error) { console.error("Erro ao salvar serviço:", error); } finally { saveBtn.disabled = false; } }); onSnapshot(query(collection(db, 'users', userId, 'services'), orderBy("name")), (snap) => { servicesCache.clear(); listDiv.innerHTML = snap.empty ? '<p>Nenhum serviço registrado.</p>' : ''; snap.forEach(doc => { const service = { id: doc.id, ...doc.data() }; servicesCache.set(service.id, service); const el = document.createElement('div'); el.className = 'flex justify-between items-center bg-slate-50 p-3 rounded-lg'; el.innerHTML = `<div><p class="font-semibold">${service.name}</p><p class="text-sm text-slate-500">${service.duration} min - R$ ${service.price.toFixed(2)}</p></div><div class="flex items-center gap-4"><button class="text-slate-500 hover:text-indigo-600 edit-service-btn" data-service-id="${service.id}"><i data-feather="edit-2" class="w-4 h-4 pointer-events-none"></i></button><button class="text-slate-500 hover:text-red-600 delete-service-btn" data-service-id="${service.id}"><i data-feather="trash-2" class="w-4 h-4 pointer-events-none"></i></button></div>`; listDiv.appendChild(el); }); feather.replace(); }); listDiv.addEventListener('click', async (e) => { const editButton = e.target.closest('.edit-service-btn'); const deleteButton = e.target.closest('.delete-service-btn'); if (editButton) { const serviceId = editButton.dataset.serviceId; const serviceRef = doc(db, 'users', userId, 'services', serviceId); const docSnap = await getDoc(serviceRef); if (docSnap.exists()) { const service = docSnap.data(); form.elements['service-name'].value = service.name; form.elements['service-duration'].value = service.duration; form.elements['service-price'].value = service.price; form.querySelector('.btn-text').textContent = 'Atualizar Serviço'; editingServiceId = serviceId; } } if (deleteButton) { const serviceId = deleteButton.dataset.serviceId; if (window.confirm("Tem certeza que deseja excluir este serviço?")) { await deleteDoc(doc(db, "users", userId, "services", serviceId)); } } }); }
-        function initializeBarbers(userId) { const formSection = document.getElementById('barber-form-section'); const form = document.getElementById('barber-form'); const listDiv = document.getElementById('barbers-list'); form.addEventListener('submit', async (e) => { e.preventDefault(); const saveBtn = form.querySelector('button[type="submit"]'); saveBtn.disabled = true; try { await addDoc(collection(db, 'users', userId, 'barbers'), { name: form.elements['barber-name'].value, phone: form.elements['barber-phone'].value }); form.reset(); } catch (error) { console.error("Erro ao salvar profissional:", error); } finally { saveBtn.disabled = false; } }); onSnapshot(query(collection(db, 'users', userId, 'barbers')), (snap) => { listDiv.innerHTML = snap.empty ? '<p>Nenhum profissional registrado.</p>' : ''; if (snap.size >= 1) { formSection.classList.add('hidden'); } else { formSection.classList.remove('hidden'); } snap.forEach(doc => { const barber = { id: doc.id, ...doc.data() }; const el = document.createElement('div'); el.className = 'flex justify-between items-center bg-slate-50 p-3 rounded-lg'; el.innerHTML = `<div><p class="font-semibold">${barber.name}</p><p class="text-sm text-slate-500">${barber.phone || 'Sem telefone'}</p></div><button class="text-red-500 hover:text-red-700 delete-barber-btn" data-barber-id="${barber.id}"><i data-feather="trash-2" class="w-4 h-4 pointer-events-none"></i></button>`; listDiv.appendChild(el); }); feather.replace(); }); listDiv.addEventListener('click', async (e) => { const deleteButton = e.target.closest('.delete-barber-btn'); if (deleteButton) { const barberId = deleteButton.dataset.barberId; if (window.confirm("Tem certeza que deseja excluir este profissional?")) { await deleteDoc(doc(db, "users", userId, "barbers", barberId)); } } }); }
-        function initializeFinance(userId) { const appointmentsRef = collection(db, 'users', userId, 'appointments'); onSnapshot(query(appointmentsRef), (snap) => { const now = new Date(); const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()); const monthStart = new Date(now.getFullYear(), now.getMonth(), 1); let todayRevenue = 0; let monthRevenue = 0; let monthAppointments = 0; snap.forEach(doc => { const app = doc.data(); const appDate = app.dateTime.toDate(); const price = app.price || 0; if (appDate >= monthStart) { monthRevenue += price; monthAppointments++; } if (appDate >= todayStart && appDate < new Date(todayStart.getTime() + 24 * 60 * 60 * 1000)) { todayRevenue += price; } }); document.getElementById('finance-today-revenue').textContent = `R$ ${todayRevenue.toFixed(2)}`; document.getElementById('finance-month-revenue').textContent = `R$ ${monthRevenue.toFixed(2)}`; document.getElementById('finance-avg-ticket').textContent = `R$ ${(monthRevenue / (monthAppointments || 1)).toFixed(2)}`; }); const generateReportBtn = document.getElementById('generate-report-btn'); generateReportBtn.addEventListener('click', async () => { const startDateInput = document.getElementById('filter-start-date').value; const endDateInput = document.getElementById('filter-end-date').value; if (!startDateInput || !endDateInput) { alert('Por favor, selecione a data de início e de fim.'); return; } const startTimestamp = Timestamp.fromDate(new Date(`${startDateInput}T00:00:00`)); const endTimestamp = Timestamp.fromDate(new Date(`${endDateInput}T23:59:59`)); const reportQuery = query(appointmentsRef, where("dateTime", ">=", startTimestamp), where("dateTime", "<=", endTimestamp), orderBy("dateTime")); const reportSnap = await getDocs(reportQuery); let periodRevenue = 0; const dailyData = new Map(); reportSnap.forEach(doc => { const app = doc.data(); const price = app.price || 0; periodRevenue += price; const day = app.dateTime.toDate().toLocaleDateString('pt-BR', {day: '2-digit', month: '2-digit'}); dailyData.set(day, (dailyData.get(day) || 0) + price); }); document.getElementById('report-summary').classList.remove('hidden'); document.getElementById('report-summary').classList.add('grid'); document.getElementById('finance-period-revenue').textContent = `R$ ${periodRevenue.toFixed(2)}`; const ctx = document.getElementById('revenue-chart').getContext('2d'); if (revenueChartInstance) { revenueChartInstance.destroy(); } revenueChartInstance = new Chart(ctx, { type: 'bar', data: { labels: Array.from(dailyData.keys()), datasets: [{ label: 'Faturamento no Período', data: Array.from(dailyData.values()), backgroundColor: '#4f46e5', borderColor: '#4338ca', borderWidth: 1 }] }, options: { scales: { y: { beginAtZero: true } }, plugins: { legend: { display: false } } } }); }); const today = new Date(); const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0]; const todayISO = today.toISOString().split('T')[0]; document.getElementById('filter-start-date').value = firstDayOfMonth; document.getElementById('filter-end-date').value = todayISO; generateReportBtn.click(); }
+        function initializeClients(userId) { const tableBody = document.getElementById('clients-table-body'); const searchInput = document.getElementById('client-search-input'); const clientsRef = collection(db, 'users', userId, 'clients'); let clientsData = []; const renderTable = (clients) => { if (clients.length === 0) { tableBody.innerHTML = `<tr><td colspan="5" class="text-center p-6 text-slate-500">Nenhum cliente encontrado.</td></tr>`; return; } tableBody.innerHTML = ''; clients.forEach(client => { const row = tableBody.insertRow(); let lastDateFormatted = '-'; if (client.lastAppointmentDate) { const lastDate = client.lastAppointmentDate.toDate(); lastDateFormatted = lastDate.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' }); } row.innerHTML = ` <td class="px-6 py-4 font-medium text-gray-900">${client.name}</td> <td class="px-6 py-4">${client.phone}</td> <td class="px-6 py-4">${client.appointmentCount || 0}</td> <td class="px-6 py-4 text-slate-600">${lastDateFormatted}</td> <td class="px-6 py-4 text-center"> <button class="text-red-500 hover:text-red-700 delete-client-btn" data-client-id="${client.id}" data-client-name="${client.name}"> <i data-feather="trash-2" class="w-4 h-4 pointer-events-none"></i> </button> </td> `; }); feather.replace(); }; onSnapshot(query(clientsRef, orderBy("name")), (snapshot) => { clientsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); renderTable(clientsData); searchInput.dispatchEvent(new Event('input')); }); searchInput.addEventListener('input', (e) => { const searchTerm = e.target.value.toLowerCase(); const filteredClients = clientsData.filter(client => client.name.toLowerCase().includes(searchTerm) || (client.phone && client.phone.includes(searchTerm)) ); renderTable(filteredClients); }); tableBody.addEventListener('click', async (e) => { const deleteButton = e.target.closest('.delete-client-btn'); if (deleteButton) { const clientId = deleteButton.dataset.clientId; const clientName = deleteButton.dataset.clientName; if (confirm(`Tem certeza que deseja excluir o cliente ${clientName}? Esta ação NÃO PODE ser desfeita e removerá o cliente permanentemente.`)) { try { await deleteDoc(doc(db, 'users', userId, 'clients', clientId)); alert('Cliente excluído com sucesso.'); } catch (error) { console.error("Erro ao excluir cliente:", error); alert('Não foi possível excluir o cliente.'); } } } }); }
         
-        // ✨ ALTERAÇÃO 2: A FUNÇÃO setupSettings FOI TOTALMENTE REESCRITA
-        //  👇👇👇  COLE ESTA VERSÃO COMPLETA E ATUALIZADA NO LUGAR DA SUA ATUAL 👇👇👇
+        function initializeServices(userId) { const form = document.getElementById('service-form'); const listDiv = document.getElementById('services-list'); let editingServiceId = null; form.addEventListener('submit', async (e) => { e.preventDefault(); const saveBtn = form.querySelector('button[type="submit"]'); const btnText = saveBtn.querySelector('.btn-text'); saveBtn.disabled = true; const serviceData = { name: form.elements['service-name'].value, duration: Number(form.elements['service-duration'].value), price: Number(form.elements['service-price'].value) }; try { if (editingServiceId) { const serviceRef = doc(db, 'users', userId, 'services', editingServiceId); await updateDoc(serviceRef, serviceData); } else { await addDoc(collection(db, 'users', userId, 'services'), serviceData); } form.reset(); editingServiceId = null; btnText.textContent = 'Salvar Serviço'; } catch (error) { console.error("Erro ao salvar serviço:", error); } finally { saveBtn.disabled = false; } }); onSnapshot(query(collection(db, 'users', userId, 'services'), orderBy("name")), (snap) => { servicesCache.clear(); listDiv.innerHTML = snap.empty ? '<p>Nenhum serviço registrado.</p>' : ''; snap.forEach(doc => { const service = { id: doc.id, ...doc.data() }; servicesCache.set(service.id, service); const el = document.createElement('div'); el.className = 'flex justify-between items-center bg-slate-50 p-3 rounded-lg'; el.innerHTML = `<div><p class="font-semibold">${service.name}</p><p class="text-sm text-slate-500">${service.duration} min - R$ ${service.price.toFixed(2)}</p></div><div class="flex items-center gap-4"><button class="text-slate-500 hover:text-indigo-600 edit-service-btn" data-service-id="${service.id}"><i data-feather="edit-2" class="w-4 h-4 pointer-events-none"></i></button><button class="text-slate-500 hover:text-red-600 delete-service-btn" data-service-id="${service.id}"><i data-feather="trash-2" class="w-4 h-4 pointer-events-none"></i></button></div>`; listDiv.appendChild(el); }); feather.replace(); }); listDiv.addEventListener('click', async (e) => { const editButton = e.target.closest('.edit-service-btn'); const deleteButton = e.target.closest('.delete-service-btn'); if (editButton) { const serviceId = editButton.dataset.serviceId; const serviceRef = doc(db, 'users', userId, 'services', serviceId); const docSnap = await getDoc(serviceRef); if (docSnap.exists()) { const service = docSnap.data(); form.elements['service-name'].value = service.name; form.elements['service-duration'].value = service.duration; form.elements['service-price'].value = service.price; form.querySelector('.btn-text').textContent = 'Atualizar Serviço'; editingServiceId = serviceId; } } if (deleteButton) { const serviceId = deleteButton.dataset.serviceId; if (confirm("Tem certeza que deseja excluir este serviço?")) { await deleteDoc(doc(db, "users", userId, "services", serviceId)); } } }); }
+        
+        function initializeBarbers(userId) {
+            const formSection = document.getElementById('barber-form-section');
+            const form = document.getElementById('barber-form');
+            const listDiv = document.getElementById('barbers-list');
 
-function setupSettings(user, userData) {
-    const settingsSection = document.getElementById('configuracoes-section');
-    const mainPageTitle = document.getElementById('welcome-message');
-    
-    const settingsHTML = `
-        <div id="settings-view-wrapper">
-            <div id="settings-menu-view">
-                <h2 class="text-2xl font-bold text-slate-800 mb-6">Configurações</h2>
-                <div class="bg-white rounded-lg shadow-sm overflow-hidden">
-                    <div class="settings-menu-item" data-view="company-view" data-title="Informações da Empresa">
-                        <div class="flex items-center"><i data-feather="briefcase" class="w-5 h-5 mr-4 text-slate-500"></i><span class="font-semibold text-slate-700">Informações da Empresa</span></div>
-                        <i data-feather="chevron-right" class="w-5 h-5 text-slate-400"></i>
-                    </div>
-                    <div class="settings-menu-item" data-view="hours-view" data-title="Expediente">
-                        <div class="flex items-center"><i data-feather="clock" class="w-5 h-5 mr-4 text-slate-500"></i><span class="font-semibold text-slate-700">Expediente</span></div>
-                        <i data-feather="chevron-right" class="w-5 h-5 text-slate-400"></i>
-                    </div>
-                    <div class="settings-menu-item" data-view="link-view" data-title="Link de Agendamento">
-                        <div class="flex items-center"><i data-feather="link" class="w-5 h-5 mr-4 text-slate-500"></i><span class="font-semibold text-slate-700">Link de Agendamento</span></div>
-                        <i data-feather="chevron-right" class="w-5 h-5 text-slate-400"></i>
-                    </div>
-                    <div class="settings-menu-item" data-view="subscription-view" data-title="Sua Assinatura">
-                        <div class="flex items-center"><i data-feather="credit-card" class="w-5 h-5 mr-4 text-slate-500"></i><span class="font-semibold text-slate-700">Sua Assinatura</span></div>
-                        <i data-feather="chevron-right" class="w-5 h-5 text-slate-400"></i>
-                    </div>
-                </div>
-            </div>
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const saveBtn = form.querySelector('button[type="submit"]');
+                saveBtn.disabled = true;
+                try {
+                    await addDoc(collection(db, 'users', userId, 'barbers'), {
+                        name: form.elements['barber-name'].value,
+                        phone: form.elements['barber-phone'].value
+                    });
+                    form.reset();
+                } catch (error) {
+                    console.error("Erro ao salvar profissional:", error);
+                    alert("Ocorreu um erro ao salvar o profissional.");
+                } finally {
+                    saveBtn.disabled = false;
+                }
+            });
 
-            <div id="company-view" class="hidden">
-                <button class="back-to-settings mb-6 font-semibold text-indigo-600 flex items-center"><i data-feather="chevron-left" class="w-5 h-5"></i> Voltar</button>
-                <div class="bg-white p-6 rounded-lg shadow-sm">
-                    <h3 class="text-lg font-semibold text-slate-800">Nome da Empresa</h3>
-                    <div class="mt-4">
-                        <label for="barbershop-name-input" class="block text-sm font-medium text-slate-700">Nome da Empresa</label>
-                        <input type="text" id="barbershop-name-input" class="input-style mt-1">
-                    </div>
-                    <button id="save-barbershop-name-btn" class="mt-4 w-full bg-indigo-600 text-white font-semibold py-2 px-4 rounded-lg flex items-center justify-center">Salvar Nome</button>
-                </div>
-            </div>
+            onSnapshot(query(collection(db, 'users', userId, 'barbers')), (snap) => {
+                listDiv.innerHTML = snap.empty ? '<p class="text-slate-500">Nenhum profissional registrado.</p>' : '';
+                
+                if (snap.size >= 1) {
+                    formSection.classList.add('hidden');
+                } else {
+                    formSection.classList.remove('hidden');
+                }
 
-            <div id="hours-view" class="hidden">
-                <button class="back-to-settings mb-6 font-semibold text-indigo-600 flex items-center"><i data-feather="chevron-left" class="w-5 h-5"></i> Voltar</button>
-                <div class="bg-white p-6 rounded-lg shadow-sm">
-                    <h3 class="text-lg font-semibold text-slate-800">Horários de Funcionamento</h3>
-                    <p class="text-sm text-slate-500 mt-1 mb-4">Defina seus dias e horários de trabalho.</p>
-                    <form id="working-hours-form" class="space-y-4"></form>
-                    <button id="save-hours-btn" type="button" class="mt-6 w-full bg-indigo-600 text-white font-semibold py-2 px-4 rounded-lg flex items-center justify-center disabled:opacity-50"><span class="btn-text">Salvar Alterações</span><div class="spinner hidden ml-2"></div></button>
-                </div>
-            </div>
+                snap.forEach(doc => {
+                    const barber = { id: doc.id, ...doc.data() };
+                    const el = document.createElement('div');
+                    el.className = 'flex justify-between items-center bg-slate-50 p-3 rounded-lg';
+                    el.innerHTML = `
+                        <div>
+                            <p class="font-semibold text-slate-800">${barber.name}</p>
+                            <p class="text-sm text-slate-500">${barber.phone || 'Sem telefone'}</p>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <button class="p-2 text-slate-500 hover:text-indigo-600 edit-barber-btn" data-barber-id="${barber.id}">
+                                <i data-feather="edit-2" class="w-4 h-4 pointer-events-none"></i>
+                            </button>
+                            <button class="p-2 text-slate-500 hover:text-red-600 delete-barber-btn" data-barber-id="${barber.id}">
+                                <i data-feather="trash-2" class="w-4 h-4 pointer-events-none"></i>
+                            </button>
+                        </div>`;
+                    listDiv.appendChild(el);
+                });
+                feather.replace();
+            });
 
-            <div id="link-view" class="hidden">
-                <button class="back-to-settings mb-6 font-semibold text-indigo-600 flex items-center"><i data-feather="chevron-left" class="w-5 h-5"></i> Voltar</button>
-                <div class="bg-white p-6 rounded-lg shadow-sm">
-                    <h3 class="text-lg font-semibold text-slate-800">Seu Link de Agendamento</h3>
-                    <p class="text-sm text-slate-500 mt-1 mb-4">Compartilhe este link no seu Instagram.</p>
-                    <div class="flex items-center space-x-2">
-                        <input id="public-booking-link" type="text" readonly class="w-full p-2 bg-slate-100 border border-slate-300 rounded-md">
-                        <button id="copy-link-btn" class="bg-indigo-600 text-white font-semibold py-2 px-4 rounded-lg flex-shrink-0">Copiar</button>
-                    </div>
-                </div>
-            </div>
-            
-            <div id="subscription-view" class="hidden">
-                 <button class="back-to-settings mb-6 font-semibold text-indigo-600 flex items-center"><i data-feather="chevron-left" class="w-5 h-5"></i> Voltar</button>
-                <div id="subscription-content-wrapper" class="bg-white p-6 rounded-lg shadow-sm">
-                    </div>
-            </div>
-        </div>
-    `;
-    
-    settingsSection.innerHTML = settingsHTML;
-    const originalTitle = `Bem-vindo, ${userData.barbershopName}!`;
+            listDiv.addEventListener('click', async (e) => {
+                const editButton = e.target.closest('.edit-barber-btn');
+                const deleteButton = e.target.closest('.delete-barber-btn');
 
-    const navigateTo = (viewId, title) => {
-        const wrapper = document.getElementById('settings-view-wrapper');
-        Array.from(wrapper.children).forEach(view => view.classList.add('hidden'));
-        document.getElementById(viewId).classList.remove('hidden');
-        mainPageTitle.textContent = title;
-    };
+                if (editButton) {
+                    const barberId = editButton.dataset.barberId;
+                    openEditBarberModal(userId, barberId);
+                }
 
-    document.querySelectorAll('.settings-menu-item').forEach(item => {
-        item.addEventListener('click', () => {
-            const viewId = item.dataset.view;
-            const title = item.dataset.title;
-            navigateTo(viewId, title);
-        });
-    });
+                if (deleteButton) {
+                    const barberId = deleteButton.dataset.barberId;
+                    if (confirm("Tem certeza que deseja excluir este profissional?")) {
+                        await deleteDoc(doc(db, "users", userId, "barbers", barberId));
+                        alert("Profissional excluído com sucesso.");
+                    }
+                }
+            });
+        }
 
-    document.querySelectorAll('.back-to-settings').forEach(button => {
-        button.addEventListener('click', () => {
-            navigateTo('settings-menu-view', 'Configurações');
-        });
-    });
+        async function openEditBarberModal(userId, barberId) {
+            const barberRef = doc(db, 'users', userId, 'barbers', barberId);
+            const barberSnap = await getDoc(barberRef);
 
-    // --- LÓGICA INTELIGENTE PARA A TELA DE ASSINATURA ---
-    const subscriptionContentWrapper = document.getElementById('subscription-content-wrapper');
-    const userHasActiveSubscription = userData.subscription?.status === 'active';
-
-    if (userHasActiveSubscription) {
-        // Se o usuário TEM uma assinatura ativa, mostra o botão de gerenciar
-        subscriptionContentWrapper.innerHTML = `
-            <h3 class="text-lg font-semibold text-slate-800">Sua Assinatura</h3>
-            <p class="text-sm text-slate-500 mt-1 mb-4">Acesse seu portal para gerenciar pagamentos, alterar seu cartão ou cancelar.</p>
-            <button id="manage-subscription-btn" class="mt-4 w-full bg-slate-800 text-white font-semibold py-2 px-4 rounded-lg flex items-center justify-center">
-                <i data-feather="credit-card" class="w-5 h-5 mr-2"></i>Gerenciar Assinatura
-            </button>
-        `;
-        document.getElementById('manage-subscription-btn').addEventListener('click', redirectToCustomerPortal);
-    } else {
-        // Se o usuário NÃO tem (está em teste ou expirou), mostra um botão para ASSINAR
-        const stripeLink = `https://buy.stripe.com/fZu6oA3ntgEM2pAfZVdZ600?client_reference_id=${user.uid}`;
-        subscriptionContentWrapper.innerHTML = `
-            <h3 class="text-lg font-semibold text-slate-800">Sua Assinatura</h3>
-            <p class="text-sm text-slate-500 mt-1 mb-4">Você está atualmente no período de teste. Para não perder o acesso, faça sua assinatura.</p>
-            <a href="${stripeLink}" target="_blank" class="mt-4 w-full bg-indigo-600 text-white font-semibold py-2 px-4 rounded-lg flex items-center justify-center">
-                Fazer Assinatura Agora
-            </a>
-        `;
-    }
-
-    // --- Lógica das outras telas ---
-    const nameInput = document.getElementById('barbershop-name-input');
-    const saveNameBtn = document.getElementById('save-barbershop-name-btn');
-    if (nameInput) nameInput.value = userData.barbershopName || '';
-    if (saveNameBtn) {
-        saveNameBtn.addEventListener('click', async () => {
-            const newName = nameInput.value.trim();
-            if (!newName) {
-                alert('O nome da empresa não pode ficar em branco.');
+            if (!barberSnap.exists()) {
+                alert("Erro: Profissional não encontrado.");
                 return;
             }
-            saveNameBtn.disabled = true;
-            saveNameBtn.innerHTML = `<div class="spinner mx-auto"></div>`;
-            try {
-                const userDocRef = doc(db, "users", user.uid);
-                await updateDoc(userDocRef, { barbershopName: newName });
-                alert('Nome da empresa atualizado com sucesso!');
-                document.getElementById('welcome-message').textContent = `Bem-vindo, ${newName}!`;
-                document.getElementById('user-avatar').src = `https://placehold.co/40x40/e2e8f0/64748b?text=${newName.charAt(0).toUpperCase()}`;
-            } catch (error) {
-                console.error("Erro ao atualizar nome:", error);
-                alert('Ocorreu um erro ao salvar o nome.');
-            } finally {
-                saveNameBtn.disabled = false;
-                saveNameBtn.textContent = 'Salvar Nome';
-            }
-        });
-    }
+            const barber = barberSnap.data();
 
-    const hoursForm = document.getElementById('working-hours-form');
-    const saveHoursBtn = document.getElementById('save-hours-btn');
-    const loadHours = async () => {
-        const ref = doc(db, 'users', user.uid, 'settings', 'workingHours');
-        const docSnap = await getDoc(ref);
-        const hoursData = docSnap.exists() ? docSnap.data() : {};
-        const days = [{ id: 'dom', name: 'Domingo' }, { id: 'seg', name: 'Segunda' }, { id: 'ter', name: 'Terça' }, { id: 'qua', name: 'Quarta' }, { id: 'qui', name: 'Quinta' }, { id: 'sex', name: 'Sexta' }, { id: 'sab', name: 'Sábado' }];
-        hoursForm.innerHTML = '';
-        days.forEach(day => {
-            const dayData = hoursData[day.id] || { isOpen: day.id !== 'dom', start: '09:00', end: '18:00' };
-            const row = document.createElement('div');
-            row.className = 'flex flex-col sm:flex-row sm:items-center justify-between border-t py-4';
-            row.innerHTML = `<span class="font-medium text-slate-800 mb-2 sm:mb-0">${day.name}</span><div class="flex items-center gap-4 justify-between w-full sm:w-auto"><div class="flex items-center gap-2"><input type="time" id="${day.id}-start" value="${dayData.start}" class="p-1 border rounded-md text-sm w-24 bg-white" ${!dayData.isOpen ? 'disabled' : ''}><span class="text-slate-500">às</span><input type="time" id="${day.id}-end" value="${dayData.end}" class="p-1 border rounded-md text-sm w-24 bg-white" ${!dayData.isOpen ? 'disabled' : ''}></div><div class="relative inline-block w-10 align-middle"><input type="checkbox" id="${day.id}-toggle" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer" ${dayData.isOpen ? 'checked' : ''} /><label for="${day.id}-toggle" class="toggle-label block overflow-hidden h-6 rounded-full bg-slate-300 cursor-pointer"></label></div></div>`;
-            hoursForm.appendChild(row);
-            row.querySelector(`#${day.id}-toggle`).addEventListener('change', (e) => {
-                row.querySelectorAll('input[type="time"]').forEach(input => input.disabled = !e.target.checked);
-            });
-        });
-    };
-    const saveHours = async () => {
-        const btnText = saveHoursBtn.querySelector('.btn-text');
-        const spinner = saveHoursBtn.querySelector('.spinner');
-        saveHoursBtn.disabled = true;
-        btnText.textContent = 'Salvando...';
-        spinner.classList.remove('hidden');
-        const dataToSave = {};
-        ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sab'].forEach(id => {
-            dataToSave[id] = { isOpen: document.getElementById(`${id}-toggle`).checked, start: document.getElementById(`${id}-start`).value, end: document.getElementById(`${id}-end`).value, };
-        });
-        try {
-            await setDoc(doc(db, 'users', user.uid, 'settings', 'workingHours'), dataToSave);
-            workingHoursCache = dataToSave;
-            alert("Horários salvos com sucesso!");
-        } catch (e) { console.error(e); alert("Erro ao salvar horários."); }
-        finally {
-            saveHoursBtn.disabled = false;
-            btnText.textContent = 'Salvar Alterações';
-            spinner.classList.add('hidden');
+            appointmentModal.innerHTML = `
+                <div class="bg-white rounded-lg shadow-2xl p-8 max-w-lg w-full relative">
+                    <button id="close-modal-btn" class="absolute top-4 right-4 text-gray-400 hover:text-gray-800">
+                        <i data-feather="x" class="w-6 h-6"></i>
+                    </button>
+                    <h3 class="text-lg font-semibold text-slate-800 mb-6">Editar Profissional</h3>
+                    <form id="edit-barber-form" class="space-y-4">
+                        <div>
+                            <label for="edit-barber-name" class="block text-sm font-medium text-slate-600">Nome do Profissional</label>
+                            <input type="text" id="edit-barber-name" required class="input-style" value="${barber.name}">
+                        </div>
+                        <div>
+                            <label for="edit-barber-phone" class="block text-sm font-medium text-slate-600">Telefone / WhatsApp</label>
+                            <input type="tel" id="edit-barber-phone" required class="input-style" placeholder="(XX) XXXXX-XXXX" value="${barber.phone || ''}">
+                        </div>
+                        <button id="update-barber-btn" type="submit" class="w-full bg-indigo-600 text-white font-semibold py-3 px-4 rounded-lg shadow-md hover:bg-indigo-700 flex items-center justify-center disabled:opacity-50 mt-6">
+                            <span class="btn-text">Salvar Alterações</span>
+                            <div class="spinner hidden ml-2"></div>
+                        </button>
+                    </form>
+                </div>`;
+            
+            appointmentModal.classList.remove('hidden');
+            appointmentModal.classList.add('flex');
+            feather.replace();
+
+            document.getElementById('close-modal-btn').addEventListener('click', closeAppointmentModal);
+            document.getElementById('edit-barber-form').addEventListener('submit', (e) => handleUpdateBarber(e, userId, barberId));
         }
-    };
-    if (hoursForm) loadHours();
-    if (saveHoursBtn) saveHoursBtn.addEventListener('click', saveHours);
-    
-    const linkInput = document.getElementById('public-booking-link');
-    const copyBtn = document.getElementById('copy-link-btn');
-    if (linkInput) {
-        linkInput.value = `${window.location.origin}/booking.html?user=${user.uid}`;
-    }
-    if (copyBtn) {
-        copyBtn.addEventListener('click', () => {
-            navigator.clipboard.writeText(linkInput.value).then(() => {
-                alert('Link copiado para a área de transferência!');
-            }).catch(err => {
-                console.error('Falha ao copiar o link: ', err);
-                alert('Não foi possível copiar o link.');
+
+        async function handleUpdateBarber(e, userId, barberId) {
+            e.preventDefault();
+            const form = e.target;
+            const saveBtn = form.querySelector('button[type="submit"]');
+            const btnText = saveBtn.querySelector('.btn-text');
+            const spinner = saveBtn.querySelector('.spinner');
+
+            saveBtn.disabled = true;
+            btnText.textContent = 'Salvando...';
+            spinner.classList.remove('hidden');
+
+            try {
+                const barberRef = doc(db, 'users', userId, 'barbers', barberId);
+                await updateDoc(barberRef, {
+                    name: form.elements['edit-barber-name'].value,
+                    phone: form.elements['edit-barber-phone'].value
+                });
+                closeAppointmentModal();
+                alert("Profissional atualizado com sucesso!");
+            } catch (error) {
+                console.error("Erro ao atualizar profissional:", error);
+                alert("Ocorreu um erro ao salvar as alterações.");
+            } finally {
+                saveBtn.disabled = false;
+                btnText.textContent = 'Salvar Alterações';
+                spinner.classList.add('hidden');
+            }
+        }
+
+        function initializeFinance(userId) { const appointmentsRef = collection(db, 'users', userId, 'appointments'); onSnapshot(query(appointmentsRef), (snap) => { const now = new Date(); const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()); const monthStart = new Date(now.getFullYear(), now.getMonth(), 1); let todayRevenue = 0; let monthRevenue = 0; let monthAppointments = 0; snap.forEach(doc => { const app = doc.data(); const appDate = app.dateTime.toDate(); const price = app.price || 0; if (appDate >= monthStart) { monthRevenue += price; monthAppointments++; } if (appDate >= todayStart && appDate < new Date(todayStart.getTime() + 24 * 60 * 60 * 1000)) { todayRevenue += price; } }); document.getElementById('finance-today-revenue').textContent = `R$ ${todayRevenue.toFixed(2)}`; document.getElementById('finance-month-revenue').textContent = `R$ ${monthRevenue.toFixed(2)}`; document.getElementById('finance-avg-ticket').textContent = `R$ ${(monthRevenue / (monthAppointments || 1)).toFixed(2)}`; }); const generateReportBtn = document.getElementById('generate-report-btn'); generateReportBtn.addEventListener('click', async () => { const startDateInput = document.getElementById('filter-start-date').value; const endDateInput = document.getElementById('filter-end-date').value; if (!startDateInput || !endDateInput) { alert('Por favor, selecione a data de início e de fim.'); return; } const startTimestamp = Timestamp.fromDate(new Date(`${startDateInput}T00:00:00`)); const endTimestamp = Timestamp.fromDate(new Date(`${endDateInput}T23:59:59`)); const reportQuery = query(appointmentsRef, where("dateTime", ">=", startTimestamp), where("dateTime", "<=", endTimestamp), orderBy("dateTime")); const reportSnap = await getDocs(reportQuery); let periodRevenue = 0; const dailyData = new Map(); reportSnap.forEach(doc => { const app = doc.data(); const price = app.price || 0; periodRevenue += price; const day = app.dateTime.toDate().toLocaleDateString('pt-BR', {day: '2-digit', month: '2-digit'}); dailyData.set(day, (dailyData.get(day) || 0) + price); }); document.getElementById('report-summary').classList.remove('hidden'); document.getElementById('report-summary').classList.add('grid'); document.getElementById('finance-period-revenue').textContent = `R$ ${periodRevenue.toFixed(2)}`; const ctx = document.getElementById('revenue-chart').getContext('2d'); if (revenueChartInstance) { revenueChartInstance.destroy(); } revenueChartInstance = new Chart(ctx, { type: 'bar', data: { labels: Array.from(dailyData.keys()), datasets: [{ label: 'Faturamento no Período', data: Array.from(dailyData.values()), backgroundColor: '#4f46e5', borderColor: '#4338ca', borderWidth: 1 }] }, options: { scales: { y: { beginAtZero: true } }, plugins: { legend: { display: false } } } }); }); const today = new Date(); const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0]; const todayISO = today.toISOString().split('T')[0]; document.getElementById('filter-start-date').value = firstDayOfMonth; document.getElementById('filter-end-date').value = todayISO; generateReportBtn.click(); }
+        
+        function setupSettings(user, userData) {
+            const settingsSection = document.getElementById('configuracoes-section');
+            const mainPageTitle = document.getElementById('welcome-message');
+            
+            const settingsHTML = `
+                <div id="settings-view-wrapper">
+                    <div id="settings-menu-view">
+                        <h2 class="text-2xl font-bold text-slate-800 mb-6">Configurações</h2>
+                        <div class="bg-white rounded-lg shadow-sm overflow-hidden">
+                            <div class="settings-menu-item" data-view="company-view" data-title="Informações da Empresa">
+                                <div class="flex items-center"><i data-feather="briefcase" class="w-5 h-5 mr-4 text-slate-500"></i><span class="font-semibold text-slate-700">Informações da Empresa</span></div>
+                                <i data-feather="chevron-right" class="w-5 h-5 text-slate-400"></i>
+                            </div>
+                            <div class="settings-menu-item" data-view="hours-view" data-title="Expediente">
+                                <div class="flex items-center"><i data-feather="clock" class="w-5 h-5 mr-4 text-slate-500"></i><span class="font-semibold text-slate-700">Expediente</span></div>
+                                <i data-feather="chevron-right" class="w-5 h-5 text-slate-400"></i>
+                            </div>
+                            <div class="settings-menu-item" data-view="link-view" data-title="Link de Agendamento">
+                                <div class="flex items-center"><i data-feather="link" class="w-5 h-5 mr-4 text-slate-500"></i><span class="font-semibold text-slate-700">Link de Agendamento</span></div>
+                                <i data-feather="chevron-right" class="w-5 h-5 text-slate-400"></i>
+                            </div>
+                            <div class="settings-menu-item" data-view="subscription-view" data-title="Sua Assinatura">
+                                <div class="flex items-center"><i data-feather="credit-card" class="w-5 h-5 mr-4 text-slate-500"></i><span class="font-semibold text-slate-700">Sua Assinatura</span></div>
+                                <i data-feather="chevron-right" class="w-5 h-5 text-slate-400"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="company-view" class="hidden">
+                        <button class="back-to-settings mb-6 font-semibold text-indigo-600 flex items-center"><i data-feather="chevron-left" class="w-5 h-5"></i> Voltar</button>
+                        <div class="bg-white p-6 rounded-lg shadow-sm">
+                            <h3 class="text-lg font-semibold text-slate-800">Nome da Empresa</h3>
+                            <div class="mt-4">
+                                <label for="barbershop-name-input" class="block text-sm font-medium text-slate-700">Nome da Empresa</label>
+                                <input type="text" id="barbershop-name-input" class="input-style mt-1">
+                            </div>
+                            <button id="save-barbershop-name-btn" class="mt-4 w-full bg-indigo-600 text-white font-semibold py-2 px-4 rounded-lg flex items-center justify-center">Salvar Nome</button>
+                        </div>
+                    </div>
+
+                    <div id="hours-view" class="hidden">
+                        <button class="back-to-settings mb-6 font-semibold text-indigo-600 flex items-center"><i data-feather="chevron-left" class="w-5 h-5"></i> Voltar</button>
+                        <div class="bg-white p-6 rounded-lg shadow-sm">
+                            <h3 class="text-lg font-semibold text-slate-800">Horários de Funcionamento</h3>
+                            <p class="text-sm text-slate-500 mt-1 mb-4">Defina seus dias e horários de trabalho.</p>
+                            <form id="working-hours-form" class="space-y-4"></form>
+                            <button id="save-hours-btn" type="button" class="mt-6 w-full bg-indigo-600 text-white font-semibold py-2 px-4 rounded-lg flex items-center justify-center disabled:opacity-50"><span class="btn-text">Salvar Alterações</span><div class="spinner hidden ml-2"></div></button>
+                        </div>
+                    </div>
+
+                    <div id="link-view" class="hidden">
+                        <button class="back-to-settings mb-6 font-semibold text-indigo-600 flex items-center"><i data-feather="chevron-left" class="w-5 h-5"></i> Voltar</button>
+                        <div class="bg-white p-6 rounded-lg shadow-sm">
+                            <h3 class="text-lg font-semibold text-slate-800">Seu Link de Agendamento</h3>
+                            <p class="text-sm text-slate-500 mt-1 mb-4">Compartilhe este link no seu Instagram.</p>
+                            <div class="flex items-center space-x-2">
+                                <input id="public-booking-link" type="text" readonly class="w-full p-2 bg-slate-100 border border-slate-300 rounded-md">
+                                <button id="copy-link-btn" class="bg-indigo-600 text-white font-semibold py-2 px-4 rounded-lg flex-shrink-0">Copiar</button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="subscription-view" class="hidden">
+                         <button class="back-to-settings mb-6 font-semibold text-indigo-600 flex items-center"><i data-feather="chevron-left" class="w-5 h-5"></i> Voltar</button>
+                        <div id="subscription-content-wrapper" class="bg-white p-6 rounded-lg shadow-sm">
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            settingsSection.innerHTML = settingsHTML;
+
+            const navigateTo = (viewId, title) => {
+                const wrapper = document.getElementById('settings-view-wrapper');
+                Array.from(wrapper.children).forEach(view => view.classList.add('hidden'));
+                document.getElementById(viewId).classList.remove('hidden');
+                mainPageTitle.textContent = title;
+            };
+
+            document.querySelectorAll('.settings-menu-item').forEach(item => {
+                item.addEventListener('click', () => {
+                    const viewId = item.dataset.view;
+                    const title = item.dataset.title;
+                    navigateTo(viewId, title);
+                });
             });
-        });
-    }
-    
-    navigateTo('settings-menu-view', 'Configurações');
-    feather.replace();
-}    </script>
+
+            document.querySelectorAll('.back-to-settings').forEach(button => {
+                button.addEventListener('click', () => {
+                    navigateTo('settings-menu-view', 'Configurações');
+                });
+            });
+
+            const subscriptionContentWrapper = document.getElementById('subscription-content-wrapper');
+            const userHasActiveSubscription = userData.subscription?.status === 'active';
+
+            if (userHasActiveSubscription) {
+                subscriptionContentWrapper.innerHTML = `
+                    <h3 class="text-lg font-semibold text-slate-800">Sua Assinatura</h3>
+                    <p class="text-sm text-slate-500 mt-1 mb-4">Acesse seu portal para gerenciar pagamentos, alterar seu cartão ou cancelar.</p>
+                    <button id="manage-subscription-btn" class="mt-4 w-full bg-slate-800 text-white font-semibold py-2 px-4 rounded-lg flex items-center justify-center">
+                        <i data-feather="credit-card" class="w-5 h-5 mr-2"></i>Gerenciar Assinatura
+                    </button>
+                `;
+                document.getElementById('manage-subscription-btn').addEventListener('click', redirectToCustomerPortal);
+            } else {
+                const stripeLink = `https://buy.stripe.com/fZu6oA3ntgEM2pAfZVdZ600?client_reference_id=${user.uid}`;
+                subscriptionContentWrapper.innerHTML = `
+                    <h3 class="text-lg font-semibold text-slate-800">Sua Assinatura</h3>
+                    <p class="text-sm text-slate-500 mt-1 mb-4">Você está atualmente no período de teste. Para não perder o acesso, faça sua assinatura.</p>
+                    <a href="${stripeLink}" target="_blank" class="mt-4 w-full bg-indigo-600 text-white font-semibold py-2 px-4 rounded-lg flex items-center justify-center">
+                        Fazer Assinatura Agora
+                    </a>
+                `;
+            }
+
+            const nameInput = document.getElementById('barbershop-name-input');
+            const saveNameBtn = document.getElementById('save-barbershop-name-btn');
+            if (nameInput) nameInput.value = userData.barbershopName || '';
+            if (saveNameBtn) {
+                saveNameBtn.addEventListener('click', async () => {
+                    const newName = nameInput.value.trim();
+                    if (!newName) {
+                        alert('O nome da empresa não pode ficar em branco.');
+                        return;
+                    }
+                    saveNameBtn.disabled = true;
+                    saveNameBtn.innerHTML = `<div class="spinner mx-auto"></div>`;
+                    try {
+                        const userDocRef = doc(db, "users", user.uid);
+                        await updateDoc(userDocRef, { barbershopName: newName });
+                        alert('Nome da empresa atualizado com sucesso!');
+                        document.getElementById('welcome-message').textContent = `Bem-vindo, ${newName}!`;
+                        document.getElementById('user-avatar').src = `https://placehold.co/40x40/e2e8f0/64748b?text=${newName.charAt(0).toUpperCase()}`;
+                    } catch (error) {
+                        console.error("Erro ao atualizar nome:", error);
+                        alert('Ocorreu um erro ao salvar o nome.');
+                    } finally {
+                        saveNameBtn.disabled = false;
+                        saveNameBtn.textContent = 'Salvar Nome';
+                    }
+                });
+            }
+
+            const hoursForm = document.getElementById('working-hours-form');
+            const saveHoursBtn = document.getElementById('save-hours-btn');
+            const loadHours = async () => {
+                const ref = doc(db, 'users', user.uid, 'settings', 'workingHours');
+                const docSnap = await getDoc(ref);
+                const hoursData = docSnap.exists() ? docSnap.data() : {};
+                const days = [{ id: 'dom', name: 'Domingo' }, { id: 'seg', name: 'Segunda' }, { id: 'ter', name: 'Terça' }, { id: 'qua', name: 'Quarta' }, { id: 'qui', name: 'Quinta' }, { id: 'sex', name: 'Sexta' }, { id: 'sab', name: 'Sábado' }];
+                hoursForm.innerHTML = '';
+                days.forEach(day => {
+                    const dayData = hoursData[day.id] || { isOpen: day.id !== 'dom', start: '09:00', end: '18:00' };
+                    const row = document.createElement('div');
+                    row.className = 'flex flex-col sm:flex-row sm:items-center justify-between border-t py-4';
+                    row.innerHTML = `<span class="font-medium text-slate-800 mb-2 sm:mb-0">${day.name}</span><div class="flex items-center gap-4 justify-between w-full sm:w-auto"><div class="flex items-center gap-2"><input type="time" id="${day.id}-start" value="${dayData.start}" class="p-1 border rounded-md text-sm w-24 bg-white" ${!dayData.isOpen ? 'disabled' : ''}><span class="text-slate-500">às</span><input type="time" id="${day.id}-end" value="${dayData.end}" class="p-1 border rounded-md text-sm w-24 bg-white" ${!dayData.isOpen ? 'disabled' : ''}></div><div class="relative inline-block w-10 align-middle"><input type="checkbox" id="${day.id}-toggle" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer" ${dayData.isOpen ? 'checked' : ''} /><label for="${day.id}-toggle" class="toggle-label block overflow-hidden h-6 rounded-full bg-slate-300 cursor-pointer"></label></div></div>`;
+                    hoursForm.appendChild(row);
+                    row.querySelector(`#${day.id}-toggle`).addEventListener('change', (e) => {
+                        row.querySelectorAll('input[type="time"]').forEach(input => input.disabled = !e.target.checked);
+                    });
+                });
+            };
+            const saveHours = async () => {
+                const btnText = saveHoursBtn.querySelector('.btn-text');
+                const spinner = saveHoursBtn.querySelector('.spinner');
+                saveHoursBtn.disabled = true;
+                btnText.textContent = 'Salvando...';
+                spinner.classList.remove('hidden');
+                const dataToSave = {};
+                ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sab'].forEach(id => {
+                    dataToSave[id] = { isOpen: document.getElementById(`${id}-toggle`).checked, start: document.getElementById(`${id}-start`).value, end: document.getElementById(`${id}-end`).value, };
+                });
+                try {
+                    await setDoc(doc(db, 'users', user.uid, 'settings', 'workingHours'), dataToSave);
+                    workingHoursCache = dataToSave;
+                    alert("Horários salvos com sucesso!");
+                } catch (e) { console.error(e); alert("Erro ao salvar horários."); }
+                finally {
+                    saveHoursBtn.disabled = false;
+                    btnText.textContent = 'Salvar Alterações';
+                    spinner.classList.add('hidden');
+                }
+            };
+            if (hoursForm) loadHours();
+            if (saveHoursBtn) saveHoursBtn.addEventListener('click', saveHours);
+            
+            const linkInput = document.getElementById('public-booking-link');
+            const copyBtn = document.getElementById('copy-link-btn');
+            if (linkInput) {
+                linkInput.value = `${window.location.origin}/booking.html?user=${user.uid}`;
+            }
+            if (copyBtn) {
+                copyBtn.addEventListener('click', () => {
+                    linkInput.select();
+                    document.execCommand('copy');
+                    alert('Link copiado para a área de transferência!');
+                });
+            }
+            
+            navigateTo('settings-menu-view', 'Configurações');
+            feather.replace();
+        }
+
+        // ✨ LÓGICA DO PAINEL DE ADMIN ATUALIZADA ✨
+        function initializeAdminPanel() {
+            initializeAdminDashboard(); 
+            const searchInput = document.getElementById('admin-user-search-input');
+            const searchBtn = document.getElementById('admin-user-search-btn');
+            const resultsContainer = document.getElementById('admin-user-results');
+            const filterButtons = document.querySelectorAll('.admin-filter-btn');
+
+            filterButtons.forEach(button => {
+                button.addEventListener('click', (e) => {
+                    const filterType = e.target.dataset.filter;
+                    filterButtons.forEach(btn => btn.classList.remove('active', 'bg-indigo-600', 'text-white'));
+                    e.target.classList.add('active', 'bg-indigo-600', 'text-white');
+                    fetchAndRenderUsersByFilter(filterType);
+                });
+            });
+
+            searchBtn.addEventListener('click', async () => {
+                const searchTerm = searchInput.value.trim();
+                if (!searchTerm) {
+                    resultsContainer.innerHTML = '<p class="text-slate-500">Por favor, insira um e-mail ou nome para buscar.</p>';
+                    return;
+                }
+                
+                resultsContainer.innerHTML = '<div class="spinner-large mx-auto"></div>';
+
+                try {
+                    const usersRef = collection(db, 'users');
+                    const queryByEmail = query(usersRef, where("email", "==", searchTerm));
+                    const queryByName = query(usersRef, where("barbershopName", "==", searchTerm));
+
+                    const [emailSnapshot, nameSnapshot] = await Promise.all([
+                        getDocs(queryByEmail),
+                        getDocs(queryByName)
+                    ]);
+
+                    const usersMap = new Map();
+                    emailSnapshot.forEach(doc => usersMap.set(doc.id, { id: doc.id, ...doc.data() }));
+                    nameSnapshot.forEach(doc => usersMap.set(doc.id, { id: doc.id, ...doc.data() }));
+
+                    if (usersMap.size === 0) {
+                        resultsContainer.innerHTML = '<p class="text-red-500 font-semibold">Nenhum usuário encontrado.</p>';
+                        return;
+                    }
+
+                    renderAdminResults(Array.from(usersMap.values()));
+
+                } catch (error) {
+                    console.error("Erro ao buscar usuários:", error);
+                    resultsContainer.innerHTML = '<p class="text-red-500 font-semibold">Ocorreu um erro ao buscar usuários.</p>';
+                }
+            });
+
+            fetchAndRenderUsersByFilter('all');
+        }
+
+        async function fetchAndRenderUsersByFilter(filterType) {
+            const resultsContainer = document.getElementById('admin-user-results');
+            resultsContainer.innerHTML = '<div class="spinner-large mx-auto"></div>';
+
+            try {
+                const getUsersByFilter = httpsCallable(functions, 'getUsersByFilter');
+                const result = await getUsersByFilter({ filterType });
+                renderAdminResults(result.data.users);
+            } catch (error) {
+                 console.error("Erro ao filtrar usuários:", error);
+                 resultsContainer.innerHTML = `<p class="text-red-500 font-semibold">Ocorreu um erro ao carregar os usuários: ${error.message}</p>`;
+            }
+        }
+
+        async function initializeAdminDashboard() {
+            try {
+                const getMetrics = httpsCallable(functions, 'getPlatformMetrics');
+                const result = await getMetrics();
+                const metrics = result.data;
+
+                document.getElementById('admin-total-users').textContent = metrics.totalUsers;
+                document.getElementById('admin-active-subs').textContent = metrics.activeSubscribers;
+                document.getElementById('admin-lifetime-users').textContent = metrics.lifetimeUsers;
+                document.getElementById('admin-trial-users').textContent = metrics.trialUsers;
+
+            } catch (error) {
+                console.error("Erro ao carregar métricas do admin:", error);
+            }
+        }
+
+        function renderAdminResults(users) {
+            const resultsContainer = document.getElementById('admin-user-results');
+            if (!users || users.length === 0) {
+                resultsContainer.innerHTML = '<p class="text-slate-500">Nenhum usuário encontrado para este filtro.</p>';
+                return;
+            }
+
+            resultsContainer.innerHTML = '';
+            users.forEach(user => {
+                const card = document.createElement('div');
+                card.className = 'bg-slate-50 p-4 rounded-lg border flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4';
+                card.id = `user-card-${user.id}`;
+
+                let statusText;
+                let statusColor;
+
+                if (user.isLifetime) {
+                    statusText = 'Vitalício';
+                    statusColor = 'text-green-600';
+                } else if (user.subscription?.status === 'active') {
+                    statusText = 'Assinante Ativo';
+                    statusColor = 'text-blue-600';
+                } else if (user.trialDaysLeft > 0) {
+                    statusText = `Em teste (${user.trialDaysLeft} dias restantes)`;
+                    statusColor = 'text-yellow-600';
+                } else {
+                    statusText = 'Teste Expirado';
+                    statusColor = 'text-red-600';
+                }
+
+                card.innerHTML = `
+                    <div>
+                        <p class="font-bold text-slate-800">${user.barbershopName}</p>
+                        <p class="text-sm text-slate-600">${user.email}</p>
+                        <p class="user-status text-sm font-semibold ${statusColor} mt-1">Status: ${statusText}</p>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button 
+                            class="grant-lifetime-btn bg-green-500 text-white font-semibold py-2 px-4 rounded-lg hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed" 
+                            data-userid="${user.id}"
+                            ${user.isLifetime ? 'disabled' : ''}>
+                            ${user.isLifetime ? 'Concedido' : 'Conceder'}
+                        </button>
+                        <button
+                            class="revoke-lifetime-btn bg-orange-500 text-white font-semibold py-2 px-4 rounded-lg hover:bg-orange-600 ${!user.isLifetime ? 'hidden' : ''}"
+                            data-userid="${user.id}">
+                            Revogar
+                        </button>
+                        <button
+                            class="delete-user-btn bg-red-600 text-white p-2 rounded-lg hover:bg-red-700"
+                            data-userid="${user.id}" data-username="${user.barbershopName}">
+                            <i data-feather="trash-2" class="w-4 h-4 pointer-events-none"></i>
+                        </button>
+                    </div>
+                `;
+                resultsContainer.appendChild(card);
+            });
+
+            feather.replace();
+            document.querySelectorAll('.grant-lifetime-btn').forEach(button => button.addEventListener('click', handleGrantLifetimeAccess));
+            document.querySelectorAll('.revoke-lifetime-btn').forEach(button => button.addEventListener('click', handleRevokeLifetimeAccess));
+            document.querySelectorAll('.delete-user-btn').forEach(button => button.addEventListener('click', handleDeleteUser));
+        }
+
+        async function handleGrantLifetimeAccess(e) {
+            const button = e.target;
+            const targetUserId = button.dataset.userid;
+
+            if (!confirm(`Tem certeza que deseja conceder acesso VITALÍCIO para este usuário?`)) return;
+
+            button.disabled = true;
+            button.textContent = '...';
+
+            try {
+                const grantAccess = httpsCallable(functions, 'grantLifetimeAccess');
+                const result = await grantAccess({ targetUserId });
+                alert(result.data.message);
+                
+                const card = document.getElementById(`user-card-${targetUserId}`);
+                card.querySelector('.user-status').textContent = 'Status: Vitalício';
+                card.querySelector('.user-status').className = 'user-status text-sm font-semibold text-green-600 mt-1';
+                button.textContent = 'Concedido';
+                card.querySelector('.revoke-lifetime-btn').classList.remove('hidden');
+            } catch (error) {
+                console.error("Erro ao conceder acesso:", error);
+                alert(`Erro: ${error.message}`);
+                button.disabled = false;
+                button.textContent = 'Conceder';
+            }
+        }
+
+        async function handleRevokeLifetimeAccess(e) {
+            const button = e.target;
+            const targetUserId = button.dataset.userid;
+
+            if (!confirm(`Tem certeza que deseja REVOGAR o acesso VITALÍCIO deste usuário?`)) return;
+
+            button.disabled = true;
+            button.textContent = '...';
+
+            try {
+                const revokeAccess = httpsCallable(functions, 'revokeLifetimeAccess');
+                const result = await revokeAccess({ targetUserId });
+                alert(result.data.message);
+
+                // Recarrega a lista para refletir o novo status (Expirado ou Em Teste)
+                document.querySelector('.admin-filter-btn.active').click();
+
+            } catch (error) {
+                console.error("Erro ao revogar acesso:", error);
+                alert(`Erro: ${error.message}`);
+                button.disabled = false;
+                button.textContent = 'Revogar';
+            }
+        }
+
+        async function handleDeleteUser(e) {
+            const button = e.target.closest('button');
+            const targetUserId = button.dataset.userid;
+            const targetUserName = button.dataset.username;
+
+            if (!confirm(`ATENÇÃO!\n\nVocê tem certeza que deseja DELETAR PERMANENTEMENTE o usuário "${targetUserName}"?\n\nTODOS os dados (agendamentos, clientes, etc.) serão perdidos. Esta ação não pode ser desfeita.`)) return;
+
+            button.disabled = true;
+
+            try {
+                const deleteUser = httpsCallable(functions, 'deleteUser');
+                const result = await deleteUser({ targetUserId });
+                alert(result.data.message);
+                
+                document.getElementById(`user-card-${targetUserId}`).remove();
+            } catch (error) {
+                console.error("Erro ao deletar usuário:", error);
+                alert(`Erro: ${error.message}`);
+                button.disabled = false;
+            }
+        }
+
+    </script>
 </body>
 </html>
