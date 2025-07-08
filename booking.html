@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -105,7 +104,8 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
         import { getFirestore, doc, getDoc, addDoc, collection, query, where, Timestamp, getDocs, increment, updateDoc, deleteDoc, writeBatch } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
-        
+        import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-functions.js";
+
         const firebaseConfig = {
             apiKey: "AIzaSyAkIUtakV64F2SYjvJylTGlw8-vTfXc3Fk",
             authDomain: "agendabarber-3fe30.firebaseapp.com",
@@ -117,6 +117,7 @@
         
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
+        const functions = getFunctions(app, 'southamerica-east1');
         
         const urlParams = new URLSearchParams(window.location.search);
         const BARBERSHOP_OWNER_ID = urlParams.get('user');
@@ -128,6 +129,7 @@
             selectedTime: null,
             allServices: [],
             allBarbers: [],
+            serviceTime: 30, // Padrão inicial
         };
 
         const elements = {
@@ -167,7 +169,10 @@
                 const docRef = doc(db, "users", BARBERSHOP_OWNER_ID);
                 const docSnap = await getDoc(docRef);
                 if (docSnap.exists()) {
-                    elements.barbershopName.textContent = docSnap.data().barbershopName || "Barbearia";
+                    const userData = docSnap.data();
+                    elements.barbershopName.textContent = userData.barbershopName || "Barbearia";
+                    state.serviceTime = userData.tempoAtendimento || 30; // Carrega o tempo de atendimento
+
                     elements.mainContainer.classList.remove('hidden');
                     await Promise.all([loadServices(), loadBarbers()]);
                     initializeForm();
@@ -299,68 +304,43 @@
             }
 
             try {
-                const settingsRef = doc(db, 'users', BARBERSHOP_OWNER_ID, 'settings', 'workingHours');
-                const settingsSnap = await getDoc(settingsRef);
-                const workingHours = settingsSnap.exists() ? settingsSnap.data() : {};
-                const selectedDate = new Date(`${dateStr}T12:00:00`);
-                const dayOfWeek = selectedDate.getDay();
-                const dayKeys = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sab'];
-                const daySettings = workingHours[dayKeys[dayOfWeek]];
-
-                if (!daySettings || !daySettings.isOpen) {
-                    timeSelect.innerHTML = '<option value="">Fechado</option>';
-                    return;
-                }
-
+                // Chama a Cloud Function para obter os horários livres
+                const getAvailableSlots = httpsCallable(functions, 'getAvailableSlots');
+                const result = await getAvailableSlots({ userId: BARBERSHOP_OWNER_ID, date: dateStr });
+                const allFreeSlots = result.data.slots;
+                
+                // Lógica para encontrar slots consecutivos
                 const slotsNeeded = state.selectedServices.length;
-                const allPossibleSlots = [];
-                let [startHour, startMinute] = daySettings.start.split(':').map(Number);
-                let [endHour, endMinute] = daySettings.end.split(':').map(Number);
-                let current = new Date(selectedDate);
-                current.setHours(startHour, startMinute, 0, 0);
-                const end = new Date(selectedDate);
-                end.setHours(endHour, endMinute, 0, 0);
-
-                while (current < end) {
-                    allPossibleSlots.push(`${String(current.getHours()).padStart(2, '0')}:${String(current.getMinutes()).padStart(2, '0')}`);
-                    current.setMinutes(current.getMinutes() + 30);
-                }
-
-                const startOfDay = Timestamp.fromDate(new Date(`${dateStr}T00:00:00`));
-                const endOfDay = Timestamp.fromDate(new Date(`${dateStr}T23:59:59`));
-                const appointmentsQuery = query(collection(db, "users", BARBERSHOP_OWNER_ID, "appointments"), where('dateTime', '>=', startOfDay), where('dateTime', '<=', endOfDay));
-                const querySnapshot = await getDocs(appointmentsQuery);
-                const bookedTimes = new Set(querySnapshot.docs.map(doc => {
-                    const date = doc.data().dateTime.toDate();
-                    return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
-                }));
-
-                const freeSlots = new Set(allPossibleSlots.filter(slot => !bookedTimes.has(slot)));
-                const validStartTimes = new Set();
-                for (let i = 0; i <= allPossibleSlots.length - slotsNeeded; i++) {
+                const validStartTimes = [];
+                
+                for (let i = 0; i <= allFreeSlots.length - slotsNeeded; i++) {
+                    const startTime = allFreeSlots[i];
+                    const [startHour, startMinute] = startTime.split(':').map(Number);
+                    
                     let isSequenceValid = true;
-                    for (let j = 0; j < slotsNeeded; j++) {
-                        if (!freeSlots.has(allPossibleSlots[i+j])) {
+                    for (let j = 1; j < slotsNeeded; j++) {
+                        const expectedTime = new Date();
+                        expectedTime.setHours(startHour, startMinute + (j * state.serviceTime));
+                        const expectedTimeString = `${String(expectedTime.getHours()).padStart(2, '0')}:${String(expectedTime.getMinutes()).padStart(2, '0')}`;
+                        
+                        if (allFreeSlots[i+j] !== expectedTimeString) {
                             isSequenceValid = false;
                             break;
                         }
                     }
+
                     if (isSequenceValid) {
-                        validStartTimes.add(allPossibleSlots[i]);
+                        validStartTimes.push(startTime);
                     }
                 }
                 
                 timeSelect.innerHTML = '<option value="">Selecione um horário</option>';
-                if (allPossibleSlots.length === 0) {
-                     timeSelect.innerHTML = '<option value="">Nenhum horário disponível</option>';
-                     return;
-                }
                 
                 const now = new Date();
                 const isToday = now.toISOString().split('T')[0] === dateStr;
                 let hasAvailableSlots = false;
 
-                allPossibleSlots.forEach(time => {
+                validStartTimes.forEach(time => {
                     const [slotHour, slotMinute] = time.split(':').map(Number);
                     let isPast = false;
                     if (isToday) {
@@ -371,21 +351,11 @@
                         }
                     }
 
-                    const isAvailable = validStartTimes.has(time);
-                    const option = new Option();
-                    option.value = time;
-                    
-                    if (!isAvailable) {
-                        option.textContent = `${time} - Ocupado`;
-                        option.disabled = true;
-                    } else if (isPast) {
-                        option.textContent = `${time} - Indisponível`;
-                        option.disabled = true;
-                    } else {
-                        option.textContent = time;
+                    if (!isPast) {
+                        const option = new Option(time, time);
+                        timeSelect.add(option);
                         hasAvailableSlots = true;
                     }
-                    timeSelect.add(option);
                 });
                 
                 timeSelect.disabled = !hasAvailableSlots;
@@ -394,12 +364,11 @@
                 }
 
             } catch (error) {
-                console.error("Erro ao carregar horários:", error);
+                console.error("Erro ao carregar horários via Cloud Function:", error);
                 timeSelect.innerHTML = '<option value="">Erro ao carregar</option>';
             }
         }
         
-        // ✨ FUNÇÃO ADICIONADA ✨
         const findOrCreateClient = async (userId, clientName, clientPhone) => {
             const clientsRef = collection(db, 'users', userId, 'clients');
             const q = query(clientsRef, where("phone", "==", clientPhone));
@@ -458,7 +427,8 @@
                     };
                     const newAppointmentRef = doc(collection(db, "users", BARBERSHOP_OWNER_ID, "appointments"));
                     batch.set(newAppointmentRef, appointmentData);
-                    currentAppointmentTime.setMinutes(currentAppointmentTime.getMinutes() + 30);
+                    // Usa o tempo de atendimento do profissional para o próximo slot
+                    currentAppointmentTime.setMinutes(currentAppointmentTime.getMinutes() + state.serviceTime);
                 }
 
                 const clientRef = doc(db, 'users', BARBERSHOP_OWNER_ID, 'clients', clientId);
@@ -480,36 +450,36 @@
         }
 
         function renderConfirmationScreen(clientName, startTime, barber) {
-             const summaryDiv = document.getElementById('confirmation-summary');
-             const dateFormatted = new Date(state.selectedDate + 'T12:00:00').toLocaleDateString('pt-BR');
-             let summaryHTML = `<p><strong>Cliente:</strong> ${clientName}</p>`;
-             summaryHTML += `<p><strong>Profissional:</strong> ${barber.name}</p>`;
-             summaryHTML += `<p><strong>Data:</strong> ${dateFormatted}</p>`;
-             summaryHTML += `<p><strong>Horário de Início:</strong> ${startTime}</p><hr class="my-2">`;
-             
-             let totalPrice = 0;
-             state.selectedServices.forEach(s => {
+            const summaryDiv = document.getElementById('confirmation-summary');
+            const dateFormatted = new Date(state.selectedDate + 'T12:00:00').toLocaleDateString('pt-BR');
+            let summaryHTML = `<p><strong>Cliente:</strong> ${clientName}</p>`;
+            summaryHTML += `<p><strong>Profissional:</strong> ${barber.name}</p>`;
+            summaryHTML += `<p><strong>Data:</strong> ${dateFormatted}</p>`;
+            summaryHTML += `<p><strong>Horário de Início:</strong> ${startTime}</p><hr class="my-2">`;
+            
+            let totalPrice = 0;
+            state.selectedServices.forEach(s => {
                 summaryHTML += `<p><strong>Serviço:</strong> ${s.name} - R$ ${s.price.toFixed(2)}</p>`;
                 totalPrice += s.price;
-             });
-             summaryHTML += `<hr class="my-2"><p class="font-bold text-lg"><strong>Total:</strong> R$ ${totalPrice.toFixed(2)}</p>`;
-             summaryDiv.innerHTML = summaryHTML;
+            });
+            summaryHTML += `<hr class="my-2"><p class="font-bold text-lg"><strong>Total:</strong> R$ ${totalPrice.toFixed(2)}</p>`;
+            summaryDiv.innerHTML = summaryHTML;
 
-             const actionsContainer = document.getElementById('confirmation-actions');
-             actionsContainer.innerHTML = '<p class="text-xs text-center text-slate-500">Para alterar ou cancelar, entre em contato com a empresa.</p>';
-             
-             if (barber.phone) {
-                 const whatsappNumber = String(barber.phone).replace(/\D/g, "");
-                 const textMessage = encodeURIComponent(`Olá ${barber.name}, sou ${clientName}. Acabei de fazer um agendamento para o dia ${dateFormatted} às ${startTime}.`);
-                 const whatsappLink = `https://wa.me/55${whatsappNumber}?text=${textMessage}`;
-                 const whatsappButton = document.createElement('a');
-                 whatsappButton.href = whatsappLink;
-                 whatsappButton.target = "_blank";
-                 whatsappButton.className = "inline-flex items-center justify-center w-full bg-green-500 text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:bg-green-600";
-                 whatsappButton.innerHTML = `<i data-feather="message-circle" class="w-5 h-5 mr-2"></i>Falar com ${barber.name}`;
-                 actionsContainer.prepend(whatsappButton);
-             }
-             feather.replace();
+            const actionsContainer = document.getElementById('confirmation-actions');
+            actionsContainer.innerHTML = '<p class="text-xs text-center text-slate-500">Para alterar ou cancelar, entre em contato com a empresa.</p>';
+            
+            if (barber.phone) {
+                const whatsappNumber = String(barber.phone).replace(/\D/g, "");
+                const textMessage = encodeURIComponent(`Olá ${barber.name}, sou ${clientName}. Acabei de fazer um agendamento para o dia ${dateFormatted} às ${startTime}.`);
+                const whatsappLink = `https://wa.me/55${whatsappNumber}?text=${textMessage}`;
+                const whatsappButton = document.createElement('a');
+                whatsappButton.href = whatsappLink;
+                whatsappButton.target = "_blank";
+                whatsappButton.className = "inline-flex items-center justify-center w-full bg-green-500 text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:bg-green-600";
+                whatsappButton.innerHTML = `<i data-feather="message-circle" class="w-5 h-5 mr-2"></i>Falar com ${barber.name}`;
+                actionsContainer.prepend(whatsappButton);
+            }
+            feather.replace();
         }
 
         function initializeForm() {
@@ -568,15 +538,15 @@
         });
     </script>
     <script>
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/sw.js')
-      .then((registration) => {
-        console.log('Service Worker registrado com sucesso:', registration);
-      })
-      .catch((error) => {
-        console.log('Falha no registro do Service Worker:', error);
-      });
-  }
-</script>
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/sw.js')
+          .then((registration) => {
+            console.log('Service Worker registrado com sucesso:', registration);
+          })
+          .catch((error) => {
+            console.log('Falha no registro do Service Worker:', error);
+          });
+      }
+    </script>
 </body>
 </html>

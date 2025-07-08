@@ -105,7 +105,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
         import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
-        import { getFirestore, doc, getDoc, setDoc, onSnapshot, query, collection, addDoc, getDocs, Timestamp, orderBy, where, updateDoc, deleteDoc, increment, limit, FieldValue } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
+        import { getFirestore, doc, getDoc, setDoc, onSnapshot, query, collection, addDoc, getDocs, Timestamp, orderBy, where, updateDoc, deleteDoc, increment, FieldValue, limit } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
         import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-functions.js";
 
         const firebaseConfig = {
@@ -130,10 +130,11 @@
         let revenueChartInstance = null;
         let servicesCache = new Map();
         let allClients = [];
-        let workingHoursCache = null; 
+        let workingHoursCache = null;
+        let serviceTimeCache = null;
 
         // ===================================================================
-        // LÓGICA DA AGENDA (JÁ CORRIGIDA)
+        // LÓGICA DA AGENDA
         // ===================================================================
 
         let isAgendaInitialized = false; 
@@ -247,7 +248,18 @@
 
         const loadWorkingHours = async (userId) => { if (workingHoursCache) return workingHoursCache; const ref = doc(db, 'users', userId, 'settings', 'workingHours'); const docSnap = await getDoc(ref); if (docSnap.exists()) { workingHoursCache = docSnap.data(); return workingHoursCache; } return null; };
         
-        // ✨ FUNÇÃO ATUALIZADA PARA MOSTRAR HORÁRIOS OCUPADOS ✨
+        const loadServiceTime = async (userId) => {
+            if (serviceTimeCache) return serviceTimeCache;
+            const userRef = doc(db, 'users', userId);
+            const docSnap = await getDoc(userRef);
+            if (docSnap.exists() && docSnap.data().tempoAtendimento) {
+                serviceTimeCache = docSnap.data().tempoAtendimento;
+            } else {
+                serviceTimeCache = 30; // Valor Padrão
+            }
+            return serviceTimeCache;
+        };
+        
         const renderAvailableTimes = async (userId, dateString, excludedTime = null) => { 
             const timeSelect = document.getElementById('appointment-time'); 
             if (!dateString) { 
@@ -257,6 +269,8 @@
             timeSelect.innerHTML = `<option>Carregando horários...</option>`;
             
             const workingHours = await loadWorkingHours(userId); 
+            const serviceTime = await loadServiceTime(userId);
+            
             if (!workingHours) { 
                 timeSelect.innerHTML = `<option disabled selected>Configure os horários primeiro</option>`;
                 return; 
@@ -290,7 +304,7 @@
             while (currentTime < endTime) { 
                 const timeString = `${String(currentTime.getHours()).padStart(2, '0')}:${String(currentTime.getMinutes()).padStart(2, '0')}`; 
                 allSlots.push(timeString); 
-                currentTime.setMinutes(currentTime.getMinutes() + 30); 
+                currentTime.setMinutes(currentTime.getMinutes() + serviceTime); 
             } 
             
             if (allSlots.length === 0) { 
@@ -865,6 +879,10 @@
                                 <div class="flex items-center"><i data-feather="clock" class="w-5 h-5 mr-4 text-slate-500"></i><span class="font-semibold text-slate-700">Expediente</span></div>
                                 <i data-feather="chevron-right" class="w-5 h-5 text-slate-400"></i>
                             </div>
+                            <div class="settings-menu-item" data-view="time-view" data-title="Tempo de Atendimento">
+                                <div class="flex items-center"><i data-feather="watch" class="w-5 h-5 mr-4 text-slate-500"></i><span class="font-semibold text-slate-700">Tempo de Atendimento</span></div>
+                                <i data-feather="chevron-right" class="w-5 h-5 text-slate-400"></i>
+                            </div>
                             <div class="settings-menu-item" data-view="link-view" data-title="Link de Agendamento">
                                 <div class="flex items-center"><i data-feather="link" class="w-5 h-5 mr-4 text-slate-500"></i><span class="font-semibold text-slate-700">Link de Agendamento</span></div>
                                 <i data-feather="chevron-right" class="w-5 h-5 text-slate-400"></i>
@@ -898,6 +916,22 @@
                         </div>
                     </div>
 
+                    <div id="time-view" class="hidden">
+                        <button class="back-to-settings mb-6 font-semibold text-indigo-600 flex items-center"><i data-feather="chevron-left" class="w-5 h-5"></i> Voltar</button>
+                        <div class="bg-white p-6 rounded-lg shadow-sm">
+                            <h3 class="text-lg font-semibold text-slate-800">Tempo Padrão de Atendimento</h3>
+                            <p class="text-sm text-slate-500 mt-1 mb-4">Defina o intervalo de tempo (em minutos) para cada agendamento. Este valor será usado para gerar os horários disponíveis.</p>
+                            <div class="mt-4">
+                                <label for="service-time-input" class="block text-sm font-medium text-slate-700">Tempo em minutos</label>
+                                <input type="number" id="service-time-input" class="input-style mt-1" placeholder="Ex: 45" min="15" step="5">
+                            </div>
+                            <button id="save-service-time-btn" class="mt-4 w-full bg-indigo-600 text-white font-semibold py-2 px-4 rounded-lg flex items-center justify-center disabled:opacity-50">
+                                <span class="btn-text">Salvar Tempo</span>
+                                <div class="spinner hidden ml-2"></div>
+                            </button>
+                        </div>
+                    </div>
+
                     <div id="link-view" class="hidden">
                         <button class="back-to-settings mb-6 font-semibold text-indigo-600 flex items-center"><i data-feather="chevron-left" class="w-5 h-5"></i> Voltar</button>
                         <div class="bg-white p-6 rounded-lg shadow-sm">
@@ -925,6 +959,9 @@
                 Array.from(wrapper.children).forEach(view => view.classList.add('hidden'));
                 document.getElementById(viewId).classList.remove('hidden');
                 mainPageTitle.textContent = title;
+                if (viewId === 'time-view') {
+                    initializeTimeSettings(user, userData);
+                }
             };
 
             document.querySelectorAll('.settings-menu-item').forEach(item => {
@@ -1052,7 +1089,44 @@
             feather.replace();
         }
 
-        // ✨ LÓGICA DO PAINEL DE ADMIN ATUALIZADA ✨
+        function initializeTimeSettings(user, userData) {
+            const timeInput = document.getElementById('service-time-input');
+            const saveBtn = document.getElementById('save-service-time-btn');
+
+            timeInput.value = userData.tempoAtendimento || 30;
+
+            saveBtn.addEventListener('click', async () => {
+                const newTime = Number(timeInput.value);
+                if (!newTime || newTime < 15) {
+                    alert("Por favor, insira um tempo válido (mínimo de 15 minutos).");
+                    return;
+                }
+
+                const btnText = saveBtn.querySelector('.btn-text');
+                const spinner = saveBtn.querySelector('.spinner');
+                saveBtn.disabled = true;
+                btnText.textContent = 'Salvando...';
+                spinner.classList.remove('hidden');
+
+                try {
+                    const salvarTempoAtendimento = httpsCallable(functions, 'salvarTempoAtendimento');
+                    await salvarTempoAtendimento({ tempo: newTime });
+
+                    userData.tempoAtendimento = newTime; 
+                    serviceTimeCache = null; 
+
+                    alert('Tempo de atendimento salvo com sucesso!');
+                } catch (error) {
+                    console.error("Erro ao salvar tempo de atendimento:", error);
+                    alert(`Ocorreu um erro: ${error.message}`);
+                } finally {
+                    saveBtn.disabled = false;
+                    btnText.textContent = 'Salvar Tempo';
+                    spinner.classList.add('hidden');
+                }
+            });
+        }
+        
         function initializeAdminPanel() {
             initializeAdminDashboard(); 
             const searchInput = document.getElementById('admin-user-search-input');
@@ -1243,7 +1317,6 @@
                 const result = await revokeAccess({ targetUserId });
                 alert(result.data.message);
 
-                // Recarrega a lista para refletir o novo status (Expirado ou Em Teste)
                 document.querySelector('.admin-filter-btn.active').click();
 
             } catch (error) {

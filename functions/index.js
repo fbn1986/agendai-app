@@ -731,3 +731,106 @@ exports.deleteUser = onCall({
         throw new HttpsError("internal", "Ocorreu um erro interno ao tentar deletar o usuário.");
     }
 });
+ /**
+ * FUNÇÃO 11: Salva o tempo de atendimento padrão para um usuário.
+ * Chamada pelo dashboard para que o profissional configure seu tempo.
+ */
+exports.salvarTempoAtendimento = onCall({
+    region: "southamerica-east1",
+}, async (request) => {
+    // 1. Verifica se o usuário está autenticado
+    if (!request.auth) {
+        throw new HttpsError("unauthenticated", "Ação não autorizada. Você precisa estar logado.");
+    }
+
+    const uid = request.auth.uid;
+    const novoTempo = request.data.tempo;
+
+    // 2. Valida o dado recebido
+    if (typeof novoTempo !== 'number' || novoTempo < 15 || novoTempo > 240) {
+        throw new HttpsError("invalid-argument", "O tempo de atendimento deve ser um número entre 15 e 240 minutos.");
+    }
+
+    try {
+        // 3. Atualiza o documento do usuário no Firestore
+        const userRef = db.collection('users').doc(uid);
+        await userRef.update({
+            tempoAtendimento: novoTempo
+        });
+
+        console.log(`Tempo de atendimento para usuário ${uid} atualizado para ${novoTempo} minutos.`);
+        return { success: true, message: "Tempo de atendimento salvo com sucesso!" };
+
+    } catch (error) {
+        console.error("Erro ao salvar tempo de atendimento:", error);
+        throw new HttpsError("internal", "Erro interno ao salvar a configuração.");
+    }
+});
+
+
+/**
+ * FUNÇÃO 12: Busca os horários disponíveis para um profissional em uma data específica.
+ * Chamada pela página de agendamento do cliente (booking.html).
+ */
+exports.getAvailableSlots = onCall({
+    region: "southamerica-east1",
+}, async (request) => {
+    const { userId, date } = request.data; // ex: date no formato "YYYY-MM-DD"
+
+    if (!userId || !date) {
+        throw new HttpsError("invalid-argument", "O ID do usuário e a data são obrigatórios.");
+    }
+
+    try {
+        // 1. Busca dados do profissional (incluindo o tempo de atendimento)
+        const userDoc = await db.collection('users').doc(userId).get();
+        if (!userDoc.exists) {
+            throw new HttpsError("not-found", "Profissional não encontrado.");
+        }
+        const userData = userDoc.data();
+        // Se o usuário não configurou, usa 30 minutos como padrão
+        const tempoAtendimento = userData.tempoAtendimento || 30;
+
+        // NOTA: Horário de trabalho fixo. No futuro, pode virar uma configuração do usuário.
+        const workHours = { start: '09:00', end: '18:00' };
+
+        // 2. Busca agendamentos existentes para o dia solicitado
+        const startOfDay = new Date(`${date}T00:00:00.000-03:00`);
+        const endOfDay = new Date(`${date}T23:59:59.999-03:00`);
+
+        const appointmentsSnapshot = await db.collection(`users/${userId}/appointments`)
+            .where('dateTime', '>=', startOfDay)
+            .where('dateTime', '<=', endOfDay)
+            .get();
+
+        // Cria uma lista apenas com os horários já agendados (ex: ["10:00", "11:30"])
+        const bookedSlots = appointmentsSnapshot.docs.map(doc => {
+            const appointmentTime = doc.data().dateTime.toDate();
+            return appointmentTime.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' });
+        });
+
+        // 3. Gera todos os slots possíveis do dia e remove os que já estão agendados
+        const availableSlots = [];
+        // IMPORTANTE: Define o fuso horário para evitar problemas com horário de verão
+        const slotDate = new Date(`${date}T${workHours.start}:00.000-03:00`);
+        const endDate = new Date(`${date}T${workHours.end}:00.000-03:00`);
+
+        while (slotDate < endDate) {
+            const slotString = slotDate.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' });
+
+            if (!bookedSlots.includes(slotString)) {
+                availableSlots.push(slotString);
+            }
+
+            // Incrementa o tempo do slot com base na configuração do profissional
+            slotDate.setMinutes(slotDate.getMinutes() + tempoAtendimento);
+        }
+
+        return { slots: availableSlots };
+
+    } catch (error) {
+        console.error(`Erro ao buscar horários para o usuário ${userId}:`, error);
+        if (error instanceof HttpsError) throw error;
+        throw new HttpsError("internal", "Não foi possível buscar os horários disponíveis.");
+    }
+});
